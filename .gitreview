@@ -1,0 +1,5 @@
+[gerrit]
+host=gerrit.sf.ring.enovance.com
+port=29418
+project=kitchen-mincer
+defaultbranch=master
