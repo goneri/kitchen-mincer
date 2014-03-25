@@ -1,0 +1,11 @@
+---
+description: Simple WEB and DB project
+
+devtest:
+  method: heat-devstack-docker
+  heat-file: heat-devstack-docker.yaml
+  identity: samplecloud.yaml
+  enabled: yes
+
+  # Deployment method configuration
+  snapshot-vm-name: 012456778
