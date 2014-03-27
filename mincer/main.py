@@ -15,10 +15,12 @@
 import argparse
 import os
 
-import stevedore
+from stevedore import driver
 import yaml
 
 from mincer import exceptions
+
+MINCER_PROVIDERS_NS = 'mincer.providers'
 
 
 class Main(object):
@@ -30,8 +32,6 @@ class Main(object):
         self.marmite_dir = marmite_dir
         self.yaml_tree = self._load_file(os.path.join(self.marmite_dir,
                                                       "marmite.yaml"))
-        self.providers = stevedore.extension.ExtensionManager(
-            namespace='mincer.providers')
 
     def _load_file(self, filename):
         with open(filename, 'r') as f:
@@ -54,18 +54,18 @@ class Main(object):
 
     def start_provider(self, env):
         self._check_provider_is_here(env)
-
         identities = self.get_identity(env)
-        provider = None
-        for p in self.providers:
-            if p.name == self.yaml_tree[env]['method']:
-                provider = p.plugin
 
-        if not provider:
-            raise exceptions.ProviderNotFound()
+        kwargs = dict(configuration=self.yaml_tree[env],
+                      identities=identities)
 
-        return provider.main(configuration=self.yaml_tree[env],
-                             identities=identities)
+        try:
+            return driver.DriverManager(namespace=MINCER_PROVIDERS_NS,
+                                        name=self.yaml_tree[env]['method'],
+                                        invoke_on_load=True,
+                                        invoke_kwds=kwargs).driver
+        except(RuntimeError), e:
+            raise exceptions.ProviderNotFound(e)
 
 
 def main(args=None):
