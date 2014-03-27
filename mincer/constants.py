@@ -12,15 +12,4 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import argparse
-
-from mincer import mixer
-
-
-def main(args=None):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--target", help="Target to run")
-    parser.add_argument("marmite_file", help="Main marmite directory.")
-    args = parser.parse_args(args=args)
-    m = mixer.Mixer(args.marmite_file)
-    m.start_provider(args.target)
+MINCER_PROVIDERS_NS = 'mincer.providers'

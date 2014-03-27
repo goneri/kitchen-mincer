@@ -18,7 +18,7 @@ import fixtures
 import testtools
 
 from mincer import exceptions
-from mincer import main
+from mincer import mixer
 
 
 SAMPLE_MARMITE = """---
@@ -53,14 +53,14 @@ class TestMain(testtools.TestCase):
             f.write(SAMPLE_IDENTITY)
 
     def test_basic_init(self):
-        m = main.Main(self.testdir)
+        m = mixer.Mixer(self.testdir)
         self.assertIn('env1', m.yaml_tree.keys())
 
     def test_init_no_marmite(self):
         self.assertRaises(exceptions.NotFound,
-                          main.Main, "/NOTHERE")
+                          mixer.Mixer, "/NOTHERE")
 
     def test_inexistent_provider(self):
-        m = main.Main(self.testdir)
+        m = mixer.Mixer(self.testdir)
         self.assertRaises(exceptions.ProviderNotFound,
                           m.start_provider, "env1")
