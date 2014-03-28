@@ -15,6 +15,7 @@
 import os
 
 import fixtures
+import mock
 import testtools
 
 from mincer import exceptions
@@ -33,7 +34,7 @@ env1:
 
 SAMPLE_IDENTITY = """---
 samplecloud:
-  os_username: username
+  os_username: $CHOCOLATE
   os_tenant_name: tenant
   os_password: password
   os_auth_url: http://os.enocloud.com:5000/v2.0
@@ -64,3 +65,26 @@ class TestMain(testtools.TestCase):
         m = mixer.Mixer(self.testdir)
         self.assertRaises(exceptions.ProviderNotFound,
                           m.start_provider, "env1")
+
+    def test_get_identity(self):
+        env = 'env1'
+        m = mixer.Mixer(self.testdir)
+        ret = m.get_identity(env)
+        self.assertIn("samplecloud", ret)
+        cloud = ret['samplecloud']
+        for x in ('os_password', 'os_password', 'os_password', 'os_username'):
+            self.assertIn(x, cloud)
+
+    def test_get_identity_with_shell_variable(self):
+        with mock.patch.dict('os.environ', {'CHOCOLATE': 'FACTORY'}):
+            env = 'env1'
+            m = mixer.Mixer(self.testdir)
+            ret = m.get_identity(env)
+            self.assertEquals(ret['samplecloud']['os_username'], 'FACTORY')
+
+    def test_get_identity_with_unkown_shell_variable(self):
+        with mock.patch.dict('os.environ', {}):
+            env = 'env1'
+            m = mixer.Mixer(self.testdir)
+            ret = m.get_identity(env)
+            self.assertIsNone(ret['samplecloud']['os_username'])

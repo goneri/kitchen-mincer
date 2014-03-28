@@ -4,6 +4,7 @@ discover
 
 testrepository>=0.0.13
 testtools>=0.9.27
-fixtures
+fixtures>=0.3.14
+mock>=1.0
 
 nose

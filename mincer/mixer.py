@@ -48,6 +48,12 @@ class Mixer(object):
                                      'identities', self.yaml_tree[env][key])
                 with open(fname, 'r') as f:
                     ret.update(yaml.load(f))
+
+        for identity in ret:
+            for row in ret[identity]:
+                if ret[identity][row].startswith("$"):
+                    ret[identity][row] = os.environ.get(
+                        ret[identity][row].replace('$', ''))
         return ret
 
     def start_provider(self, env):
