@@ -5,3 +5,5 @@ discover
 testrepository>=0.0.13
 testtools>=0.9.27
 fixtures
+
+nose
