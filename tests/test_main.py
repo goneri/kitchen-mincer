@@ -63,7 +63,7 @@ class TestMain(testtools.TestCase):
 
     def test_inexistent_provider(self):
         m = mixer.Mixer(self.testdir)
-        self.assertRaises(exceptions.ProviderNotFound,
+        self.assertRaises(RuntimeError,
                           m.start_provider, "env1")
 
     def test_get_identity(self):
@@ -80,7 +80,7 @@ class TestMain(testtools.TestCase):
             env = 'env1'
             m = mixer.Mixer(self.testdir)
             ret = m.get_identity(env)
-            self.assertEquals(ret['samplecloud']['os_username'], 'FACTORY')
+            self.assertEqual(ret['samplecloud']['os_username'], 'FACTORY')
 
     def test_get_identity_with_unkown_shell_variable(self):
         with mock.patch.dict('os.environ', {}):

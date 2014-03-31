@@ -16,7 +16,3 @@
 
 class NotFound(Exception):
     pass
-
-
-class ProviderNotFound(Exception):
-    pass

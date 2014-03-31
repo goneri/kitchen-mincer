@@ -40,6 +40,11 @@ class Mixer(object):
             raise exceptions.NotFound(
                 "Provider %s was not found in yaml file" % (env))
 
+    def report_error(self, manager, entrypoint, exception):
+        #TODO(chmouel): s/print/logging system/
+        print("Error while loading provider %s" % entrypoint)
+        raise exception
+
     def get_identity(self, env):
         ret = {}
         for key in self.yaml_tree[env].keys():
@@ -63,11 +68,11 @@ class Mixer(object):
         kwargs = dict(configuration=self.yaml_tree[env],
                       identities=identities)
 
-        try:
-            return driver.DriverManager(
-                namespace=constants.MINCER_PROVIDERS_NS,
-                name=self.yaml_tree[env]['method'],
-                invoke_on_load=True,
-                invoke_kwds=kwargs).driver
-        except(RuntimeError), e:
-            raise exceptions.ProviderNotFound(e)
+        #TODO(chmouel): May need some lazy loading but let's do like
+        # that for now
+        return driver.DriverManager(
+            namespace=constants.MINCER_PROVIDERS_NS,
+            name=self.yaml_tree[env]['method'],
+            invoke_on_load=True,
+            on_load_failure_callback=self.report_error,
+            invoke_kwds=kwargs).driver
