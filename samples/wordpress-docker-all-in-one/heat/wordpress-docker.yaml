@@ -1,0 +1,30 @@
+heat_template_version: 2013-05-23
+
+description: >
+    Spin up a wordpress in two containers web and db
+
+resources:
+  wordpress:
+    type: DockerInc::Docker::Container
+    properties:
+      image: samalba/wordpress
+      env:
+        - {"Fn::Join": ["=", ["DB_HOSTNAME", { get_attr: [database, network_ip]}]]}
+        - {"Fn::Join": ["=", ["DB_PASSWORD", { get_attr: [database, logs_head]}]]}
+        - DB_PORT=3306
+
+  database:
+    type: DockerInc::Docker::Container
+    properties:
+      port_specs:
+        - 3306
+      image: samalba/mysql
+
+outputs:
+  info:
+    description: IP address of server1 in private network
+    value:
+      str_replace:
+        template: http://host
+        params:
+          host: { get_attr: [wordpress, network_ip] }

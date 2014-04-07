@@ -1,0 +1,21 @@
+description: A wordpress in a container (web and DB)
+
+environments:
+  devtest:
+    method: heat-devstack-docker
+    identity: enocloud
+
+methods:
+  heat-devstack-docker:
+    image: heat-devstack-docker
+    flavor: m1.medium
+    heat_file: wordpress-docker
+    keypair: Nopasswd
+    floating_ip: 46.231.128.152
+
+identities:
+  enocloud:
+    os_username: $OS_USERNAME
+    os_tenant_name: $OS_TENANT_NAME
+    os_password: $OS_PASSWORD
+    os_auth_url: $OS_AUTH_URL

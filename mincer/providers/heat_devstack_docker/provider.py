@@ -14,15 +14,15 @@
 # under the License.
 
 
-def main(configuration={}, identities={}, *args, **kwargs):
-    cld = identities.keys()[0]
-    print("I will use cloud identity %s to spawn a vm with tenant %s "
+def main(configuration={}, identity={}, *args, **kwargs):
+    print("I will use spawn a vm with tenant %s "
           "and password %s to url %s") % (
-              cld, identities[cld]['os_tenant_name'],
-              identities[cld]['os_password'], identities[cld]['os_auth_url'],)
+              identity['os_tenant_name'],
+              identity['os_password'],
+              identity['os_auth_url'],)
 
-    print("I will spawn a vm from a snapshot called" + (
-        configuration['snapshot-vm-name']))
-
-    print("And I will launch the heat-file" + (
-        configuration['heat-file']))
+    # TODO(chmou): Methods configuration
+    # print("I will spawn a vm from a snapshot called" + (
+    #     configuration['snapshot-vm-name']))
+    # print("And I will launch the heat-file" + (
+    #     configuration['heat-file']))

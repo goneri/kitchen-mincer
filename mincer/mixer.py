@@ -36,7 +36,7 @@ class Mixer(object):
             return yaml.load(f)
 
     def _check_provider_is_here(self, env):
-        if env not in self.yaml_tree:
+        if env not in self.yaml_tree['environments']:
             raise exceptions.NotFound(
                 "Provider %s was not found in yaml file" % (env))
 
@@ -46,33 +46,45 @@ class Mixer(object):
         raise exception
 
     def get_identity(self, env):
-        ret = {}
-        for key in self.yaml_tree[env].keys():
-            if key.startswith('identity') or key.startswith('identities'):
-                fname = os.path.join(self.marmite_dir,
-                                     'identities', self.yaml_tree[env][key])
-                with open(fname, 'r') as f:
-                    ret.update(yaml.load(f))
+        for key in self.yaml_tree['environments'][env].keys():
+            if not key.startswith('identity'):
+                continue
 
-        for identity in ret:
-            for row in ret[identity]:
-                if ret[identity][row].startswith("$"):
-                    ret[identity][row] = os.environ.get(
-                        ret[identity][row].replace('$', ''))
+            value = self.yaml_tree['environments'][env][key]
+            if ('identities' in self.yaml_tree and
+                value in self.yaml_tree['identities']):
+                ret = self.yaml_tree['identities'][value]
+                break
+
+            fname = os.path.join(self.marmite_dir,
+                                 'identities',
+                                 self.yaml_tree['environments'][env][key])
+
+            if not os.path.exists(fname):
+                raise exceptions.NotFound(
+                    "Identity %s was not found in yaml file" % (key))
+
+            with open(fname, 'r') as f:
+                ret = yaml.load(f)
+
+        for row in ret:
+            if ret[row].startswith("$"):
+                ret[row] = os.environ.get(
+                    ret[row].replace('$', ''))
         return ret
 
     def start_provider(self, env):
         self._check_provider_is_here(env)
-        identities = self.get_identity(env)
+        identity = self.get_identity(env)
 
-        kwargs = dict(configuration=self.yaml_tree[env],
-                      identities=identities)
+        kwargs = dict(configuration=self.yaml_tree['environments'][env],
+                      identity=identity)
 
         #TODO(chmouel): May need some lazy loading but let's do like
         # that for now
         return driver.DriverManager(
             namespace=constants.MINCER_PROVIDERS_NS,
-            name=self.yaml_tree[env]['method'],
+            name=self.yaml_tree['environments'][env]['method'],
             invoke_on_load=True,
             on_load_failure_callback=self.report_error,
             invoke_kwds=kwargs).driver

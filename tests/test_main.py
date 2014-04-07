@@ -23,21 +23,20 @@ from mincer import mixer
 
 
 SAMPLE_MARMITE = """---
-env1:
-  method: fakemethod
-  heat-file: heat.yaml
-  identity: identity.yaml
-  enabled: no
-
-  arbitary-configuration: hello
+environments:
+  env1:
+    method: fakemethod
+    heat-file: heat.yaml
+    identity: identity.yaml
+    enabled: no
+    arbitary-configuration: hello
 """
 
-SAMPLE_IDENTITY = """---
-samplecloud:
-  os_username: $CHOCOLATE
-  os_tenant_name: tenant
-  os_password: password
-  os_auth_url: http://os.enocloud.com:5000/v2.0
+SAMPLE_IDENTITY = """
+os_username: $CHOCOLATE
+os_tenant_name: tenant
+os_password: password
+os_auth_url: http://os.enocloud.com:5000/v2.0
 """
 
 
@@ -55,7 +54,7 @@ class TestMain(testtools.TestCase):
 
     def test_basic_init(self):
         m = mixer.Mixer(self.testdir)
-        self.assertIn('env1', m.yaml_tree.keys())
+        self.assertIn('env1', m.yaml_tree['environments'])
 
     def test_init_no_marmite(self):
         self.assertRaises(exceptions.NotFound,
@@ -70,21 +69,19 @@ class TestMain(testtools.TestCase):
         env = 'env1'
         m = mixer.Mixer(self.testdir)
         ret = m.get_identity(env)
-        self.assertIn("samplecloud", ret)
-        cloud = ret['samplecloud']
         for x in ('os_password', 'os_password', 'os_password', 'os_username'):
-            self.assertIn(x, cloud)
+            self.assertIn(x, ret)
 
     def test_get_identity_with_shell_variable(self):
         with mock.patch.dict('os.environ', {'CHOCOLATE': 'FACTORY'}):
             env = 'env1'
             m = mixer.Mixer(self.testdir)
             ret = m.get_identity(env)
-            self.assertEqual(ret['samplecloud']['os_username'], 'FACTORY')
+            self.assertEqual(ret['os_username'], 'FACTORY')
 
     def test_get_identity_with_unkown_shell_variable(self):
         with mock.patch.dict('os.environ', {}):
             env = 'env1'
             m = mixer.Mixer(self.testdir)
             ret = m.get_identity(env)
-            self.assertIsNone(ret['samplecloud']['os_username'])
+            self.assertIsNone(ret['os_username'])
