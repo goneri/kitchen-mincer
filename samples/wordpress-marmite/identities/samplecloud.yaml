@@ -1,6 +1,0 @@
----
-samplecloud:
-  os_username: username
-  os_tenant_name: tenant
-  os_password: password
-  os_auth_url: http://os.enocloud.com:5000/v2.0
