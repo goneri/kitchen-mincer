@@ -20,7 +20,9 @@ from mincer import mixer
 def main(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", help="Target to run")
-    parser.add_argument("marmite_file", help="Main marmite directory.")
+    parser.add_argument("--test", action="store_true",
+                        help="Enter the test mode")
+    parser.add_argument("marmite_directory", help="Main marmite directory.")
     args = parser.parse_args(args=args)
-    m = mixer.Mixer(args.marmite_file)
+    m = mixer.Mixer(args.marmite_directory, args)
     m.start_provider(args.target)

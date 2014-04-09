@@ -14,14 +14,16 @@
 # under the License.
 
 
-def main(configuration={}, identity={}, *args, **kwargs):
-    print("I will use spawn a vm with tenant %s "
-          "and password %s to url %s") % (
-              identity['os_tenant_name'],
-              identity['os_password'],
-              identity['os_auth_url'],)
+def main(method_configuration={}, identity={}, args={}):
+    # NB(chmouel): This is a sample method to see if things works
+    if args.test:
+        print("I will use spawn a vm with tenant %s "
+              "and password %s to url %s") % (
+                  identity['os_tenant_name'],
+                  identity['os_password'],
+                  identity['os_auth_url'],)
 
-    print("I will spawn a vm from a snapshot called" + (
-        configuration['image']))
-    print("And I will launch the heat file " + (
-        configuration['heat_file']))
+        print("I will spawn a vm from a snapshot called" + (
+            method_configuration['image']))
+        print("And I will launch the heat file " + (
+            method_configuration['heat_file']))

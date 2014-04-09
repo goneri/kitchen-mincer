@@ -58,36 +58,32 @@ class TestMain(testtools.TestCase):
                 self.testdir, "identities", "identity.yaml"), 'w') as f:
             f.write(SAMPLE_IDENTITY)
 
+        self.mixer = mixer.Mixer(self.testdir, {})
+
     def test_basic_init(self):
-        m = mixer.Mixer(self.testdir)
-        self.assertIn('env1', m.yaml_tree['environments'])
+        self.assertIn('env1', self.mixer.yaml_tree['environments'])
 
     def test_init_no_marmite(self):
         self.assertRaises(exceptions.NotFound,
-                          mixer.Mixer, "/NOTHERE")
+                          mixer.Mixer, "/NOTHERE", {})
 
     def test_inexistent_provider(self):
-        m = mixer.Mixer(self.testdir)
         self.assertRaises(RuntimeError,
-                          m.start_provider, "env1")
+                          self.mixer.start_provider, "env1")
 
     def test_get_identity(self):
         env = 'env1'
-        m = mixer.Mixer(self.testdir)
-        ret = m.get_identity(env)
+        ret = self.mixer.get_identity(env)
         for x in ('os_password', 'os_password', 'os_password', 'os_username'):
             self.assertIn(x, ret)
 
     def test_get_identity_with_shell_variable(self):
         with mock.patch.dict('os.environ', {'CHOCOLATE': 'FACTORY'}):
             env = 'env1'
-            m = mixer.Mixer(self.testdir)
-            ret = m.get_identity(env)
-            self.assertEqual(ret['os_username'], 'FACTORY')
+            self.assertEqual(self.mixer.get_identity(env)['os_username'],
+                             'FACTORY')
 
     def test_get_identity_with_unkown_shell_variable(self):
         with mock.patch.dict('os.environ', {}):
             env = 'env1'
-            m = mixer.Mixer(self.testdir)
-            ret = m.get_identity(env)
-            self.assertIsNone(ret['os_username'])
+            self.assertIsNone(self.mixer.get_identity(env)['os_username'])

@@ -22,7 +22,8 @@ from mincer import exceptions
 
 
 class Mixer(object):
-    def __init__(self, marmite_dir):
+    def __init__(self, marmite_dir, args):
+        self.args = args
         if not os.path.exists(marmite_dir):
             raise exceptions.NotFound(
                 "Marmite %s was not found on the fs" % marmite_dir)
@@ -90,9 +91,10 @@ class Mixer(object):
 
         identity = self.get_identity(env)
         method = self.yaml_tree['environments'][env]['method']
-        configuration = self.get_method_configuration(method)
+        method_configuration = self.get_method_configuration(method)
 
-        kwargs = dict(configuration=configuration,
+        kwargs = dict(method_configuration=method_configuration,
+                      args=self.args,
                       identity=identity)
 
         #TODO(chmouel): May need some lazy loading but let's do like
