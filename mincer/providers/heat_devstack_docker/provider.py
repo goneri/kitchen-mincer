@@ -21,8 +21,7 @@ def main(configuration={}, identity={}, *args, **kwargs):
               identity['os_password'],
               identity['os_auth_url'],)
 
-    # TODO(chmou): Methods configuration
-    # print("I will spawn a vm from a snapshot called" + (
-    #     configuration['snapshot-vm-name']))
-    # print("And I will launch the heat-file" + (
-    #     configuration['heat-file']))
+    print("I will spawn a vm from a snapshot called" + (
+        configuration['image']))
+    print("And I will launch the heat file " + (
+        configuration['heat_file']))

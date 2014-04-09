@@ -26,17 +26,23 @@ SAMPLE_MARMITE = """---
 environments:
   env1:
     method: fakemethod
+    identity: fakeident
     heat-file: heat.yaml
-    identity: identity.yaml
+
+methods:
+  fakemethod:
     enabled: no
     arbitary-configuration: hello
+
+identities:
+  fakeident:
+    os_username: $CHOCOLATE
+    os_tenant_name: tenant
+    os_password: password
+    os_auth_url: http://os.enocloud.com:5000/v2.0
 """
 
 SAMPLE_IDENTITY = """
-os_username: $CHOCOLATE
-os_tenant_name: tenant
-os_password: password
-os_auth_url: http://os.enocloud.com:5000/v2.0
 """
 
 

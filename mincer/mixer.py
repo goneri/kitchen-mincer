@@ -45,7 +45,20 @@ class Mixer(object):
         print("Error while loading provider %s" % entrypoint)
         raise exception
 
+    def get_method_configuration(self, env):
+        cfg = self.yaml_tree.get('methods')
+        if cfg and env in cfg:
+            return cfg[env]
+        fname = os.path.join(self.marmite_dir, 'methods', env)
+        if os.path.exists(fname):
+            return yaml.load(open(fname, 'r'))
+
+        # TODO(chmouel): May have some methods tha thav eno configuration
+        raise exceptions.NotFound(
+            "Cannot find configuration for method: %s" % env)
+
     def get_identity(self, env):
+        ret = {}
         for key in self.yaml_tree['environments'][env].keys():
             if not key.startswith('identity'):
                 continue
@@ -64,8 +77,7 @@ class Mixer(object):
                 raise exceptions.NotFound(
                     "Identity %s was not found in yaml file" % (key))
 
-            with open(fname, 'r') as f:
-                ret = yaml.load(f)
+            ret = yaml.load(open(fname, 'r'))
 
         for row in ret:
             if ret[row].startswith("$"):
@@ -75,9 +87,12 @@ class Mixer(object):
 
     def start_provider(self, env):
         self._check_provider_is_here(env)
-        identity = self.get_identity(env)
 
-        kwargs = dict(configuration=self.yaml_tree['environments'][env],
+        identity = self.get_identity(env)
+        method = self.yaml_tree['environments'][env]['method']
+        configuration = self.get_method_configuration(method)
+
+        kwargs = dict(configuration=configuration,
                       identity=identity)
 
         #TODO(chmouel): May need some lazy loading but let's do like
