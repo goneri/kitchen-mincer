@@ -32,7 +32,7 @@ environments:
 methods:
   fakemethod:
     enabled: no
-    arbitary-configuration: hello
+    arbitary_configuration: hello
 
 identities:
   fakeident:
@@ -46,9 +46,9 @@ SAMPLE_IDENTITY = """
 """
 
 
-class TestMain(testtools.TestCase):
+class TestMixer(testtools.TestCase):
     def setUp(self):
-        super(TestMain, self).setUp()
+        super(TestMixer, self).setUp()
         self.testdir = self.useFixture(fixtures.TempDir()).path
 
         with open(os.path.join(self.testdir, "marmite.yaml"), 'w') as f:
@@ -87,3 +87,20 @@ class TestMain(testtools.TestCase):
         with mock.patch.dict('os.environ', {}):
             env = 'env1'
             self.assertIsNone(self.mixer.get_identity(env)['os_username'])
+
+    def test_provider_not_here(self):
+        self.assertRaises(exceptions.NotFound,
+                          self.mixer._check_provider_is_here, "FOO")
+
+    def test_get_method_configuration(self):
+        ret = self.mixer.get_method_configuration("fakemethod")
+        self.assertIn('enabled', ret)
+        self.assertIn('arbitary_configuration', ret)
+
+    #TODO(chmou): Test individual files get methods
+    def test_get_method_configuration_file(self):
+        self.skipTest("Not tested yet")
+
+    #TODO(chmou): Test individual files get methods
+    def test_get_identity_configuration_file(self):
+        self.skipTest("Not tested yet")

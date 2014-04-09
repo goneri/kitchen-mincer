@@ -46,17 +46,17 @@ class Mixer(object):
         print("Error while loading provider %s" % entrypoint)
         raise exception
 
-    def get_method_configuration(self, env):
+    def get_method_configuration(self, method):
         cfg = self.yaml_tree.get('methods')
-        if cfg and env in cfg:
-            return cfg[env]
-        fname = os.path.join(self.marmite_dir, 'methods', env)
+        if cfg and method in cfg:
+            return cfg[method]
+        fname = os.path.join(self.marmite_dir, 'methods', method)
         if os.path.exists(fname):
             return yaml.load(open(fname, 'r'))
 
         # TODO(chmouel): May have some methods tha thav eno configuration
         raise exceptions.NotFound(
-            "Cannot find configuration for method: %s" % env)
+            "Cannot find configuration for method: %s" % method)
 
     def get_identity(self, env):
         ret = {}
