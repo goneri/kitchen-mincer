@@ -17,12 +17,14 @@
 def main(params={}, identity={}, args={}):
     # NB(chmouel): This is a sample method to see if things works
     if args.test:
-        print("I will use spawn a vm with tenant %s "
-              "and password %s to url %s") % (
-                  identity['os_tenant_name'],
-                  identity['os_password'],
-                  identity['os_auth_url'],)
+        print("I will spawn a vm with the following credentials:\n\n"
+              " username: %s\n"
+              " tenant: %s\n"
+              " password: %s\n"
+              " url: %s\n" % (identity['os_username'],
+                              identity['os_tenant_name'],
+                              identity['os_password'],
+                              identity['os_auth_url']))
 
-        print("I will spawn a vm from a snapshot called" + (
-            params['image']))
-        print("And I will launch the heat file application/heat.yaml")
+        print("I will spawn a vm from a snapshot called '%s'" %
+              (params['image']))
