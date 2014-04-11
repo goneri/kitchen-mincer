@@ -46,54 +46,40 @@ class Mixer(object):
         print("Error while loading provider %s" % entrypoint)
         raise exception
 
-    def get_method_configuration(self, method):
-        cfg = self.yaml_tree.get('methods')
-        if cfg and method in cfg:
-            return cfg[method]
-        fname = os.path.join(self.marmite_dir, 'methods', method)
-        if os.path.exists(fname):
-            return yaml.load(open(fname, 'r'))
+    def get_provider_configuration(self, env):
+        ret = {}
 
-        # TODO(chmouel): May have some methods tha thav eno configuration
-        raise exceptions.NotFound(
-            "Cannot find configuration for method: %s" % method)
+        if 'provider_params' in self.yaml_tree['environments'][env]:
+            ret = self.yaml_tree['environments'][env]['provider_params']
 
+        return ret
+
+    # TODO(Gonéri)
+    # have to be migrated
     def get_identity(self, env):
         ret = {}
-        for key in self.yaml_tree['environments'][env].keys():
-            if not key.startswith('identity'):
-                continue
 
-            value = self.yaml_tree['environments'][env][key]
-            if ('identities' in self.yaml_tree and
-                value in self.yaml_tree['identities']):
-                ret = self.yaml_tree['identities'][value]
-                break
+        if 'identity' in self.yaml_tree['environments'][env]:
+            ret = self.yaml_tree['environments'][env]['identity']
 
-            fname = os.path.join(self.marmite_dir,
-                                 'identities',
-                                 self.yaml_tree['environments'][env][key])
+            for row in ret:
+                if ret[row].startswith("$"):
+                    ret[row] = os.environ.get(
+                        ret[row].replace('$', ''))
 
-            if not os.path.exists(fname):
-                raise exceptions.NotFound(
-                    "Identity %s was not found in yaml file" % (key))
-
-            ret = yaml.load(open(fname, 'r'))
-
-        for row in ret:
-            if ret[row].startswith("$"):
-                ret[row] = os.environ.get(
-                    ret[row].replace('$', ''))
         return ret
 
     def start_provider(self, env):
         self._check_provider_is_here(env)
 
         identity = self.get_identity(env)
-        method = self.yaml_tree['environments'][env]['method']
-        method_configuration = self.get_method_configuration(method)
+        provider = self.yaml_tree['environments'][env]['provider']
+        # TODO(Gonéri)
+        # We need a “config” abstraction layer
+        provider_params = \
+            self.yaml_tree['environments'][env]['provider_params']
 
-        kwargs = dict(method_configuration=method_configuration,
+        kwargs = dict(params=provider_params,
                       args=self.args,
                       identity=identity)
 
@@ -101,7 +87,7 @@ class Mixer(object):
         # that for now
         return driver.DriverManager(
             namespace=constants.MINCER_PROVIDERS_NS,
-            name=self.yaml_tree['environments'][env]['method'],
+            name=provider,
             invoke_on_load=True,
             on_load_failure_callback=self.report_error,
             invoke_kwds=kwargs).driver

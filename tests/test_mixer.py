@@ -25,21 +25,22 @@ from mincer import mixer
 SAMPLE_MARMITE = """---
 environments:
   env1:
-    method: fakemethod
-    identity: fakeident
+    provider: fakemethod
+    provider_params:
+      my_fake_param: bob
+      enabled: True
+      arbitary_configuration: hello
+    identity:
+      os_username: $CHOCOLATE
+      os_tenant_name: tenant
+      os_password: password
+      os_auth_url: http://os.enocloud.com:5000/v2.0
+
     heat-file: heat.yaml
 
-methods:
-  fakemethod:
-    enabled: no
-    arbitary_configuration: hello
+application:
+  name: my fake application
 
-identities:
-  fakeident:
-    os_username: $CHOCOLATE
-    os_tenant_name: tenant
-    os_password: password
-    os_auth_url: http://os.enocloud.com:5000/v2.0
 """
 
 SAMPLE_IDENTITY = """
@@ -92,13 +93,13 @@ class TestMixer(testtools.TestCase):
         self.assertRaises(exceptions.NotFound,
                           self.mixer._check_provider_is_here, "FOO")
 
-    def test_get_method_configuration(self):
-        ret = self.mixer.get_method_configuration("fakemethod")
+    def test_get_provider_configuration(self):
+        ret = self.mixer.get_provider_configuration('env1')
         self.assertIn('enabled', ret)
         self.assertIn('arbitary_configuration', ret)
 
     #TODO(chmou): Test individual files get methods
-    def test_get_method_configuration_file(self):
+    def test_get_provider_configuration_file(self):
         self.skipTest("Not tested yet")
 
     #TODO(chmou): Test individual files get methods

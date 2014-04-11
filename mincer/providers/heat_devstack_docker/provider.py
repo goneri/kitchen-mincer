@@ -14,7 +14,7 @@
 # under the License.
 
 
-def main(method_configuration={}, identity={}, args={}):
+def main(params={}, identity={}, args={}):
     # NB(chmouel): This is a sample method to see if things works
     if args.test:
         print("I will use spawn a vm with tenant %s "
@@ -24,6 +24,5 @@ def main(method_configuration={}, identity={}, args={}):
                   identity['os_auth_url'],)
 
         print("I will spawn a vm from a snapshot called" + (
-            method_configuration['image']))
-        print("And I will launch the heat file " + (
-            method_configuration['heat_file']))
+            params['image']))
+        print("And I will launch the heat file application/heat.yaml")
