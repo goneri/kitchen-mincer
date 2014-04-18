@@ -12,4 +12,4 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-from provider import main  # noqa
+from provider import HeatDevstackDocker  # flake8: noqa

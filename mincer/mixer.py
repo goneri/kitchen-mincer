@@ -42,11 +42,12 @@ class Mixer(object):
                       args=self.args,
                       identity=identity)
 
-        #TODO(chmouel): May need some lazy loading but let's do like
-        # that for now
-        return driver.DriverManager(
+        provider = driver.DriverManager(
             namespace=MINCER_PROVIDERS_NS,
             name=provider,
             invoke_on_load=True,
             on_load_failure_callback=self.report_error,
             invoke_kwds=kwargs).driver
+
+        #TODO(chmouel): is this the entry point?
+        provider.create()

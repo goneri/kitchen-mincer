@@ -3,37 +3,25 @@ description: A wordpress in a container (web and DB)
 # an account on an OpenStack cloud providing Heat API.
 environments:
   devtest:
-    # The nature of the env, for example here it is based on Heat+Docker
-    provider: heat_devstack_docker
-    provider_params:
-      image: heat_devstack_docker
-      flavor: m1.medium
-      keypair: Nopasswd
-      floating_ip: 46.231.128.152
-    # Credentials required to connect to the OpenStack
     identity:
-      os_username: bob_l_eponge
-      os_tenant_name: $OS_TENANT_NAME
-      os_password: password
-      os_auth_url: $OS_AUTH_URL
-    # A list of floating IP dedicated to the kitchen.
-    # /!\ this list is associated with the OS_TENANT_NAME /!\
-    ip_pool:
-      - 10.0.0.4
-      - 10.0.0.5
-      - 10.0.0.6
-  # Another environnement
-  os-ci-test6:
+      os_auth_url: http://somewhere
+      os_username: myuser
+      os_password: mypw
+      os_tenant_name: demo
+  os-ci-test7:
 # Implicite, heat is the default provider.
 #    provider: heat
     identity:
-      os_username: bob_l_eponge
-      os_tenant_name: $OS_TENANT_NAME
-      os_password: $OS_PASSWORD
-      os_auth_url: $OS_AUTH_URL
+#NOTE(Gonéri): Why the os_ prefix?
+      os_auth_url: http://os-ci-test7.ring.enovance.com:5000/v2.0
+      os_username: admin
+      os_password: password
+      os_tenant_name: demo
     ip_pool:
-      - 46.231.128.152
-      - 46.231.128.153
+      - 172.24.4.3
+      - 172.24.4.4
+      - 172.24.4.5
+      - 172.24.4.6
 
 application:
   # Name of the application, Stack will be called according to this name
@@ -48,14 +36,11 @@ application:
   #  - keypair: retrieve a key content from a keys/<name>.pub
   #  - media: returns the image id of the media in Glance
   params:
-    - { type: floating_ip, name: mysql_server,  idx: 0 }
-    - { type: floating_ip, name: http_server,  idx: 1 }
+    - { type: floating_ip, name: ip,  idx: 0 }
     # the keypair(s) to use, keypair name is the filename without the extension,
     # e.g: keys/roberto.pub → roberto
     - { type: keypair, name: roberto_key }
-    - { type: value, name: blog_title, value: I'm sexy and I know it! }
-    - { type: media, name: wp_files }
-    - { type: media, name: sql_db_dump  }
+    - { type: value, name: key_name, value: stack_os-ci-test7 }
   medias:
     # A image content computed before the Heat creation
     wp_files:

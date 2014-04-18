@@ -14,17 +14,24 @@
 # under the License.
 
 
-def main(params={}, identity={}, args={}):
-    # NB(chmouel): This is a sample method to see if things works
-    if args.test:
-        print("I will spawn a vm with the following credentials:\n\n"
-              " username: %s\n"
-              " tenant: %s\n"
-              " password: %s\n"
-              " url: %s\n" % (identity['os_username'],
-                              identity['os_tenant_name'],
-                              identity['os_password'],
-                              identity['os_auth_url']))
+class HeatDevstackDocker(object):
+    def __init__(self, params={}, identity={}, args={}):
+        self.identity = identity
+        self.args = args
 
-        print("I will spawn a vm from a snapshot called '%s'" %
-              (params['image']))
+    def create(self):
+        identity = self.identity
+        args = self.args
+    # NB(chmouel): This is a sample method to see if things works
+        if args.test:
+            print("I will spawn a vm with the following credentials:\n\n"
+                  "username: %s\n"
+                  " tenant: %s\n"
+                  " password: %s\n"
+                  " url: %s\n" % (
+                      identity['os_username'],
+                      identity['os_tenant_name'],
+                      identity['os_password'],
+                      identity['os_auth_url']))
+
+        print("I will spawn a vm")

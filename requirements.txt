@@ -3,3 +3,4 @@ PyYAML
 stevedore
 python-glanceclient
 python-keystoneclient
+python-heatclient
