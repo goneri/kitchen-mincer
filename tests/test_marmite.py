@@ -43,11 +43,7 @@ class TestMarmite(testtools.TestCase):
         self.assertIn("m1.medium", provider_params["flavor"])
         self.assertIn("Nopasswd", provider_params["keypair"])
         self.assertIn("46.231.128.152", provider_params["floating_ip"])
-
-    def test_inexistent_environment(self):
-        self.assertRaises(marmite.NotFound,
-                          self.marmite.environments().provider,
-                          "fake_env")
+        self.assertIn("heat", self.environments.provider("fake_env"))
 
     def test_identity(self):
 

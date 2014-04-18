@@ -81,13 +81,13 @@ class Environments(object):
         try:
             return self.environments_tree[environment]['provider']
         except KeyError:
-            raise NotFound("'%s, provider' not found" % environment)
+            return 'heat'
 
     def provider_params(self, environment):
         try:
             return self.environments_tree[environment]['provider_params']
         except KeyError:
-            raise NotFound("'%s, provider_params' not found" % environment)
+            return dict()
 
     def identity(self, environment):
         credentials = {}
