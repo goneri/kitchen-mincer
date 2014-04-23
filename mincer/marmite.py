@@ -34,7 +34,7 @@ class Marmite(object):
         marmite_path = os.path.join(self.marmite_dir, "marmite.yaml")
         if not os.path.exists(marmite_path):
             raise NotFound("Marmite file '%s'" % marmite_path)
-        self.marmite_tree = yaml.load(open(marmite_path, 'r'))
+        self.marmite_tree = yaml.load(open(marmite_path, 'rb'))
 
     def description(self):
         try:
@@ -64,16 +64,6 @@ class Marmite(object):
 
 
 class Environments(object):
-
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super(Environments, cls).__new__(cls,
-                                                             *args,
-                                                             **kwargs)
-        return cls._instance
-
     def __init__(self, environments_tree):
         self.environments_tree = environments_tree
 
@@ -109,16 +99,6 @@ class Environments(object):
 
 
 class Application(object):
-
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super(Application, cls).__new__(cls,
-                                                            *args,
-                                                            **kwargs)
-        return cls._instance
-
     def __init__(self, application_tree):
         self.application_tree = application_tree
 
