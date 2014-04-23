@@ -21,7 +21,11 @@ import tempfile
 import testtools
 import unittest
 
-from mincer import mediamanager
+try:
+    import guestfs
+    from mincer import mediamanager
+except ImportError:
+    guestfs = None
 
 SAMPLE_MEDIAS = [
     {
@@ -52,8 +56,10 @@ def _add_some_files(directory):
 
 class TestMediaManager(testtools.TestCase):
 
+    @testtools.skipUnless(
+        guestfs,
+        "Use this test only when we have guestfs installed")
     def setUp(self):
-
         super(TestMediaManager, self).setUp()
 
         self.useFixture(fixtures.NestedTempfile())
@@ -66,13 +72,10 @@ class TestMediaManager(testtools.TestCase):
         _add_some_files(self.tdir_with_data)
 
     def test_get_data_size(self):
-
         self.assertEqual(self.mm.get_data_size(self.tdir_empty), 0)
-
         self.assertEqual(self.mm.get_data_size(self.tdir_with_data), 120000)
 
     def test_produce_image(self):
-
         mm = mediamanager.MediaManager()
 
         _add_some_files(mm.data_dir)
@@ -88,7 +91,6 @@ class TestMediaManager(testtools.TestCase):
                               mm.produce_image)
 
     def test_collect_data(self):
-
         with mock.patch('subprocess.call') as MockClass:
             MockClass.return_value = True
             self.mm.collect_data(ressources=SAMPLE_MEDIAS)
