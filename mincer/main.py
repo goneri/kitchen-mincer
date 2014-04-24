@@ -25,4 +25,7 @@ def main(args=None):
     parser.add_argument("marmite_directory", help="Main marmite directory.")
     args = parser.parse_args(args=args)
     m = mixer.Mixer(args.marmite_directory, args)
-    m.start_provider(args.target)
+    if args.test:
+        m.test(args.target)
+    elif args.target:
+        m.bootstrap(args.target)

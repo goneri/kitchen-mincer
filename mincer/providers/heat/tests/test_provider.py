@@ -72,7 +72,7 @@ class TestProvider(testtools.TestCase):
     def test_get_heat_template(self):
 
         my_provider = provider.Heat(identity=fake_identity, args=fake_args())
-        heat_template = my_provider.get_heat_template()
+        heat_template = my_provider._get_heat_template()
         self.assertRegexpMatches(heat_template, ".*useless\ Heat\ template.*")
 
     @mock.patch('keystoneclient.v2_0', fake_keystoneclient)
@@ -81,7 +81,6 @@ class TestProvider(testtools.TestCase):
 
         my_provider = provider.Heat(identity=fake_identity, args=fake_args())
         self.assertEqual(my_provider.create(), None)
-
 
 if __name__ == '__main__':
     unittest.main()

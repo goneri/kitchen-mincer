@@ -24,7 +24,6 @@ class TestMarmite(testtools.TestCase):
     def setUp(self):
         super(TestMarmite, self).setUp()
         self.marmite = marmite.Marmite("./tests/test_files")
-        self.environments = self.marmite.environments()
         self.application = self.marmite.application()
 
     def test_fake_marmite_init(self):
@@ -36,19 +35,22 @@ class TestMarmite(testtools.TestCase):
                          self.marmite.description())
 
     def test_environment_provider(self):
+        environments = self.marmite.environments
         self.assertIn("heat-devstack-docker",
-                      self.environments.provider("devtest"))
-        provider_params = self.environments.provider_params("devtest")
+                      environments["devtest"].provider())
+        provider_params = environments["devtest"].provider_params()
         self.assertIn("heat-devstack-docker", provider_params["image"])
         self.assertIn("m1.medium", provider_params["flavor"])
         self.assertIn("Nopasswd", provider_params["keypair"])
         self.assertIn("46.231.128.152", provider_params["floating_ip"])
-        self.assertIn("heat", self.environments.provider("fake_env"))
+        fake_env = marmite.Environment("fake_env", {})
+        self.assertIn("heat", fake_env.provider())
 
     def test_identity(self):
+        environments = self.marmite.environments
         with mock.patch.dict('os.environ', {'OS_TENANT_NAME': 'tenant',
                                             'OS_AUTH_URL': 'auth_url'}):
-            devtest_identity = self.environments.identity("devtest")
+            devtest_identity = environments["devtest"].identity()
 
             self.assertEqual("bob_l_eponge", devtest_identity["os_username"])
             self.assertEqual("password", devtest_identity["os_password"])
@@ -57,11 +59,13 @@ class TestMarmite(testtools.TestCase):
 
     @mock.patch.dict('os.environ', {})
     def test_identity_with_unknown_env_variables(self):
-        self.assertRaises(KeyError,
-                          self.environments.identity, "foobar")
+        raw = {"identity": {"os_password": "$BOB_WAS_HERE"}}
+        fake_env = marmite.Environment("fake_env", raw)
+        self.assertRaises(ValueError, fake_env.identity)
 
     def test_pool(self):
-        ip_pool_devtest = self.environments.ip_pool("devtest")
+        environments = self.marmite.environments
+        ip_pool_devtest = environments["devtest"].ip_pool()
         self.assertIn("10.0.0.4", ip_pool_devtest)
         self.assertIn("10.0.0.5", ip_pool_devtest)
         self.assertIn("10.0.0.6", ip_pool_devtest)

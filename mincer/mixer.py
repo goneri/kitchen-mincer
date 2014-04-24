@@ -27,27 +27,29 @@ class Mixer(object):
 
     @staticmethod
     def report_error(manager, entrypoint, exception):
-        #TODO(chmouel): s/print/logging system/
+        # TODO(chmouel): s/print/logging system/
         print("Error while loading provider %s" % entrypoint)
         raise exception
 
-    def start_provider(self, env):
+    def _load_provider(self, environment):
 
-        environments = self.marmite.environments()
-        identity = environments.identity(env)
-        provider = environments.provider(env)
-        provider_params = environments.provider_params(env)
-
-        kwargs = dict(params=provider_params,
+        kwargs = dict(params=environment.provider_params(),
                       args=self.args,
-                      identity=identity)
+                      identity=environment.identity())
 
-        provider = driver.DriverManager(
+        return driver.DriverManager(
             namespace=MINCER_PROVIDERS_NS,
-            name=provider,
+            name=environment.provider(),
             invoke_on_load=True,
             on_load_failure_callback=self.report_error,
             invoke_kwds=kwargs).driver
 
-        #TODO(chmouel): is this the entry point?
+    def test(self, env_name):
+        environment = self.marmite.environments[env_name]
+        self._load_provider(environment)
+
+    def bootstrap(self, env_name):
+
+        environment = self.marmite.environments[env_name]
+        provider = self._load_provider(environment)
         provider.create()

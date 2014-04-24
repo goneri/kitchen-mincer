@@ -45,7 +45,7 @@ class Heat(object):
                 password=identity['os_password'],
                 tenant_name=identity['os_tenant_name'])
 
-    def get_heat_template(self):
+    def _get_heat_template(self):
         with open(self.args.marmite_directory + "/heat.yaml") as file:
             return file.read()
 
@@ -56,7 +56,7 @@ class Heat(object):
         self.heat = heatclient.Client('1', endpoint=heat_endpoint,
                                       token=self.keystone.auth_token)
 
-        hot_template = self.get_heat_template()
+        hot_template = self._get_heat_template()
 
         try:
             self.heat.stacks.create(

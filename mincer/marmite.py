@@ -23,6 +23,8 @@ class Marmite(object):
     marmite's fields.
     """
 
+    environments = dict()
+
     def __init__(self, marmite_dir):
 
         """:param marmite_dir: the path of the marmite directory
@@ -35,23 +37,16 @@ class Marmite(object):
         if not os.path.exists(marmite_path):
             raise NotFound("Marmite file '%s'" % marmite_path)
         self.marmite_tree = yaml.load(open(marmite_path, 'rb'))
+        for name in self.marmite_tree['environments']:
+            self.environments[name] = Environment(
+                name,
+                self.marmite_tree['environments'][name])
 
     def description(self):
         try:
             return self.marmite_tree['description']
         except KeyError:
             raise NotFound("'description' not found")
-
-    def environments(self):
-        """Returns the environments.
-
-        :returns: all environments specified in the marmite file
-        :rtype: Environments
-        """
-        try:
-            return Environments(self.marmite_tree['environments'])
-        except KeyError:
-            raise NotFound("'environments' not found")
 
     def application(self):
         return Application(self.marmite_tree['application'])
@@ -63,25 +58,26 @@ class Marmite(object):
             raise NotFound("'medias' not found")
 
 
-class Environments(object):
-    def __init__(self, environments_tree):
-        self.environments_tree = environments_tree
+class Environment(object):
+    def __init__(self, name, environment_tree):
+        self.name = name
+        self.tree = environment_tree
 
-    def provider(self, environment):
+    def provider(self):
         try:
-            return self.environments_tree[environment]['provider']
+            return self.tree['provider']
         except KeyError:
             return 'heat'
 
-    def provider_params(self, environment):
+    def provider_params(self):
         try:
-            return self.environments_tree[environment]['provider_params']
+            return self.tree['provider_params']
         except KeyError:
             return dict()
 
-    def identity(self, environment):
+    def identity(self):
         credentials = {}
-        identities = self.environments_tree[environment]['identity']
+        identities = self.tree['identity']
         for credential, value in identities.items():
             if value.startswith("$"):
                 credentials[credential] = os.environ.get(value[1:])
@@ -91,11 +87,11 @@ class Environments(object):
                 credentials[credential] = value
         return credentials
 
-    def ip_pool(self, environment):
+    def ip_pool(self):
         try:
-            return self.environments_tree[environment]['ip_pool']
+            return self.tree['ip_pool']
         except KeyError:
-            raise NotFound("'%s, ip_pool' not found" % environment)
+            raise NotFound("'%s, ip_pool' not found" % self.name)
 
 
 class Application(object):
