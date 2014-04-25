@@ -9,3 +9,5 @@ mock>=1.0
 
 nose
 mox
+
+sphinx
