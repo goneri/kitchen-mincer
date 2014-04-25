@@ -1,12 +1,12 @@
 ..
     Copyright 2014 eNovance SAS <licensing@enovance.com>
-    
+
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
-    
+
          http://www.apache.org/licenses/LICENSE-2.0
-    
+
     Unless required by applicable law or agreed to in writing, software
     distributed under the License is distributed on an "AS IS" BASIS,
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,31 +22,31 @@ Glossary
         * Heat file + Heat components
         * Collection of medias (e.g: distribution repository)
 
-    Marmitte: A application and environments
+    Marmitte: a application and environments
         * an application
         * collection of medias (e.g: Application backup to restore)
         * environnement (reference or in-line)
 
     Environnement:
-        an account on an OpenStack cloud providing Heat API.
+        an account of an OpenStack cloud providing Heat API.
 
     Media:
-        a file or VCS repository used by application, the medias may be aggregated in a disk
-        image. See `The medias`_ bellow.
+        a file or VCS repository used by applications, the medias may be aggregated in a disk
+        image. See `the medias`_ bellow.
 
     Provider: a driver for the cloud infrastructure we want to use
         * OpenStack+Heat (default)
         * OpenStack+Docker+Heat
-        * lateare the interfaces between OpenStack Heat and the mincer.
+        * late
 
     Identity:
-        a set of credential for the provider
+        a set of credentials for the provider
 
     Mincer:
         The tool in charge of the initial deployment of the infrastructure
 
     Kitchen Island:
-        A product code name. The use of this product name is restricted to eNovance employees.
+        A internal code name, restricted to be kept internally and not communicated outside.
 
 Marmite definition
 ==================
@@ -61,12 +61,15 @@ The word media is used to describe all resources out of the Marmitte. For exampl
 * a database backup to restore stored in Swift
 * a Ansible configuration directory from a git repository
 
-We fetch these external resources and push them in images. Those medias are published as Glance image. They must be prepared and pushed in Glance before the stack startup because Heat will need them.
+We fetch these external resources and push them in images. Those medias are published as
+image.
+
+They must be prepared and uploaded before the stack startup because Heat will need them.
 
 These medias can be either:
 
 * in the application itself, e.g: a Fedora repository or an eDeploy image
-* in the user configuration, e.g: a backup to restore, or some additional configuration
+* in the user configuration, e.g: a backup to restore or some additional configuration
 
 
 marmite YAML file
@@ -75,7 +78,7 @@ marmite YAML file
 .. code:: yaml
 
     description: A wordpress in a container (web and DB)
-    
+
     # an account on an OpenStack cloud providing Heat API.
     environments:
       devtest:
@@ -110,14 +113,14 @@ marmite YAML file
         ip_pool:
           - 46.231.128.152
           - 46.231.128.153
-    
+
     application:
       # Name of the application, Stack will be called according to this name
       name: wordpress
-    
+
       # By convention, the heat file will be located here:
       # <root>/applications/<name e.g: wordpress>/heat.yaml
-    
+
       # Arguments for the heat command (-P), depending on the type, some value may be
       # generated:
       #  - floating_ip: get an IP from the pool depending on its position
@@ -133,8 +136,7 @@ marmite YAML file
         - { type: media, name: wp_files }
         - { type: media, name: sql_db_dump  }
       medias:
-        # An image content computed before the Heat creation 
-        wp_files:
+        # An image content computed before the Heat creation wp_files:
           type: git
           value: https://github.com/WordPress/WordPress
           # The directory in the image where to store the files
@@ -146,7 +148,7 @@ marmite YAML file
                   #!/bin/sh
                   mysqldump -hdbprod -utoto -ptoto wordpress > wordpress_prod.sql
           target: db
-    
+
 Directory hierarchy
 -------------------
 
@@ -208,11 +210,11 @@ Code architecture
         fontsize = 8
         shape = "record"
         ]
-        
+
         edge [
         arrowtail = "empty"
         ]
-        
+
 	interface [ shape = "parallelogram"  ]
 
         main -> mincer
