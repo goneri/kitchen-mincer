@@ -23,7 +23,7 @@ import unittest
 
 try:
     import guestfs
-    from mincer import mediamanager
+    from mincer import mediamanager  # noqa
 except ImportError:
     guestfs = None
 
