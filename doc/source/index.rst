@@ -223,4 +223,6 @@ Code architecture
 	mincer -> environment
 	interface -> provider
 	mincer -> mediamanager
+	mediamanager -> media_1
+	mediamanager -> media_2
     }

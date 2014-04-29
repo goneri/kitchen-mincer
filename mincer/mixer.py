@@ -16,6 +16,7 @@
 from stevedore import driver
 
 from mincer import marmite
+from mincer import mediamanager
 
 MINCER_PROVIDERS_NS = 'mincer.providers'
 
@@ -49,6 +50,20 @@ class Mixer(object):
     def bootstrap(self, env_name):
 
         environment = self.marmite.environments[env_name]
+        mm = mediamanager.MediaManager()
+        medias = self.marmite.application().medias()
+        medias.update(environment.medias())
+
+        for name in medias:
+            # Register the medias in the Media Manager
+            mm.append(mediamanager.Media(name, medias[name]))
+
+        for media in mm:
+            print("media%s> %s (%s)" % (
+                media.getName(),
+                media.getPath(),
+                media.getChecksum()))
+
         provider = self._load_provider(environment)
         provider.connect(environment.identity())
         provider.create()

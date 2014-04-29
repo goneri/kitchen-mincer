@@ -8,6 +8,14 @@ environments:
       os_username: myuser
       os_password: mypw
       os_tenant_name: demo
+    medias:
+      my_credentials:
+        -
+          type: script
+          value: |
+              #!/bin/sh
+              echo devtest credentials > credentials.txt
+          target: auth
   os-ci-test7:
 # Implicite, heat is the default provider.
 #    provider: heat
@@ -22,6 +30,14 @@ environments:
       - 172.24.4.4
       - 172.24.4.5
       - 172.24.4.6
+    medias:
+      my_credentials:
+        -
+          type: script
+          value: |
+              #!/bin/sh
+              echo devtest os-ci-test7 > credentials.txt
+          target: auth
 
 application:
   # Name of the application, Stack will be called according to this name
@@ -44,14 +60,16 @@ application:
   medias:
     # A image content computed before the Heat creation
     wp_files:
-      type: git
-      value: https://github.com/WordPress/WordPress
-      # The directory in the image where to store the files
-      target: ironic
-      ref: 3.8.2
+      -
+        type: git
+        value: https://github.com/WordPress/WordPress
+        # The directory in the image where to store the files
+        target: ironic
+        ref: 3.8.2
     sql_db_dump:
-      type: script
-      value: |
-              #!/bin/sh
-              mysqldump -hdbprod -utoto -ptoto wordpress > wordpress_prod.sql
-      target: db
+      -
+        type: script
+        value: |
+                #!/bin/sh
+                curl http://www.google.com > my_data.txt
+        target: db

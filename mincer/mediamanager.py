@@ -17,6 +17,7 @@
 """Retrieve and upload data."""
 
 import functools
+import hashlib
 import os
 import shutil
 import subprocess
@@ -34,56 +35,79 @@ class MediaManagerException(Exception):
     """
 
 
-class MediaManager(object):
+class MediaManager(list):
 
     def __init__(self):
+        self.type = Media
 
+    def append(self, media):
+        if not isinstance(media, Media):
+            raise MediaManagerException("Item is not a Media")
+        media._collect_data()
+        media._produce_image()
+        super(MediaManager, self).append(media)
+
+
+class Media():
+
+    def __init__(self, name, sources):
+
+        self._name = name
         self.basedir = tempfile.mkdtemp()
+
+        self.sources = sources
 
         self.data_dir = "%s/data" % self.basedir
         self.disk_image_file = "%s/disk.img" % self.basedir
         os.makedirs(self.data_dir)
 
-    def cleanup(self):
+    def getPath(self):
+        return self.disk_image_file
 
+    def getName(self):
+        return self._name
+
+    def getChecksum(self):
+        return self._checksum
+
+    def _cleanup(self):
         shutil.rmtree(self.basedir)
 
-    def get_data_size(self, p):
+    def _get_data_size(self, p):
         """Compute the size, in bytes of a directory
         """
         prepend = functools.partial(os.path.join, p)
         return sum([(os.path.getsize(f) if os.path.isfile(f) else
-                   self.get_data_size(f)) for f in map(prepend,
-                                                       os.listdir(p))])
+                   self._get_data_size(f))
+                   for f in map(prepend, os.listdir(p))])
 
-    def collect_data(self, ressources):
+    def _collect_data(self):
         """Retrieve the ressources from different location and
         store them in a work directory
 
         ressources is a mandatory parameter.
         """
+        for source in self.sources:
 
-        for ressource in ressources:
-
-            target_dir = "%s/%s" % (self.data_dir, ressource['target'])
+            target_dir = "%s/%s" % (self.data_dir, source['target'])
             os.makedirs(target_dir)
 
-            if ressource['type'] == 'git':
-                subprocess.call(["git", "clone", ressource['uri'], target_dir],
+            if source['type'] == 'git':
+                subprocess.call(["git", "clone", source['value'], target_dir],
                                 cwd=self.data_dir)
 
-            elif ressource['type'] == 'shell':
+            elif source['type'] == 'shell':
 
                 f = tempfile.NamedTemporaryFile()
-                f.write(ressource['content'])
+                f.write(source['content'])
                 subprocess.call(["chmod", "+x", f.name])
                 f.close()
                 subprocess.call([f.name], target_dir)
 
-    def produce_image(self):
+    def _produce_image(self):
         """Push the collected data in an image
         """
-        size = self.get_data_size(self.data_dir) + 50 * 1024 * 1024
+        size = self._get_data_size(self.data_dir) + 50 * 1024 * 1024
 
         tarfile_name = "%s/final.tar" % self.basedir
         try:
@@ -114,6 +138,7 @@ class MediaManager(object):
         finally:
             if g:
                 g.close()
+        self._checksum = hashlib.md5(self.disk_image_file).hexdigest()
 
     # TODO(Gonéri) add the ability to use another upload
     # mechanize

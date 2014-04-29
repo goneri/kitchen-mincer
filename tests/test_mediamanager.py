@@ -54,17 +54,17 @@ def _add_some_files(directory):
         f.close()
 
 
-class TestMediaManager(testtools.TestCase):
+class TestMedia(testtools.TestCase):
 
     @testtools.skipUnless(
         guestfs,
         "Use this test only when we have guestfs installed")
     def setUp(self):
-        super(TestMediaManager, self).setUp()
+        super(TestMedia, self).setUp()
 
         self.useFixture(fixtures.NestedTempfile())
-        self.mm = mediamanager.MediaManager()
-        self.assertIsInstance(self.mm, mediamanager.MediaManager)
+        self.media = mediamanager.Media("Merguez Partie", [])
+        self.assertIsInstance(self.media, mediamanager.Media)
 
         self.tdir_empty = tempfile.mkdtemp()
         self.tdir_with_data = tempfile.mkdtemp()
@@ -72,28 +72,24 @@ class TestMediaManager(testtools.TestCase):
         _add_some_files(self.tdir_with_data)
 
     def test_get_data_size(self):
-        self.assertEqual(self.mm.get_data_size(self.tdir_empty), 0)
-        self.assertEqual(self.mm.get_data_size(self.tdir_with_data), 120000)
+        self.assertEqual(self.media._get_data_size(self.tdir_empty), 0)
+        self.assertEqual(self.media._get_data_size(self.tdir_with_data),
+                         120000)
 
     def test_produce_image(self):
-        mm = mediamanager.MediaManager()
+        media = mediamanager.Media("Boulghour", SAMPLE_MEDIAS)
 
-        _add_some_files(mm.data_dir)
+        _add_some_files(media.data_dir)
 
         with mock.patch('tarfile.open') as MockClass:
             MockClass.return_value = False
             self.assertRaises(mediamanager.MediaManagerException,
-                              mm.produce_image)
+                              media._produce_image)
 
         with mock.patch("guestfs.GuestFS") as Mock:
             Mock.return_value = False
             self.assertRaises(mediamanager.MediaManagerException,
-                              mm.produce_image)
-
-    def test_collect_data(self):
-        with mock.patch('subprocess.call') as MockClass:
-            MockClass.return_value = True
-            self.mm.collect_data(ressources=SAMPLE_MEDIAS)
+                              media._produce_image)
 
 
 if __name__ == '__main__':

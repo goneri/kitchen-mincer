@@ -51,12 +51,6 @@ class Marmite(object):
     def application(self):
         return Application(self.marmite_tree['application'])
 
-    def medias(self):
-        try:
-            return self.marmite_tree['medias']
-        except KeyError:
-            raise NotFound("'medias' not found")
-
 
 class Environment(object):
     def __init__(self, name, environment_tree):
@@ -87,6 +81,12 @@ class Environment(object):
                 credentials[credential] = value
         return credentials
 
+    def medias(self):
+        try:
+            return self.tree['medias']
+        except KeyError:
+            return list()
+
     def ip_pool(self):
         try:
             return self.tree['ip_pool']
@@ -114,7 +114,7 @@ class Application(object):
         try:
             return self.application_tree['medias']
         except KeyError:
-            raise NotFound("'medias' not found")
+            return list()
 
 
 class NotFound(Exception):
