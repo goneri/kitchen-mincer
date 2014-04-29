@@ -16,7 +16,7 @@
 from stevedore import driver
 
 from mincer import marmite
-from mincer import mediamanager
+from mincer import mediamanager  # noqa
 
 MINCER_PROVIDERS_NS = 'mincer.providers'
 
@@ -66,4 +66,5 @@ class Mixer(object):
 
         provider = self._load_provider(environment)
         provider.connect(environment.identity())
+        provider.upload(mm)
         provider.create()

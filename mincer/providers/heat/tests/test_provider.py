@@ -53,13 +53,10 @@ class fake_service_catalog():
 
 class fake_keystone():
 
-    def __init__(self):
+    def __init__(self, **kwargs):
 
         self.service_catalog = fake_service_catalog()
         self.auth_token = "garantie_100%_truly_random"
-
-fake_keystoneclient = mock.MagicMock()
-fake_keystoneclient.Client.return_value = fake_keystone()
 
 
 class TestProvider(testtools.TestCase):
@@ -68,7 +65,7 @@ class TestProvider(testtools.TestCase):
         super(TestProvider, self).setUp()
         self.useFixture(fixtures.NestedTempfile())
 
-    @mock.patch('keystoneclient.v2_0', fake_keystoneclient)
+    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
     def test_get_heat_template(self):
 
         my_provider = provider.Heat(args=fake_args())
@@ -76,7 +73,7 @@ class TestProvider(testtools.TestCase):
         heat_template = my_provider._get_heat_template()
         self.assertRegexpMatches(heat_template, ".*useless\ Heat\ template.*")
 
-    @mock.patch('keystoneclient.v2_0', fake_keystoneclient)
+    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
     @mock.patch('heatclient.v1.client.Client')
     def test_create(self, heat_mock):
         my_provider = provider.Heat(args=fake_args())
