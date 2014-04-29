@@ -34,16 +34,16 @@ class AlreadyExisting(Exception):
 
 
 class Heat(object):
-    def __init__(self, params={}, identity={}, args={}):
+    def __init__(self, params={}, args={}):
         self.params = params
         self.args = args
 
-        if identity:
-            self.keystone = keystoneclient.v2_0.Client(
-                auth_url=identity['os_auth_url'],
-                username=identity['os_username'],
-                password=identity['os_password'],
-                tenant_name=identity['os_tenant_name'])
+    def connect(self, identity):
+        self.keystone = keystoneclient.v2_0.Client(
+            auth_url=identity['os_auth_url'],
+            username=identity['os_username'],
+            password=identity['os_password'],
+            tenant_name=identity['os_tenant_name'])
 
     def _get_heat_template(self):
         with open(self.args.marmite_directory + "/heat.yaml") as file:

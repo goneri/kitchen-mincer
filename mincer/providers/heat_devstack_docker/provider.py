@@ -15,9 +15,11 @@
 
 
 class HeatDevstackDocker(object):
-    def __init__(self, params={}, identity={}, args={}):
-        self.identity = identity
+    def __init__(self, params={}, args={}):
         self.args = args
+
+    def connect(self, identity):
+        print("Connecting")
 
     def create(self):
         identity = self.identity

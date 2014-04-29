@@ -71,15 +71,16 @@ class TestProvider(testtools.TestCase):
     @mock.patch('keystoneclient.v2_0', fake_keystoneclient)
     def test_get_heat_template(self):
 
-        my_provider = provider.Heat(identity=fake_identity, args=fake_args())
+        my_provider = provider.Heat(args=fake_args())
+        self.assertEqual(my_provider.connect(fake_identity), None)
         heat_template = my_provider._get_heat_template()
         self.assertRegexpMatches(heat_template, ".*useless\ Heat\ template.*")
 
     @mock.patch('keystoneclient.v2_0', fake_keystoneclient)
     @mock.patch('heatclient.v1.client.Client')
     def test_create(self, heat_mock):
-
-        my_provider = provider.Heat(identity=fake_identity, args=fake_args())
+        my_provider = provider.Heat(args=fake_args())
+        self.assertEqual(my_provider.connect(fake_identity), None)
         self.assertEqual(my_provider.create(), None)
 
 if __name__ == '__main__':

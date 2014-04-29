@@ -33,9 +33,7 @@ class Mixer(object):
 
     def _load_provider(self, environment):
 
-        kwargs = dict(params=environment.provider_params(),
-                      args=self.args,
-                      identity=environment.identity())
+        kwargs = dict(params=environment.provider_params(), args=self.args)
 
         return driver.DriverManager(
             namespace=MINCER_PROVIDERS_NS,
@@ -52,4 +50,5 @@ class Mixer(object):
 
         environment = self.marmite.environments[env_name]
         provider = self._load_provider(environment)
+        provider.connect(environment.identity())
         provider.create()
