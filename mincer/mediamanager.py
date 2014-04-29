@@ -30,14 +30,8 @@ import keystoneclient.v2_0
 
 
 class MediaManagerException(Exception):
-
-    def __init__(self, value):
-
-        self.value = value
-
-    def __str__(self):
-
-        return repr(self.value)
+    """Base class for media manager exceptions.
+    """
 
 
 class MediaManager(object):
@@ -96,7 +90,8 @@ class MediaManager(object):
             with tarfile.open(tarfile_name, "w") as tar:
                 tar.add(self.data_dir, arcname=os.path.basename(self.data_dir))
         except Exception:
-            raise MediaManagerException("Failed to move content in archive")
+            raise MediaManagerException("Failed to move content in '%s'"
+                                        % tarfile_name)
         try:
             with open(self.disk_image_file, "w") as f:
                 f.truncate(size)
@@ -114,7 +109,8 @@ class MediaManager(object):
             g.tar_in(tarfile_name, '/')
             os.unlink(tarfile_name)
         except Exception:
-            raise MediaManagerException("Failed to move data in the image")
+            raise MediaManagerException("Failed to move data in the image '%s'"
+                                        % self.disk_image_file)
         finally:
             if g:
                 g.close()

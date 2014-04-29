@@ -19,18 +19,10 @@ import heatclient.exc as heatclientexc
 import keystoneclient.v2_0
 
 
-class ProviderExceptionn(Exception):
-
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
-
-
 class AlreadyExisting(Exception):
-    def __init__(self):
-        raise ProviderExceptionn("Stack already existing")
+    """Exception raised when there is a conflict with a stack
+    already deployed.
+    """
 
 
 class Heat(object):
@@ -64,5 +56,5 @@ class Heat(object):
                 parameters={'key_name': 'stack_os-ci-test7'},
                 template=hot_template, timeout_mins=60)
         except heatclientexc.HTTPConflict:
-            print("Stack creation failed because of a conflict")
-            raise AlreadyExisting
+            raise AlreadyExisting("Stack '%s' failed because of a conflict"
+                                  % 'zoubida')
