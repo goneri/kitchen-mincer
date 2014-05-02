@@ -79,40 +79,34 @@ marmite YAML file
 
     description: A wordpress in a container (web and DB)
 
+    description: A wordpress in a container (web and DB)
+
     # an account on an OpenStack cloud providing Heat API.
     environments:
       devtest:
-        # The nature of the env, for example here it is based on Heat+Docker
-        provider: heat-devstack-docker
-        provider_params:
-          image: heat-devstack-docker
-          flavor: m1.medium
-          keypair: Nopasswd
-          ip: 46.231.128.152
-        # Credentials required to connect to the OpenStack
-        identity:
-          os_username: $OS_USERNAME
-          os_tenant_name: $OS_TENANT_NAME
-          os_password: $OS_PASSWORD
-          os_auth_url: $OS_AUTH_URL
-        # A list of floating IP dedicated to the kitchen.
-        # /!\ this list is associated with the OS_TENANT_NAME /!\
-        ip_pool:
-          - 10.0.0.4
-          - 10.0.0.5
-          - 10.0.0.6
-      # Another environnement
-      os-ci-test6:
     # Implicite, heat is the default provider.
     #    provider: heat
         identity:
-          os_username: bob_l_eponge
-          os_tenant_name: $OS_TENANT_NAME
-          os_password: $OS_PASSWORD
-          os_auth_url: $OS_AUTH_URL
-        ip_pool:
-          - 46.231.128.152
-          - 46.231.128.153
+    #NOTE(Gonéri): Why the os_ prefix?
+          os_auth_url: http://os-ci-test7.ring.enovance.com:5000/v2.0
+          os_username: admin
+          os_password: password
+          os_tenant_name: demo
+        medias:
+          dump_mysql:
+            type: dynamic
+            sources:
+              -
+                type: script
+                value: |
+                    #!/bin/sh
+                    echo this is my dump MySQL > dump.sql
+                target: mysql
+        key_pairs:
+          stack_os_ci-test7: |
+            ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCyiXfE1zHKdj6odbysr917Cn88ov0VQaPJtLKJyMNuRYAeMOFQHd50X8JO4dfZbmSo3YdJlVfz9FLRxE64mqj9bkN8hPFbkTG2F1AWXGPON5cmm4uiLPfQkWhX/LnClrhzZpNtMJYs5AEFeDs0POijcRugZsQA+wvLi0lSlhOfkqtjAJKpPUwy1wrJFDdvqdQBjpNQh/LB8c15XfQV2JT/3NX26dQe8zvHhL6NvfhBnAikodYkBr7UjSl36CBk0cPebZMZEBBiHdo76xORVkpmqDvkhFByXXeAsvRa2YWS4wxpiNJFswlRhjubGau7LrT113WMcPvgYXHYHf2IYJWD goneri.lebouder@enovance.com
+        floating_ips:
+          public_wordpress_ip: 172.24.4.3
 
     application:
       # Name of the application, Stack will be called according to this name
@@ -126,28 +120,30 @@ marmite YAML file
       #  - floating_ip: get an IP from the pool depending on its position
       #  - keypair: retrieve a key content from a keys/<name>.pub
       #  - media: returns the image id of the media in Glance
-      params:
-        - { type: floating_ip, name: mysql_server,  idx: 0 } // TODO
-        - { type: floating_ip, name: http_server,  idx: 1 }
-        # the keypair(s) to use, keypair name is the filename without the extension,
-        # e.g: keys/roberto.pub → roberto
-        - { type: keypair, name: roberto_key }
-        - { type: value, name: blog_title, value: I'm sexy and I know it! }
-        - { type: media, name: wp_files }
-        - { type: media, name: sql_db_dump  }
+      # params:
+      #  image_id: Fedora-x86_64-20-20140407-sda.qcow
       medias:
-        # An image content computed before the Heat creation wp_files:
-          type: git
-          value: https://github.com/WordPress/WordPress
-          # The directory in the image where to store the files
-          target: ironic
-          ref: 3.8.2
-        sql_db_dump:
-          type: script
-          value: |
-                  #!/bin/sh
-                  mysqldump -hdbprod -utoto -ptoto wordpress > wordpress_prod.sql
-          target: db
+        # A image content computed before the Heat creation
+        wordpress_files:
+            type: dynamic
+            sources:
+              -
+                type: git
+                value: https://github.com/WordPress/WordPress
+                # The directory in the image where to store the files
+                target: wordpress
+                ref: 3.8.2
+        fedora_dvd:
+            type: block
+            disk_format: iso
+    #        copy_from: https://dl.fedoraproject.org/pub/fedora/linux/releases/20/Fedora/x86_64/iso/Fedora-20-x86_64-DVD.iso
+            copy_from: http://clearos.mirrors.ovh.net/download.fedora.redhat.com/linux/releases/20/Fedora/x86_64/iso/Fedora-20-x86_64-DVD.iso
+            checksum: 9a190c8b2bd382c2d046dbc855cd2f2b
+        base_image:
+            type: block
+            disk_format: qcow2
+            copy_from: http://download.fedoraproject.org/pub/fedora/linux/updates/20/Images/x86_64/Fedora-x86_64-20-20140407-sda.qcow2
+            checksum: 1ec332a350e0a839f03c967c1c568623
 
 Directory hierarchy
 -------------------

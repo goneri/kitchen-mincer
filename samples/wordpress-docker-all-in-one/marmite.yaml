@@ -58,12 +58,12 @@ application:
     - { type: media, name: sql_db_dump  }
   medias:
     # A image content computed before the Heat creation
-    wp_files:
-      type: git
-      value: https://github.com/WordPress/WordPress
-      # The directory in the image where to store the files
-      target: ironic
-      ref: 3.8.2
+#    wp_files:
+#      type: git
+#      value: https://github.com/WordPress/WordPress
+#      # The directory in the image where to store the files
+#      target: ironic
+#      ref: 3.8.2
     sql_db_dump:
       type: script
       value: |

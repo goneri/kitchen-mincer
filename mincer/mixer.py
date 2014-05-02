@@ -36,6 +36,10 @@ class Mixer(object):
 
         kwargs = dict(params=environment.provider_params(), args=self.args)
 
+        # TODO(Gonéri)
+        import providers.heat
+        return providers.heat.Heat(**kwargs)
+
         return driver.DriverManager(
             namespace=MINCER_PROVIDERS_NS,
             name=environment.provider(),
@@ -60,11 +64,13 @@ class Mixer(object):
 
         for media in mm:
             print("media%s> %s (%s)" % (
-                media.getName(),
+                media.name,
                 media.getPath(),
-                media.getChecksum()))
+                media.checksum))
 
         provider = self._load_provider(environment)
         provider.connect(environment.identity())
         provider.upload(mm)
+        provider.register_key_pairs(environment.key_pairs())
+        provider.register_floating_ips(environment.floating_ips())
         provider.create()

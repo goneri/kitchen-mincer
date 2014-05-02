@@ -27,21 +27,11 @@ try:
 except ImportError:
     guestfs = None
 
-SAMPLE_MEDIAS = [
-    {
-        'type': 'git',
-        'uri': 'git://example.com/repo.git',
-        'target': 'result_git',
-    },
-    {
-        'type': 'script',
-        'target': 'result_script',
-        'content': '''
-#!/bin/sh
-touch Roberto
-'''
-    },
-]
+SAMPLE_MEDIAS = {
+    'description': 'Roberto',
+    'type': 'dynamic',
+    'sources': []
+}
 
 
 def _add_some_files(directory):
@@ -63,7 +53,10 @@ class TestMedia(testtools.TestCase):
         super(TestMedia, self).setUp()
 
         self.useFixture(fixtures.NestedTempfile())
-        self.media = mediamanager.Media("Merguez Partie", [])
+        self.media = mediamanager.Media("Merguez Partie",
+                                        {'description': "Yo!",
+                                         'type': 'dynamic',
+                                         'sources': []})
         self.assertIsInstance(self.media, mediamanager.Media)
 
         self.tdir_empty = tempfile.mkdtemp()
@@ -78,8 +71,7 @@ class TestMedia(testtools.TestCase):
 
     def test_produce_image(self):
         media = mediamanager.Media("Boulghour", SAMPLE_MEDIAS)
-
-        _add_some_files(media.data_dir)
+        _add_some_files(media.basedir)
 
         with mock.patch('tarfile.open') as MockClass:
             MockClass.return_value = False

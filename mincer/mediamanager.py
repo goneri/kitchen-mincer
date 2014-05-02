@@ -19,15 +19,11 @@
 import functools
 import hashlib
 import os
-import shutil
 import subprocess
 import tarfile
 import tempfile
 
 import guestfs
-
-import glanceclient
-import keystoneclient.v2_0
 
 
 class MediaManagerException(Exception):
@@ -41,37 +37,39 @@ class MediaManager(list):
         self.type = Media
 
     def append(self, media):
+        """Add a Media object in the MediaManager."""
         if not isinstance(media, Media):
             raise MediaManagerException("Item is not a Media")
-        media._collect_data()
-        media._produce_image()
+        if media._type == "dynamic":
+            media._collect_data()
+            media._produce_image()
         super(MediaManager, self).append(media)
 
 
 class Media():
 
-    def __init__(self, name, sources):
+    def __init__(self, name, description):
+        self.disk_format = "raw"
+        self.name = name
+        self._type = description['type']
+        self._disk_image_file = None
+        self.checksum = description.get('checksum')
+        self.disk_format = description.get('disk_format', 'raw')
+        self.location = description.get('location')
+        self.copy_from = description.get('copy_from')
+        self.checksum = description.get('checksum')
 
-        self._name = name
-        self.basedir = tempfile.mkdtemp()
-
-        self.sources = sources
-
-        self.data_dir = "%s/data" % self.basedir
-        self.disk_image_file = "%s/disk.img" % self.basedir
-        os.makedirs(self.data_dir)
+        # TODO(Gonéri): move this in a subclass/driver
+        if self._type == "dynamic":
+            self.basedir = tempfile.mkdtemp()
+            self._sources = description['sources']
+            self.data_dir = "%s/data" % self.basedir
+            self._disk_image_file = "%s/disk.img" % self.basedir
+            os.makedirs(self.data_dir)
 
     def getPath(self):
-        return self.disk_image_file
-
-    def getName(self):
-        return self._name
-
-    def getChecksum(self):
-        return self._checksum
-
-    def _cleanup(self):
-        shutil.rmtree(self.basedir)
+        """Returns the path to the temporary disk image."""
+        return self._disk_image_file
 
     def _get_data_size(self, p):
         """Compute the size, in bytes of a directory
@@ -87,7 +85,7 @@ class Media():
 
         ressources is a mandatory parameter.
         """
-        for source in self.sources:
+        for source in self._sources:
 
             target_dir = "%s/%s" % (self.data_dir, source['target'])
             os.makedirs(target_dir)
@@ -95,9 +93,7 @@ class Media():
             if source['type'] == 'git':
                 subprocess.call(["git", "clone", source['value'], target_dir],
                                 cwd=self.data_dir)
-
             elif source['type'] == 'shell':
-
                 f = tempfile.NamedTemporaryFile()
                 f.write(source['content'])
                 subprocess.call(["chmod", "+x", f.name])
@@ -117,12 +113,12 @@ class Media():
             raise MediaManagerException("Failed to move content in '%s'"
                                         % tarfile_name)
         try:
-            with open(self.disk_image_file, "w") as f:
+            with open(self._disk_image_file, "w") as f:
                 f.truncate(size)
                 f.close()
 
             g = guestfs.GuestFS()
-            g.add_drive_opts(self.disk_image_file, format="raw", readonly=0)
+            g.add_drive_opts(self._disk_image_file, format="raw", readonly=0)
             g.launch()
             devices = g.list_devices()
             assert len(devices) == 1
@@ -134,33 +130,8 @@ class Media():
             os.unlink(tarfile_name)
         except Exception:
             raise MediaManagerException("Failed to move data in the image '%s'"
-                                        % self.disk_image_file)
+                                        % self._disk_image_file)
         finally:
             if g:
                 g.close()
-        self._checksum = hashlib.md5(self.disk_image_file).hexdigest()
-
-    # TODO(Gonéri) add the ability to use another upload
-    # mechanize
-    def upload(self, identity=None):
-        """Upload an image in Glance
-        """
-        keystone = keystoneclient.v2_0.Client(
-                auth_url=identity['auth_url'],
-                username=identity['username'],
-                password=identity['password'],
-                tenant_name=identity['tenant_name'])
-        glance_endpoint = keystone.service_catalog.url_for(
-                service_type='image')
-
-        glance = glanceclient.Client(
-                2,
-                glance_endpoint,
-                token=keystone.auth_token)
-
-        image = glance.images.create(
-                name="My Test Image",
-                disk_format="raw",
-                container_format="bare")
-
-        glance.images.upload(image.id, open(self.disk_image_file, 'rb'))
+        self.checksum = hashlib.md5(self._disk_image_file).hexdigest()

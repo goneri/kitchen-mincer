@@ -58,16 +58,10 @@ class Environment(object):
         self.tree = environment_tree
 
     def provider(self):
-        try:
-            return self.tree['provider']
-        except KeyError:
-            return 'heat'
+        return self.tree.get('provider', 'heat')
 
     def provider_params(self):
-        try:
-            return self.tree['provider_params']
-        except KeyError:
-            return dict()
+        return self.tree.get('provider_params', dict())
 
     def identity(self):
         credentials = {}
@@ -82,16 +76,13 @@ class Environment(object):
         return credentials
 
     def medias(self):
-        try:
-            return self.tree['medias']
-        except KeyError:
-            return list()
+        return self.tree.get('medias', list())
 
-    def ip_pool(self):
-        try:
-            return self.tree['ip_pool']
-        except KeyError:
-            raise NotFound("'%s, ip_pool' not found" % self.name)
+    def key_pairs(self):
+        return self.tree.get('key_pairs', list())
+
+    def floating_ips(self):
+        return self.tree.get('floating_ips', list())
 
 
 class Application(object):
@@ -111,10 +102,7 @@ class Application(object):
             raise NotFound("'params' not found")
 
     def medias(self):
-        try:
-            return self.application_tree['medias']
-        except KeyError:
-            return list()
+        return self.application_tree.get('medias', list())
 
 
 class NotFound(Exception):

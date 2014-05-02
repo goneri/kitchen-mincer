@@ -63,13 +63,6 @@ class TestMarmite(testtools.TestCase):
         fake_env = marmite.Environment("fake_env", raw)
         self.assertRaises(ValueError, fake_env.identity)
 
-    def test_pool(self):
-        environments = self.marmite.environments
-        ip_pool_devtest = environments["devtest"].ip_pool()
-        self.assertIn("10.0.0.4", ip_pool_devtest)
-        self.assertIn("10.0.0.5", ip_pool_devtest)
-        self.assertIn("10.0.0.6", ip_pool_devtest)
-
     def test_application(self):
         self.assertEqual("wordpress", self.application.name())
         self.assertIsNotNone(self.application.params())

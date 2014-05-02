@@ -14,10 +14,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import sys
+import time
+
 import glanceclient
 import heatclient.client as heatclient
 import heatclient.exc as heatclientexc
 import keystoneclient.v2_0 as keystone_client
+import novaclient.client as novaclient
 
 
 class Heat(object):
@@ -25,6 +29,7 @@ class Heat(object):
         self.params = params
         self.args = args
         self._keystone = None
+        self._parameters = {}
 
     def connect(self, identity):
         self._keystone = keystone_client.Client(
@@ -32,6 +37,11 @@ class Heat(object):
             username=identity['os_username'],
             password=identity['os_password'],
             tenant_name=identity['os_tenant_name'])
+        self._novaclient = novaclient.Client(2,
+                                        identity['os_username'],
+                                        identity['os_password'],
+                                        auth_url=identity['os_auth_url'],
+                                        project_id=identity['os_tenant_name'])
 
     def _get_heat_template(self):
         with open(self.args.marmite_directory + "/heat.yaml") as file:
@@ -50,7 +60,7 @@ class Heat(object):
             service_type='image')
 
         glance = glanceclient.Client(
-            2,
+            1,
             glance_endpoint,
             token=self._keystone.auth_token)
 
@@ -62,21 +72,58 @@ class Heat(object):
             except AttributeError:
                 pass
 
+        print("Checksum found")
         # Upload each media if necessary
-        images_ids = []
         for media in medias:
-            if media.getChecksum() in checksum_ids_images.keys():
-                images_ids.append(checksum_ids_images[media.getChecksum()])
-                continue
+            print("Media[%s]" % media.name)
+            print("checksum: %s" % media.checksum)
 
-            image = glance.images.create(
-                name=media.getName(),
-                disk_format="raw",
-                container_format="bare")
-            with open(media.getPath(), "rb") as media_data:
-                glance.images.upload(image.id, media_data)
-            images_ids.append(image.id)
-        return images_ids
+            if media.checksum in checksum_ids_images.keys():
+                self._parameters['volume_id_%s' % media.name] = \
+                    checksum_ids_images[media.checksum]
+                continue
+            image = glance.images.create(name=media.name)
+            # TODO(Gonéri) clean the image in case of failure
+            if media.getPath():
+                with open(media.getPath(), "rb") as media_data:
+                    image.update(container_format='bare',
+                                 disk_format=media.disk_format,
+                                 data=media_data)
+            elif media.copy_from:
+                image.update(container_format='bare',
+                             disk_format=media.disk_format,
+                             copy_from=media.copy_from)
+            while (image.status != 'active'):
+                if image.status == 'killed':
+                    raise Exception("Glance error while waiting for image "
+                                    "to generate from URL")
+                sys.stdout.flush()
+                time.sleep(5)
+                image = glance.images.get(image.id)
+                print("waiting for %s" % media.name)
+            self._parameters['volume_id_%s' % image.name] = image.id
+            print("status: %s - %s" % (media.name, image.status))
+
+    def register_key_pairs(self, key_pairs):
+        for name in key_pairs:
+            try:
+                self._novaclient.keypairs.create(name, key_pairs[name])
+            except novaclient.exceptions.Conflict:
+                print("Key %s already created" % name)
+            # TODO(Gonéri), this force the use of a sole key
+            self._parameters['key_name'] = name
+
+    def register_floating_ips(self, floating_ips):
+        for name in floating_ips:
+            ip = floating_ips[name]
+            found = None
+            for entry in self._novaclient.floating_ips.list():
+                if ip != entry.ip:
+                    continue
+                self._parameters['floating_ip_%s' % name] = entry.id
+                found = True
+            if not found:
+                raise UnknownFloatingIP()
 
     def create(self):
 
@@ -90,7 +137,7 @@ class Heat(object):
         try:
             self.heat.stacks.create(
                 stack_name='zoubida',
-                parameters={'key_name': 'stack_os-ci-test7'},
+                parameters=self._parameters,
                 template=hot_template, timeout_mins=60)
         except heatclientexc.HTTPConflict:
             raise AlreadyExisting("Stack '%s' failed because of a conflict"
@@ -101,6 +148,10 @@ class AlreadyExisting(Exception):
     """Exception raised when there is a conflict with a stack
     already deployed.
     """
+
+
+class UnknownFloatingIP(Exception):
+    """Exception raised when the floating IP is unknown."""
 
 
 class UploadError(Exception):
