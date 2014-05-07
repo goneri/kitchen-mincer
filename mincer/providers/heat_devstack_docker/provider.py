@@ -13,27 +13,31 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
+
+
+logger = logging.getLogger(__name__)
+
 
 class HeatDevstackDocker(object):
     def __init__(self, params={}, args={}):
         self.args = args
 
     def connect(self, identity):
-        print("Connecting")
+        logger.info("Connecting")
 
     def create(self):
         identity = self.identity
         args = self.args
     # NB(chmouel): This is a sample method to see if things works
         if args.test:
-            print("I will spawn a vm with the following credentials:\n\n"
-                  "username: %s\n"
-                  " tenant: %s\n"
-                  " password: %s\n"
-                  " url: %s\n" % (
-                      identity['os_username'],
-                      identity['os_tenant_name'],
-                      identity['os_password'],
-                      identity['os_auth_url']))
+            logger.info("I will spawn a vm with the following credentials:\n\n"
+                        "username: %s\n"
+                        " tenant: %s\n"
+                        " password: %s\n"
+                        " url: %s\n" % (identity['os_username'],
+                                        identity['os_tenant_name'],
+                                        identity['os_password'],
+                                        identity['os_auth_url']))
 
-        print("I will spawn a vm")
+        logger.info("I will spawn a vm")

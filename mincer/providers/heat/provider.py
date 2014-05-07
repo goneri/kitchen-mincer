@@ -14,7 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import sys
+import logging
 import time
 
 import glanceclient
@@ -22,6 +22,8 @@ import heatclient.client as heatclient
 import heatclient.exc as heatclientexc
 import keystoneclient.v2_0 as keystone_client
 import novaclient.client as novaclient
+
+logger = logging.getLogger(__name__)
 
 
 class Heat(object):
@@ -70,13 +72,12 @@ class Heat(object):
             try:
                 checksum_ids_images[image.checksum] = image.id
             except AttributeError:
-                pass
+                logger.warn("checksum for image '%s' not found" % image.id)
 
-        print("Checksum found")
         # Upload each media if necessary
         for media in medias:
-            print("Media[%s]" % media.name)
-            print("checksum: %s" % media.checksum)
+            logger.debug("uploading media: '%s', checksum: '%s'" %
+                         (media.name, media.checksum))
 
             if media.checksum in checksum_ids_images.keys():
                 self._parameters['volume_id_%s' % media.name] = \
@@ -93,23 +94,22 @@ class Heat(object):
                 image.update(container_format='bare',
                              disk_format=media.disk_format,
                              copy_from=media.copy_from)
-            while (image.status != 'active'):
+            while image.status != 'active':
                 if image.status == 'killed':
                     raise Exception("Glance error while waiting for image "
                                     "to generate from URL")
-                sys.stdout.flush()
                 time.sleep(5)
                 image = glance.images.get(image.id)
-                print("waiting for %s" % media.name)
+                logger.info("waiting for %s" % media.name)
             self._parameters['volume_id_%s' % image.name] = image.id
-            print("status: %s - %s" % (media.name, image.status))
+            logger.debug("status: %s - %s" % (media.name, image.status))
 
     def register_key_pairs(self, key_pairs):
         for name in key_pairs:
             try:
                 self._novaclient.keypairs.create(name, key_pairs[name])
             except novaclient.exceptions.Conflict:
-                print("Key %s already created" % name)
+                logger.debug("Key %s already created" % name)
             # TODO(Gonéri), this force the use of a sole key
             self._parameters['key_name'] = name
 
@@ -123,7 +123,7 @@ class Heat(object):
                 self._parameters['floating_ip_%s' % name] = entry.id
                 found = True
             if not found:
-                raise UnknownFloatingIP()
+                raise UnknownFloatingIP("floating ip '%s' not found" % ip)
 
     def create(self):
 
@@ -140,8 +140,9 @@ class Heat(object):
                 parameters=self._parameters,
                 template=hot_template, timeout_mins=60)
         except heatclientexc.HTTPConflict:
-            raise AlreadyExisting("Stack '%s' failed because of a conflict"
-                                  % 'zoubida')
+            logger.error("Stack '%s' failed because of a conflict"
+                         % 'zoubida')
+            raise AlreadyExisting()
 
 
 class AlreadyExisting(Exception):

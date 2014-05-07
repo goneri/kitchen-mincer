@@ -12,9 +12,13 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+
 import argparse
+import logging
 
 from mincer import mixer
+
+logging.basicConfig(level=logging.INFO)
 
 
 def main(args=None):
@@ -29,3 +33,6 @@ def main(args=None):
         m.test(args.target)
     elif args.target:
         m.bootstrap(args.target)
+
+
+main()

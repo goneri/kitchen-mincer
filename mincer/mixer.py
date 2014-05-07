@@ -13,10 +13,15 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
 from stevedore import driver
 
 from mincer import marmite
 from mincer import mediamanager  # noqa
+
+
+logger = logging.getLogger(__name__)
+
 
 MINCER_PROVIDERS_NS = 'mincer.providers'
 
@@ -28,8 +33,7 @@ class Mixer(object):
 
     @staticmethod
     def report_error(manager, entrypoint, exception):
-        # TODO(chmouel): s/print/logging system/
-        print("Error while loading provider %s" % entrypoint)
+        logger.error("Error while loading provider %s" % entrypoint)
         raise exception
 
     def _load_provider(self, environment):
@@ -63,7 +67,7 @@ class Mixer(object):
             mm.append(mediamanager.Media(name, medias[name]))
 
         for media in mm:
-            print("media%s> %s (%s)" % (
+            logger.info("media%s> %s (%s)" % (
                 media.name,
                 media.getPath(),
                 media.checksum))
