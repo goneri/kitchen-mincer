@@ -56,7 +56,7 @@ class Mixer(object):
         self._load_provider(environment)
 
     def bootstrap(self, env_name):
-
+        """ Bootstrap the application. """
         environment = self.marmite.environments[env_name]
         mm = mediamanager.MediaManager()
         medias = self.marmite.application().medias()

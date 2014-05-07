@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 
 
 class Heat(object):
+    """ The Heat provider which run stacks on an OpenStack."""
+
     def __init__(self, params={}, args={}):
         self.params = params
         self.args = args
@@ -34,6 +36,10 @@ class Heat(object):
         self._parameters = {}
 
     def connect(self, identity):
+        """ This method connect to the Openstack.
+        :param identity: the OS identity of the environment
+        :type identity: dict
+        """
         self._keystone = keystone_client.Client(
             auth_url=identity['os_auth_url'],
             username=identity['os_username'],
@@ -46,16 +52,17 @@ class Heat(object):
                                         project_id=identity['os_tenant_name'])
 
     def _get_heat_template(self):
+        """:returns: returns the content of the Heat template
+           :rtype: str
+        """
         with open(self.args.marmite_directory + "/heat.yaml") as file:
             return file.read()
 
     def upload(self, medias):
-        """Upload medias in Glance and returns ids of each medias.
+        """ Upload medias in Glance.
 
         :param medias: list of Media objects
         :type medias: list
-        :returns: list of images's ids
-        :rtype: list
         """
 
         glance_endpoint = self._keystone.service_catalog.url_for(
@@ -105,6 +112,10 @@ class Heat(object):
             logger.debug("status: %s - %s" % (media.name, image.status))
 
     def register_key_pairs(self, key_pairs):
+        """ Register key pairs.
+        :param key_pairs: the key pairs
+        :type  key_pairs: dict
+        """
         for name in key_pairs:
             try:
                 self._novaclient.keypairs.create(name, key_pairs[name])
@@ -114,9 +125,13 @@ class Heat(object):
             self._parameters['key_name'] = name
 
     def register_floating_ips(self, floating_ips):
+        """ Ensure that the provided floating ips are available. Push them
+        on the Heat stack parameters.
+        """
         for name in floating_ips:
             ip = floating_ips[name]
             found = None
+            # TODO(yassine), not correct for two floating ips
             for entry in self._novaclient.floating_ips.list():
                 if ip != entry.ip:
                     continue
@@ -126,7 +141,7 @@ class Heat(object):
                 raise UnknownFloatingIP("floating ip '%s' not found" % ip)
 
     def create(self):
-
+        """ Run the stack and provides the parameters to Heat. """
         heat_endpoint = self._keystone.service_catalog.url_for(
             service_type='orchestration')
         self.heat = heatclient.Client('1', endpoint=heat_endpoint,
