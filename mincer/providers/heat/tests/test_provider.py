@@ -59,6 +59,27 @@ class fake_keystone():
         self.auth_token = "garantie_100%_truly_random"
 
 
+class fake_novaclient():
+
+    class fake_keypairs():
+        def __init__(self, **kwargs):
+            return
+
+        def create(self, name, key):
+            return True
+
+    class fake_floating_ips():
+        def __init__(self, **kwargs):
+            return
+
+        def list(self):
+            return ()
+
+    def __init__(self, **kwargs):
+        self.keypairs = self.fake_keypairs()
+        self.floating_ips = self.fake_floating_ips()
+
+
 class TestProvider(testtools.TestCase):
     def setUp(self):
 
@@ -67,7 +88,6 @@ class TestProvider(testtools.TestCase):
 
     @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
     def test_get_heat_template(self):
-
         my_provider = provider.Heat(args=fake_args())
         self.assertEqual(my_provider.connect(fake_identity), None)
         heat_template = my_provider._get_heat_template()
@@ -79,6 +99,19 @@ class TestProvider(testtools.TestCase):
         my_provider = provider.Heat(args=fake_args())
         self.assertEqual(my_provider.connect(fake_identity), None)
         self.assertEqual(my_provider.create(), None)
+
+    def test_register_key_pairs(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._novaclient = fake_novaclient()
+        my_provider.register_key_pairs({'robert': 'a_ssh_pub_key'})
+        self.assertEqual(my_provider._parameters['key_name'], 'robert')
+
+    def test_register_floating_ips(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._novaclient = fake_novaclient()
+        self.assertRaises(provider.UnknownFloatingIP,
+                          my_provider.register_floating_ips,
+                          {'pub_ip': '::1'})
 
 if __name__ == '__main__':
     unittest.main()
