@@ -78,16 +78,11 @@ marmite YAML file
 .. code:: yaml
 
     description: A wordpress in a container (web and DB)
-
-    description: A wordpress in a container (web and DB)
-
-    # an account on an OpenStack cloud providing Heat API.
     environments:
       devtest:
     # Implicite, heat is the default provider.
     #    provider: heat
         identity:
-    #NOTE(Gonéri): Why the os_ prefix?
           os_auth_url: http://os-ci-test7.ring.enovance.com:5000/v2.0
           os_username: admin
           os_password: password
@@ -109,19 +104,9 @@ marmite YAML file
           public_wordpress_ip: 172.24.4.3
 
     application:
-      # Name of the application, Stack will be called according to this name
       name: wordpress
-
       # By convention, the heat file will be located here:
       # <root>/applications/<name e.g: wordpress>/heat.yaml
-
-      # Arguments for the heat command (-P), depending on the type, some value may be
-      # generated:
-      #  - floating_ip: get an IP from the pool depending on its position
-      #  - keypair: retrieve a key content from a keys/<name>.pub
-      #  - media: returns the image id of the media in Glance
-      # params:
-      #  image_id: Fedora-x86_64-20-20140407-sda.qcow
       medias:
         # A image content computed before the Heat creation
         wordpress_files:
@@ -131,12 +116,12 @@ marmite YAML file
                 type: git
                 value: https://github.com/WordPress/WordPress
                 # The directory in the image where to store the files
+		# in the generated image
                 target: wordpress
                 ref: 3.8.2
         fedora_dvd:
             type: block
             disk_format: iso
-    #        copy_from: https://dl.fedoraproject.org/pub/fedora/linux/releases/20/Fedora/x86_64/iso/Fedora-20-x86_64-DVD.iso
             copy_from: http://clearos.mirrors.ovh.net/download.fedora.redhat.com/linux/releases/20/Fedora/x86_64/iso/Fedora-20-x86_64-DVD.iso
             checksum: 9a190c8b2bd382c2d046dbc855cd2f2b
         base_image:
