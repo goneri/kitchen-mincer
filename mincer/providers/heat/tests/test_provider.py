@@ -98,7 +98,7 @@ class TestProvider(testtools.TestCase):
     def test_create(self, heat_mock):
         my_provider = provider.Heat(args=fake_args())
         self.assertEqual(my_provider.connect(fake_identity), None)
-        self.assertEqual(my_provider.create(), None)
+        self.assertEqual(my_provider.create("test_stack"), None)
 
     def test_register_key_pairs(self):
         my_provider = provider.Heat(args=fake_args())

@@ -16,6 +16,7 @@
 
 import logging
 import time
+import uuid
 
 import glanceclient
 import heatclient.client as heatclient
@@ -140,7 +141,7 @@ class Heat(object):
             if not found:
                 raise UnknownFloatingIP("floating ip '%s' not found" % ip)
 
-    def create(self):
+    def create(self, name):
         """ Run the stack and provides the parameters to Heat. """
         heat_endpoint = self._keystone.service_catalog.url_for(
             service_type='orchestration')
@@ -148,15 +149,15 @@ class Heat(object):
                                       token=self._keystone.auth_token)
 
         hot_template = self._get_heat_template()
-
+        stack_name = "%s--%s" % (name, str(uuid.uuid4()))
         try:
             self.heat.stacks.create(
-                stack_name='zoubida',
+                stack_name=stack_name,
                 parameters=self._parameters,
                 template=hot_template, timeout_mins=60)
         except heatclientexc.HTTPConflict:
             logger.error("Stack '%s' failed because of a conflict"
-                         % 'zoubida')
+                         % stack_name)
             raise AlreadyExisting()
 
 

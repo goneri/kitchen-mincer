@@ -73,4 +73,4 @@ class Mixer(object):
         provider.upload(mm)
         provider.register_key_pairs(environment.key_pairs())
         provider.register_floating_ips(environment.floating_ips())
-        provider.create()
+        provider.create(self.marmite.application().name())
