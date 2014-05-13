@@ -40,10 +40,6 @@ class Mixer(object):
 
         kwargs = dict(params=environment.provider_params(), args=self.args)
 
-        # TODO(Gonéri)
-        import providers.heat
-        return providers.heat.Heat(**kwargs)
-
         return driver.DriverManager(
             namespace=MINCER_PROVIDERS_NS,
             name=environment.provider(),
