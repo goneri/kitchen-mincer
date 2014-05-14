@@ -151,7 +151,7 @@ class Heat(object):
         hot_template = self._get_heat_template()
         stack_name = "%s--%s" % (name, str(uuid.uuid4()))
         try:
-            self.heat.stacks.create(
+            resp = self.heat.stacks.create(
                 stack_name=stack_name,
                 parameters=self._parameters,
                 template=hot_template, timeout_mins=60)
@@ -159,6 +159,18 @@ class Heat(object):
             logger.error("Stack '%s' failed because of a conflict"
                          % stack_name)
             raise AlreadyExisting()
+
+        self._stack_id = resp['stack']['id']
+        while True:
+            stack = self.heat.stacks.get(self._stack_id)
+            logger.info("Stack status: %s" % stack.status)
+            if stack.status != 'IN_PROGRESS':
+                break
+            time.sleep(10)
+        logger.info("Stack final status: %s" % stack.status)
+
+    def delete(self):
+        self.heat.stacks.delete(self._stack_id)
 
 
 class AlreadyExisting(Exception):
