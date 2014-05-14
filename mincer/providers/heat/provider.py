@@ -20,6 +20,7 @@ import uuid
 
 import glanceclient
 import heatclient.client as heatclient
+from heatclient.common import template_utils
 import heatclient.exc as heatclientexc
 import keystoneclient.v2_0 as keystone_client
 import novaclient.client as novaclient
@@ -34,7 +35,7 @@ class Heat(object):
         self.params = params
         self.args = args
         self._keystone = None
-        self._parameters = {}
+        self._parameters = {'flavor': 'm1.small'}
 
     def connect(self, identity):
         """ This method connect to the Openstack.
@@ -51,13 +52,6 @@ class Heat(object):
                                         identity['os_password'],
                                         auth_url=identity['os_auth_url'],
                                         project_id=identity['os_tenant_name'])
-
-    def _get_heat_template(self):
-        """:returns: returns the content of the Heat template
-           :rtype: str
-        """
-        with open(self.args.marmite_directory + "/heat.yaml") as file:
-            return file.read()
 
     def upload(self, medias):
         """ Upload medias in Glance.
@@ -104,8 +98,7 @@ class Heat(object):
                              copy_from=media.copy_from)
             while image.status != 'active':
                 if image.status == 'killed':
-                    raise Exception("Glance error while waiting for image "
-                                    "to generate from URL")
+                    raise Exception("Glance error while waiting for image")
                 time.sleep(5)
                 image = glance.images.get(image.id)
                 logger.info("waiting for %s" % media.name)
@@ -145,16 +138,22 @@ class Heat(object):
         """ Run the stack and provides the parameters to Heat. """
         heat_endpoint = self._keystone.service_catalog.url_for(
             service_type='orchestration')
+
+        tpl_files, template = template_utils.get_template_contents(
+            self.args.marmite_directory + "/heat.yaml"
+        )
+
         self.heat = heatclient.Client('1', endpoint=heat_endpoint,
                                       token=self._keystone.auth_token)
 
-        hot_template = self._get_heat_template()
         stack_name = "%s--%s" % (name, str(uuid.uuid4()))
         try:
             resp = self.heat.stacks.create(
                 stack_name=stack_name,
                 parameters=self._parameters,
-                template=hot_template, timeout_mins=60)
+                template=template,
+                files=dict(list(tpl_files.items())),
+                timeout_mins=60)
         except heatclientexc.HTTPConflict:
             logger.error("Stack '%s' failed because of a conflict"
                          % stack_name)

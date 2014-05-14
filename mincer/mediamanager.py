@@ -93,12 +93,17 @@ class Media():
             if source['type'] == 'git':
                 subprocess.call(["git", "clone", source['value'], target_dir],
                                 cwd=self.data_dir)
-            elif source['type'] == 'shell':
-                f = tempfile.NamedTemporaryFile()
-                f.write(source['content'])
-                subprocess.call(["chmod", "+x", f.name])
+            elif source['type'] == 'script':
+                os.environ['BASE_DIR'] = os.getcwd()
+                f = tempfile.NamedTemporaryFile(delete=False)
+                f.write(source['value'])
                 f.close()
-                subprocess.call([f.name], target_dir)
+                subprocess.call(["chmod", "+x", f.name])
+                subprocess.call([f.name], cwd=target_dir)
+                os.unlink(f.name)
+            else:
+                raise MediaManagerException("Unknown source type '%s'" %
+                                            source['type'])
 
     def _produce_image(self):
         """Push the collected data in an image

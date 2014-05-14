@@ -87,13 +87,6 @@ class TestProvider(testtools.TestCase):
         self.useFixture(fixtures.NestedTempfile())
 
     @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
-    def test_get_heat_template(self):
-        my_provider = provider.Heat(args=fake_args())
-        self.assertEqual(my_provider.connect(fake_identity), None)
-        heat_template = my_provider._get_heat_template()
-        self.assertRegexpMatches(heat_template, ".*useless\ Heat\ template.*")
-
-    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
     @mock.patch('heatclient.v1.client.Client')
     def test_create(self, heat_mock):
         my_provider = provider.Heat(args=fake_args())

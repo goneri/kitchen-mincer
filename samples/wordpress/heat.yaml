@@ -1,40 +1,18 @@
 heat_template_version: 2013-05-23
 
 description: >
-  Heat WordPress template to support F20, using only Heat OpenStack-native
-  resource types, and without the requirement for heat-cfntools in the image.
-  Blabalbalba.
-  WordPress is web software you can use to create a beautiful website or blog.
-  This template installs a single-instance WordPress deployment using a local
-  MySQL database to store the data.
+  Based on Heat Wordpress example
 
 parameters:
-
   key_name:
     type: string
-    description : Name of a KeyPair to enable SSH access to the instance
-  instance_type:
+    description : Name of a key pair to enable SSH access to instances.
+    default: default
+  flavor:
     type: string
-    description: Instance type for WordPress server
-    default: m1.small
+    description: Flavor to use for the WordPress server.
     constraints:
-      - allowed_values: [m1.small, m1.medium, m1.large]
-        description: instance_type must be one of m1.small, m1.medium or m1.large
-  volume_id_fedora_dvd:
-    type: string
-    description: Base OS
-  volume_id_dump_mysql:
-    type: string
-    description: Backup to restore
-  volume_id_wordpress_files:
-    type: string
-    description: Wordpress
-  volume_id_base_image:
-    type: string
-    description: The VM root system
-  floating_ip_public_wordpress_ip:
-    type: string
-    description: Public IP
+      - custom_constraint: nova.flavor
   db_name:
     type: string
     description: WordPress database name
@@ -58,179 +36,184 @@ parameters:
         description: >
           db_username must begin with a letter and contain only alphanumeric
           characters
-  db_password:
+  volume_id_ubuntu-13.10-server-amd64.iso:
     type: string
-    description: The WordPress database admin account password
-    default: admin
-    hidden: true
-    constraints:
-      - length: { min: 1, max: 41 }
-        description: db_username must be between 1 and 64 characters
-      - allowed_pattern: '[a-zA-Z0-9]*'
-        description: db_password must contain only alphanumeric characters
-  db_root_password:
+    description: Ubuntu 13.10 server ISO
+  volume_id_wordpress_files:
     type: string
-    description: Root password for MySQL
-    default: admin
-    hidden: true
-    constraints:
-      - length: { min: 1, max: 41 }
-        description: db_username must be between 1 and 64 characters
-      - allowed_pattern: '[a-zA-Z0-9]*'
-        description: db_password must contain only alphanumeric characters
+    description: Wordpress file
+  volume_id_dump_mysql:
+    type: string
+    description: Backup to restore
+  volume_id_base_image:
+    type: string
+    description: The VM root system
+  floating_ip_public_wordpress_ip:
+    type: string
+    description: Public IP
 
 resources:
-  fedora_dvd_volume:
+  volume_ubuntu_dvd:
     type: OS::Cinder::Volume
     properties:
-      image: { get_param: volume_id_fedora_dvd }
+      image: { get_param: volume_id_ubuntu-13.10-server-amd64.iso }
       size: 5
-  attach_fedora_dvd_volume:
+  attach_volume_ubuntu_dvd:
     type: OS::Cinder::VolumeAttachment
     properties:
-      instance_uuid: { get_resource: fedora_mirror }
-      volume_id: { get_resource: fedora_dvd_volume }
-  fedora_mirror:
-    type: OS::Nova::Server
-    properties:
-      image: { get_param: volume_id_base_image }
-      flavor: { get_param: instance_type }
-      key_name: { get_param: key_name }
-      user_data:
-        str_replace:
-          template: |
-            #!/bin/bash -v
+      instance_uuid: { get_resource: ubuntu_mirror_instance }
+      volume_id: { get_resource: volume_ubuntu_dvd }
 
-            [ -d /var/www/html ] || mkdir -p /var/www/html
-            mount /dev/disk/by-label/Fedora\\x2020\\x20x86_64 /var/www/html/
-            rm -f /etc/yum.repos.d/*
-            echo '[DVD-Fedora20]' > /etc/yum.repos.d/dvd.repo
-            echo 'name=DVD-Fedora20 Repository' >> /etc/yum.repos.d/dvd.repo
-            echo 'baseurl=file:///var/www/html' >> /etc/yum.repos.d/dvd.repo
-            echo 'enabled=1' >> /etc/yum.repos.d/dvd.repo
-            echo 'gpgcheck=0' >> /etc/yum.repos.d/dvd.repo
-            yum -y install httpd
-            firewall-cmd --add-service=http
-            firewall-cmd --permanent --add-service=http
-
-            systemctl start httpd.service
-          params:
-            db_rootpassword: { get_param: db_root_password }
-            db_name: { get_param: db_name }
-            db_user: { get_param: db_username }
-            db_password: { get_param: db_password }
-  mysql_server_data_volume:
+  volume_mysql_data:
     type: OS::Cinder::Volume
     properties:
       image: { get_param: volume_id_dump_mysql }
       size: 5
-  attach_mysql_server_data:
+  attach_volume_mysql_data:
     type: OS::Cinder::VolumeAttachment
     properties:
-      instance_uuid: { get_resource: mysql_server }
-      volume_id: { get_resource: mysql_server_data_volume }
-  mysql_server:
-    type: OS::Nova::Server
-    properties:
-      image: { get_param: volume_id_base_image }
-      flavor: { get_param: instance_type }
-      key_name: { get_param: key_name }
-      user_data:
-        str_replace:
-          template: |
-            #!/bin/bash -v
+      instance_uuid: { get_resource: dbserver_instance }
+      volume_id: { get_resource: volume_mysql_data }
 
-            [ -d /var/www/html ] || mkdir -p /var/www/html
-            mount /dev/disk/by-label/Fedora\\x2020\\x20x86_64 /var/www/html/
-            rm -f /etc/yum.repos.d/*
-            echo '[DVD-Fedora20]' > /etc/yum.repos.d/dvd.repo
-            echo 'name=DVD-Fedora20 Repository' >> /etc/yum.repos.d/dvd.repo
-            echo 'baseurl=http://fedora_mirror' >> /etc/yum.repos.d/dvd.repo
-            echo 'enabled=1' >> /etc/yum.repos.d/dvd.repo
-            echo 'gpgcheck=0' >> /etc/yum.repos.d/dvd.repo
-            yum -y install mysql mysql-server
-
-            systemctl enable mysqld.service
-            systemctl start httpd.service
-
-            # Setup MySQL root password and create a user
-            mysqladmin -u root password db_rootpassword
-            cat << EOF | mysql -u root --password=db_rootpassword
-            CREATE DATABASE db_name;
-            GRANT ALL PRIVILEGES ON db_name.* TO "db_user"@"localhost"
-            IDENTIFIED BY "db_password";
-            FLUSH PRIVILEGES;
-            EXIT
-            EOF
-
-          params:
-            fedora_mirror: { get_attr: [fedora_mirror, first_address] }
-            db_rootpassword: { get_param: db_root_password }
-            db_name: { get_param: db_name }
-            db_user: { get_param: db_username }
-            db_password: { get_param: db_password }
-  wordpress_server_data_volume:
+  volume_wordpress_files:
     type: OS::Cinder::Volume
     properties:
       image: { get_param: volume_id_wordpress_files }
       size: 5
-  wordpress_server_data:
+  attach_volume_wordpress_files:
     type: OS::Cinder::VolumeAttachment
     properties:
-      instance_uuid: { get_resource: wordpress_server }
-      volume_id: { get_resource: wordpress_server_data_volume }
-  wordpress_server:
+      instance_uuid: { get_resource: webserver_instance }
+      volume_id: { get_resource: volume_wordpress_files }
+
+
+  ubuntu_mirror_config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: script
+      config: { get_file: apt_mirror_config.sh }
+
+  wordpress_config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      inputs:
+        - name: ubuntu_mirror
+        - name: db_name
+        - name: db_user
+        - name: db_password
+        - name: db_ipaddr
+      group: script
+      config: { get_file: wp_install.sh }
+
+  db_config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      inputs:
+        - name: ubuntu_mirror
+        - name: db_rootpassword
+        - name: db_name
+        - name: db_user
+        - name: db_password
+      group: script
+      config: { get_file: db_install.sh }
+
+  db_root_password:
+    type: OS::Heat::RandomString
+
+  db_password:
+    type: OS::Heat::RandomString
+
+  wordpress_deployment:
+    type: OS::Heat::SoftwareDeployment
+    depends_on: db_deployment
+    properties:
+      config:
+        get_resource: wordpress_config
+      server:
+        get_resource: webserver_instance
+      input_values:
+        ubuntu_mirror: { get_attr: [ ubuntu_mirror_instance, networks, private, 0 ] }
+        db_name: { get_param: db_name }
+        db_user: { get_param: db_username }
+        db_password: { get_attr: [ db_password, value ] }
+        db_ipaddr: { get_attr: [ dbserver_instance, networks, private, 0 ] }
+
+  db_deployment:
+    type: OS::Heat::SoftwareDeployment
+    depends_on: ubuntu_mirror_deployment
+    properties:
+      config:
+        get_resource: db_config
+      server:
+        get_resource: dbserver_instance
+      input_values:
+        ubuntu_mirror: { get_attr: [ ubuntu_mirror_instance, networks, private, 0 ] }
+        db_rootpassword: { get_attr: [ db_root_password, value ] }
+        db_name: { get_param: db_name }
+        db_user: { get_param: db_username }
+        db_password: { get_attr: [ db_password, value ] }
+
+  ubuntu_mirror_deployment:
+    type: OS::Heat::SoftwareDeployment
+    properties:
+      config:
+        get_resource: ubuntu_mirror_config
+      server:
+        get_resource: ubuntu_mirror_instance
+
+  ubuntu_mirror_instance:
     type: OS::Nova::Server
     properties:
       image: { get_param: volume_id_base_image }
-      flavor: { get_param: instance_type }
+      flavor: { get_param: flavor }
       key_name: { get_param: key_name }
-      user_data:
-        str_replace:
-          template: |
-            #!/bin/bash -v
+      user_data_format: SOFTWARE_CONFIG
 
-            [ -d /var/www/html ] || mkdir -p /var/www/html
-            mount /dev/disk/by-label/Fedora\\x2020\\x20x86_64 /var/www/html/
-            rm -f /etc/yum.repos.d/*
-            echo '[DVD-Fedora20]' > /etc/yum.repos.d/dvd.repo
-            echo 'name=DVD-Fedora20 Repository' >> /etc/yum.repos.d/dvd.repo
-            echo 'baseurl=http://fedora_mirror' >> /etc/yum.repos.d/dvd.repo
-            echo 'enabled=1' >> /etc/yum.repos.d/dvd.repo
-            echo 'gpgcheck=0' >> /etc/yum.repos.d/dvd.repo
-            yum -y install httpd wordpress
+  webserver_instance:
+    type: OS::Nova::Server
+    properties:
+      image: { get_param: volume_id_base_image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key_name }
+      user_data_format: SOFTWARE_CONFIG
 
-            systemctl enable httpd.service
-            systemctl start httpd.service
+  dbserver_instance:
+    type: OS::Nova::Server
+    properties:
+      image: { get_param: volume_id_base_image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key_name }
+      user_data_format: SOFTWARE_CONFIG
 
-            firewall-cmd --add-service=http
-            firewall-cmd --permanent --add-service=http
-
-            sed -i "/Deny from All/d" /etc/httpd/conf.d/wordpress.conf
-            sed -i "s/Require local/Require all granted/" /etc/httpd/conf.d/wordpress.conf
-            sed -i s/database_name_here/db_name/ /etc/wordpress/wp-config.php
-            sed -i s/username_here/db_user/ /etc/wordpress/wp-config.php
-            sed -i s/password_here/db_password/ /etc/wordpress/wp-config.php
-
-            systemctl restart httpd.service
-
-          params:
-            fedora_mirror: { get_attr: [fedora_mirror, first_address] }
-            db_rootpassword: { get_param: db_root_password }
-            db_name: { get_param: db_name }
-            db_user: { get_param: db_username }
-            db_password: { get_param: db_password }
   wordpress_floating_ip:
     type: OS::Nova::FloatingIPAssociation
     properties:
-      server_id: { get_resource: wordpress_server }
+      server_id: { get_resource: webserver_instance }
       floating_ip: { get_param: floating_ip_public_wordpress_ip }
 
 outputs:
-  FedoraMirror:
-    description: URL for the Fedora 20 x86_64 mirror
+  WebsiteURL:
+    description: URL for Wordpress wiki
     value:
       str_replace:
-        template: http://host/
+        template: http://host/wordpress
         params:
-          host: { get_attr: [fedora_mirror, first_address] }
+          host: { get_attr: [webserver_instance, networks, private, 0] }
+  stdout_ubuntu_mirror_deployment:
+    value:
+      get_attr: [ubuntu_mirror_deployment, deploy_stdout]
+  stdout_wordpress_deployment:
+    value:
+      get_attr: [wordpress_deployment, deploy_stdout]
+  stdout_db_deployment:
+    value:
+      get_attr: [db_deployment, deploy_stdout]
+  stderr_ubuntu_mirror_deployment:
+    value:
+      get_attr: [ubuntu_mirror_deployment, deploy_stderr]
+  stderr_wordpress_deployment:
+    value:
+      get_attr: [wordpress_deployment, deploy_stderr]
+  stderr_db_deployment:
+    value:
+      get_attr: [db_deployment, deploy_stderr]
