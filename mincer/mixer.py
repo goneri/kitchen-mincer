@@ -72,7 +72,7 @@ class Mixer(object):
 
     def bootstrap(self, env_name):
         """ Bootstrap the application. """
-        environment = self.marmite.environments[env_name]
+        environment = self.marmite.environment(env_name)
         mm = mediamanager.MediaManager()
         medias = self.marmite.application().medias()
         medias.update(environment.medias())

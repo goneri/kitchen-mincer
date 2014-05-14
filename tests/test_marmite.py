@@ -35,10 +35,9 @@ class TestMarmite(testtools.TestCase):
                          self.marmite.description())
 
     def test_environment_provider(self):
-        environments = self.marmite.environments
         self.assertIn("heat-devstack-docker",
-                      environments["devtest"].provider())
-        provider_params = environments["devtest"].provider_params()
+                      self.marmite.environment("devtest").provider())
+        provider_params = self.marmite.environment("devtest").provider_params()
         self.assertIn("heat-devstack-docker", provider_params["image"])
         self.assertIn("m1.medium", provider_params["flavor"])
         self.assertIn("Nopasswd", provider_params["keypair"])
@@ -47,10 +46,9 @@ class TestMarmite(testtools.TestCase):
         self.assertIn("heat", fake_env.provider())
 
     def test_identity(self):
-        environments = self.marmite.environments
         with mock.patch.dict('os.environ', {'OS_TENANT_NAME': 'tenant',
                                             'OS_AUTH_URL': 'auth_url'}):
-            devtest_identity = environments["devtest"].identity()
+            devtest_identity = self.marmite.environment("devtest").identity()
 
             self.assertEqual("bob_l_eponge", devtest_identity["os_username"])
             self.assertEqual("password", devtest_identity["os_password"])

@@ -33,10 +33,12 @@ class Marmite(object):
         if marmite_dir is None:
             raise ValueError("'marmite_dir' argument is required")
         self.marmite_dir = marmite_dir
-        marmite_file = os.path.join(self.marmite_dir, "marmite.yaml")
-        if not os.path.exists(marmite_file):
-            raise NotFound("Marmite file '%s'" % marmite_file)
-        self.marmite_tree = yaml.load(open(marmite_file, 'rb'))
+        marmite_path = os.path.join(self.marmite_dir, "marmite.yaml")
+        if not os.path.exists(marmite_path):
+            raise NotFound("Marmite file '%s'" % marmite_path)
+        self.marmite_tree = yaml.load(open(marmite_path, 'rb'))
+        self._application = Application(self.marmite_tree['application'])
+        self.environments = dict()
         for name in self.marmite_tree['environments']:
             self.environments[name] = Environment(
                 name,
@@ -49,7 +51,13 @@ class Marmite(object):
             raise NotFound("'description' not found")
 
     def application(self):
-        return Application(self.marmite_tree['application'])
+        return self._application
+
+    def environment(self, name):
+        try:
+            return self.environments[name]
+        except KeyError:
+            raise NotFound("environment '%s' not found" % name)
 
     def testers(self):
         try:
