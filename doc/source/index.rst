@@ -75,6 +75,17 @@ These medias can be either:
 marmite YAML file
 -----------------
 
+* environments
+    * identity
+    * medias
+    * key_pairs
+* application
+    * name
+    * medias
+    * garden gnome: the list of the associated tests
+* Gnome reserve
+    * Garden Gnome
+
 .. code:: yaml
 
     description: A wordpress in a container (web and DB)
@@ -166,9 +177,95 @@ Initial deployment
 Functional test
 ---------------
 
-.. todo::
+Currently we deploy applications through the use of Heat templates. Once the
+application is deployed we can start to run some tests campaign (unit tests,
+functional tests, etc…).
 
-Sprint 4 -- Investigate the different method of testing, properly categorize them of what we want to do
+We found two possible ways to run the tests.
+
+A. Solution A: from the Mincer host:
+
+    The most obvious and easy way to run the tests is to do it directly from the
+    mincer just after the deployment of the application.
+
+    The drawbacks of that solution are:
+
+    - The Mincer will not scale very well because the server have limited resources.
+      For instance, it will be hard to stress the application with 100k+ 
+      connections.
+    - Test results depends on the Mincer host machine configuration, so it will be
+      hard to reproduce some tests which is business strategic in our context.
+    - It brings unnecessary complexity in the Mincer code.
+
+B. Solution B: from a temporary Heat stack:
+
+    The idea in this solution is to consider a test as an application which
+    tests another one. The same way the Mincer creates application stacks, it
+    also creates temporary Heat stack used to run the tests called the
+    *Garden gnomes*.
+
+    Garden gnomes are ephemeral stacks designed to run a tasks against an
+    application.
+    By using this solution, we can leverage Heat to express complex tests
+    scenarios and then we do not add complexity in the Mincer.
+
+    Garden Gnome are very similar to an application:
+
+    - same YAML structure
+    - with optional media and ssh key structure
+    - a heat.yaml file.
+
+    But the "Garden Gnome" are also different:
+
+    - limited lifetime (ephemeral stacks)
+    - hard drive are volatile
+    - are in a "Gnome Reserve" section of the marmite
+
+This is an example of a Garden Gnome used to run benchmark against a Wordpress
+instance (Solution B).
+
+.. graphviz::
+
+    graph G {
+
+
+        subgraph clusterA {
+	    label = "my Wordpress"
+	    floatingIP [ shape = "pentagon" ]
+
+	    "VM Apache";
+	    "VM MySQL";
+            "floatingIP";
+	}
+
+
+        subgraph clusterB {
+            label = "garden Gnome -- benchmark"
+	    style=filled
+	    color=lightgrey
+	    "VM test 1"
+	    "VM test 2"
+	    "VM test 3"
+	}
+	"floatingIP" -- "VM Apache"
+	"VM MySQL" -- "VM Apache"
+	"VM test 1" -- "floatingIP"
+	"VM test 2" -- "floatingIP"
+	"VM test 3" -- "floatingIP"
+   }
+
+
+
+
+
+Conclusion
+==========
+
+We, think that we should implement the solution B.
+
+Example
+=======
+
 
 Code architecture
 =================
