@@ -170,6 +170,31 @@ class Heat(object):
     def delete(self):
         self.heat.stacks.delete(self._stack_id)
 
+    def get_machines(self):
+        """Return a list of dictionnary describing the machines from
+           the running stack
+        """
+        machines = []
+        for resource in self.heat.resources.list(self._stack_id):
+            if resource.resource_type != "OS::Nova::Server":
+                continue
+            server = self._novaclient.servers.get(
+                resource.physical_resource_id)
+            ifaces = server.interface_list()
+            primary_ip_address = None
+            iface = ifaces.pop()
+            if iface and \
+                len(iface.fixed_ips) > 0 and \
+                'ip_address' in iface.fixed_ips[0]:
+                primary_ip_address = iface.fixed_ips[0]['ip_address']
+            machines.append({
+                'name': server.name,
+                'resource_name': resource.resource_name,
+                'id': resource.physical_resource_id,
+                'primary_ip_address': primary_ip_address
+            })
+        return machines
+
 
 class AlreadyExisting(Exception):
     """Exception raised when there is a conflict with a stack

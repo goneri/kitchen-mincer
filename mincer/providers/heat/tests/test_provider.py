@@ -75,9 +75,42 @@ class fake_novaclient():
         def list(self):
             return ()
 
+    class fake_servers(object):
+        def __init__(self, **kwargs):
+            return
+
+        def get(self, server_id):
+
+            iface = mock.Mock()
+            iface.fixed_ips = [{'ip_address': '127.0.0.1'}]
+            server = mock.Mock()
+            server.name = 'robert-%s' % server_id
+            server.interface_list.return_value = [iface]
+            return server
+
     def __init__(self, **kwargs):
         self.keypairs = self.fake_keypairs()
         self.floating_ips = self.fake_floating_ips()
+        self.servers = self.fake_servers()
+
+
+class fake_heatclient(object):
+    class fake_resources(object):
+        def __init__(self, **kwargs):
+            return
+
+        def list(self, stack_id):
+            mock1 = mock.Mock()
+            mock1.resource_type = 'OS::Nothing::Here'
+            mock2 = mock.Mock()
+            mock2.resource_type = 'OS::Nova::Server'
+            mock2.resource_name = 'nerf'
+            mock2.physical_resource_id = 'lapin'
+            return [mock1, mock2]
+
+    def __init__(self, **kwargs):
+        self.resources = self.fake_resources()
+        return
 
 
 class TestProvider(testtools.TestCase):
@@ -105,6 +138,22 @@ class TestProvider(testtools.TestCase):
         self.assertRaises(provider.UnknownFloatingIP,
                           my_provider.register_floating_ips,
                           {'pub_ip': '::1'})
+
+    def test_get_machines(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._novaclient = fake_novaclient()
+        my_provider.heat = fake_heatclient()
+        my_provider._stack_id = None
+        result = [
+            {
+                'id': 'lapin',
+                'name': 'robert-lapin',
+                'primary_ip_address': '127.0.0.1',
+                'resource_name': 'nerf'
+            }
+        ]
+        self.assertEqual(my_provider.get_machines(), result)
+
 
 if __name__ == '__main__':
     unittest.main()
