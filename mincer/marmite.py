@@ -33,10 +33,10 @@ class Marmite(object):
         if marmite_dir is None:
             raise ValueError("'marmite_dir' argument is required")
         self.marmite_dir = marmite_dir
-        marmite_path = os.path.join(self.marmite_dir, "marmite.yaml")
-        if not os.path.exists(marmite_path):
-            raise NotFound("Marmite file '%s'" % marmite_path)
-        self.marmite_tree = yaml.load(open(marmite_path, 'rb'))
+        marmite_file = os.path.join(self.marmite_dir, "marmite.yaml")
+        if not os.path.exists(marmite_file):
+            raise NotFound("Marmite file '%s'" % marmite_file)
+        self.marmite_tree = yaml.load(open(marmite_file, 'rb'))
         for name in self.marmite_tree['environments']:
             self.environments[name] = Environment(
                 name,
@@ -50,6 +50,18 @@ class Marmite(object):
 
     def application(self):
         return Application(self.marmite_tree['application'])
+
+    def testers(self):
+        try:
+            tests_names = self.marmite_tree['testers']
+        except KeyError:
+            raise NotFound("'testers' section is missing in the marmite")
+
+        tests = []
+        for test_name in tests_names:
+            tests.append(Test(self.marmite_tree['testers'][test_name],
+                              test_name))
+        return tests
 
 
 class Environment(object):
@@ -103,6 +115,24 @@ class Application(object):
 
     def medias(self):
         return self.application_tree.get('medias', list())
+
+
+class Test(object):
+    def __init__(self, test_tree, test_name):
+        self.test_tree = test_tree
+        self.test_name = test_name
+
+    def driver(self):
+        try:
+            return self.test_tree['driver']
+        except KeyError:
+            raise NotFound("test '%s' has no 'driver' key" % self.test_name)
+
+    def params(self):
+        try:
+            return self.test_tree['params']
+        except KeyError:
+            raise NotFound("test '%s' has no 'params' key" % self.test_name)
 
 
 class NotFound(Exception):
