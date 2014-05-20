@@ -46,7 +46,7 @@ class MediaManager(list):
         super(MediaManager, self).append(media)
 
 
-class Media():
+class Media(object):
 
     def __init__(self, name, description):
         self.disk_format = "raw"
