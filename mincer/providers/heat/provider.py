@@ -25,7 +25,7 @@ import heatclient.exc as heatclientexc
 import keystoneclient.v2_0 as keystone_client
 import novaclient.client as novaclient
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 class Heat(object):
@@ -74,12 +74,12 @@ class Heat(object):
             try:
                 checksum_ids_images[image.checksum] = image.id
             except AttributeError:
-                logger.warn("checksum for image '%s' not found" % image.id)
+                LOG.warn("checksum for image '%s' not found", image.id)
 
         # Upload each media if necessary
         for media in medias:
-            logger.debug("uploading media: '%s', checksum: '%s'" %
-                         (media.name, media.checksum))
+            LOG.debug("uploading media: '%s', checksum: '%s'",
+                      media.name, media.checksum)
 
             if media.checksum in checksum_ids_images.keys():
                 self._parameters['volume_id_%s' % media.name] = \
@@ -101,9 +101,9 @@ class Heat(object):
                     raise Exception("Glance error while waiting for image")
                 time.sleep(5)
                 image = glance.images.get(image.id)
-                logger.info("waiting for %s" % media.name)
+                LOG.info("waiting for %s", media.name)
             self._parameters['volume_id_%s' % image.name] = image.id
-            logger.debug("status: %s - %s" % (media.name, image.status))
+            LOG.debug("status: %s - %s", media.name, image.status)
 
     def register_key_pairs(self, key_pairs):
         """ Register key pairs.
@@ -114,7 +114,7 @@ class Heat(object):
             try:
                 self._novaclient.keypairs.create(name, key_pairs[name])
             except novaclient.exceptions.Conflict:
-                logger.debug("Key %s already created" % name)
+                LOG.debug("Key %s already created", name)
             # TODO(Gonéri), this force the use of a sole key
             self._parameters['key_name'] = name
 
@@ -155,18 +155,17 @@ class Heat(object):
                 files=dict(list(tpl_files.items())),
                 timeout_mins=60)
         except heatclientexc.HTTPConflict:
-            logger.error("Stack '%s' failed because of a conflict"
-                         % stack_name)
+            LOG.error("Stack '%s' failed because of a conflict", stack_name)
             raise AlreadyExisting()
 
         self._stack_id = resp['stack']['id']
         while True:
             stack = self.heat.stacks.get(self._stack_id)
-            logger.info("Stack status: %s" % stack.status)
+            LOG.info("Stack status: %s", stack.status)
             if stack.status != 'IN_PROGRESS':
                 break
             time.sleep(10)
-        logger.info("Stack final status: %s" % stack.status)
+        LOG.info("Stack final status: %s", stack.status)
 
     def delete(self):
         self.heat.stacks.delete(self._stack_id)
