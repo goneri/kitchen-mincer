@@ -29,7 +29,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Heat(object):
-    """ The Heat provider which run stacks on an OpenStack."""
+    """The Heat provider which run stacks on an OpenStack."""
 
     def __init__(self, params={}, args={}):
         self.params = params
@@ -38,7 +38,7 @@ class Heat(object):
         self._parameters = {'flavor': 'm1.small'}
 
     def connect(self, identity):
-        """ This method connect to the Openstack.
+        """This method connect to the Openstack.
         :param identity: the OS identity of the environment
         :type identity: dict
         """
@@ -54,7 +54,7 @@ class Heat(object):
                                         project_id=identity['os_tenant_name'])
 
     def upload(self, medias):
-        """ Upload medias in Glance.
+        """Upload medias in Glance.
 
         :param medias: list of Media objects
         :type medias: list
@@ -106,7 +106,7 @@ class Heat(object):
             LOG.debug("status: %s - %s", media.name, image.status)
 
     def register_key_pairs(self, key_pairs):
-        """ Register key pairs.
+        """Register key pairs.
         :param key_pairs: the key pairs
         :type  key_pairs: dict
         """
@@ -119,7 +119,7 @@ class Heat(object):
             self._parameters['key_name'] = name
 
     def register_floating_ips(self, floating_ips):
-        """ Ensure that the provided floating ips are available. Push them
+        """Ensure that the provided floating ips are available. Push them
         on the Heat stack parameters.
         """
         for name in floating_ips:
@@ -135,7 +135,7 @@ class Heat(object):
                 raise UnknownFloatingIP("floating ip '%s' not found" % ip)
 
     def create(self, name):
-        """ Run the stack and provides the parameters to Heat. """
+        """Run the stack and provides the parameters to Heat. """
         heat_endpoint = self._keystone.service_catalog.url_for(
             service_type='orchestration')
 
