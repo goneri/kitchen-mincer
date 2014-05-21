@@ -13,6 +13,17 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 
+Introduction
+============
+
+Kitchen Mincer aims to answer the following needs:
+
+- Give a way and tools to continously validate application deployment.
+- Validate that my application still work even if I upgrade my IAAS.
+
+For the moment, it is not possible to deploy and test a IAAS on
+baremetal.
+
 Glossary
 ========
 
@@ -31,8 +42,10 @@ Glossary
         an account of an OpenStack cloud providing Heat API.
 
     Media:
-        a file or VCS repository used by applications, the medias may be aggregated in a disk
-        image. See `the medias`_ bellow.
+        some data needed to run the application, see `the medias`_ bellow:
+        * ISO image retrieved from a HTTP location
+        * an eDeploy image disk
+        * some files collected and aggregated (git, etc)
 
     Provider: a driver for the cloud infrastructure we want to use
         * OpenStack+Heat (default)
@@ -48,8 +61,17 @@ Glossary
     Kitchen Island:
         A internal code name, restricted to be kept internally and not communicated outside.
 
+    Tester:
+        A driver designed to run a specific kind of tests.
+
+    Test:
+        A process based on a `Tester` and designed to validate the good shape of a running Application.
+
+
 Marmite definition
 ==================
+
+The marmite describes the application, where it should be deployed and validated.
 
 The medias
 ----------
@@ -83,75 +105,21 @@ marmite YAML file
     * name
     * medias
     * garden gnome: the list of the associated tests
-* Gnome reserve
-    * Garden Gnome
+* testers
+    * a_test_sample
 
-.. code:: yaml
-
-    description: A wordpress in a container (web and DB)
-    environments:
-      devtest:
-    # Implicite, heat is the default provider.
-    #    provider: heat
-        identity:
-          os_auth_url: http://os-ci-test7.ring.enovance.com:5000/v2.0
-          os_username: admin
-          os_password: password
-          os_tenant_name: demo
-        medias:
-          dump_mysql:
-            type: dynamic
-            sources:
-              -
-                type: script
-                value: |
-                    #!/bin/sh
-                    echo this is my dump MySQL > dump.sql
-                target: mysql
-        key_pairs:
-          stack_os_ci-test7: |
-            ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCyiXfE1zHKdj6odbysr917Cn88ov0VQaPJtLKJyMNuRYAeMOFQHd50X8JO4dfZbmSo3YdJlVfz9FLRxE64mqj9bkN8hPFbkTG2F1AWXGPON5cmm4uiLPfQkWhX/LnClrhzZpNtMJYs5AEFeDs0POijcRugZsQA+wvLi0lSlhOfkqtjAJKpPUwy1wrJFDdvqdQBjpNQh/LB8c15XfQV2JT/3NX26dQe8zvHhL6NvfhBnAikodYkBr7UjSl36CBk0cPebZMZEBBiHdo76xORVkpmqDvkhFByXXeAsvRa2YWS4wxpiNJFswlRhjubGau7LrT113WMcPvgYXHYHf2IYJWD goneri.lebouder@enovance.com
-        floating_ips:
-          public_wordpress_ip: 172.24.4.3
-
-    application:
-      name: wordpress
-      # By convention, the heat file will be located here:
-      # <root>/applications/<name e.g: wordpress>/heat.yaml
-      medias:
-        # A image content computed before the Heat creation
-        wordpress_files:
-            type: dynamic
-            sources:
-              -
-                type: git
-                value: https://github.com/WordPress/WordPress
-                # The directory in the image where to store the files
-		# in the generated image
-                target: wordpress
-                ref: 3.8.2
-        fedora_dvd:
-            type: block
-            disk_format: iso
-            copy_from: http://clearos.mirrors.ovh.net/download.fedora.redhat.com/linux/releases/20/Fedora/x86_64/iso/Fedora-20-x86_64-DVD.iso
-            checksum: 9a190c8b2bd382c2d046dbc855cd2f2b
-        base_image:
-            type: block
-            disk_format: qcow2
-            copy_from: http://download.fedoraproject.org/pub/fedora/linux/updates/20/Images/x86_64/Fedora-x86_64-20-20140407-sda.qcow2
-            checksum: 1ec332a350e0a839f03c967c1c568623
+.. include:: ../../samples/wordpress/marmite.yaml
+    :code: yaml
+    :number-lines:
 
 Directory hierarchy
 -------------------
 
+At which stage in the development process, we keep the *environmenets*,
+*applications* and *tests* section in the same file (*marmite.yaml*).
+
 - marmite.yaml
 - heat.yaml
-- environments/
-    * devtest.yaml
-    * prod.yaml
-- keys/
-    * roberto.pub
-    * kitty.pub
 
 Workflows
 =========
@@ -173,17 +141,44 @@ Initial deployment
 4. Compute the heat arguments (get image_id from MediaManager)
 5. Call Heat with the arguments
 6. Wait for stack being ready
+7. Process the tests against the newly created stack (See: `Functional testing`_)
+    1. start an ephemeral stack in the same tenant
+    2. run the test from that ephemeral stack
+    3. collect the result
+    4. destroy the stack
+8. destroy the stack if needed
 
-Functional test
----------------
+Functional testing
+------------------
 
-Currently we deploy applications through the use of Heat templates. Once the
+We deploy applications through the use of Heat templates [#other_cloud]_. Once the
 application is deployed we can start to run some tests campaign (unit tests,
 functional tests, etc…).
 
-We found two possible ways to run the tests.
+Depending on the needs, tests can be very different:
 
-A. Solution A: from the Mincer host:
+A. A couple of pings from the mincer machine
+B. The use of an external tool like `serverspec`
+C. A complex test scenario written in Python
+D. A benchmark depending on a large number of virtual machines
+
+That's the reason why they are based on *drivers*.
+
+*SimpleCheck*
+    This driver relys on command return code. It's similar to what is commonly
+    done in the monitoring world. For example: call ping 5 time against all the
+    host.
+*ServerSpec*
+    Call *serverspec* ( http://serverspec.org/ ) command.
+
+Rational regarding the use of an ephemeral stack to run the test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This paragraph explains the reason why we decide to launch an ephemeral stack
+to run the tests.
+
+
+If we run the tests directly from the machine that run the mincer:
 
     The most obvious and easy way to run the tests is to do it directly from the
     mincer just after the deployment of the application.
@@ -195,33 +190,32 @@ A. Solution A: from the Mincer host:
       connections.
     - Test results depends on the Mincer host machine configuration, so it will be
       hard to reproduce some tests which is business strategic in our context.
-    - It brings unnecessary complexity in the Mincer code.
+    - We cannot directly access the internal IP within the tenant
 
-B. Solution B: from a temporary Heat stack:
+If we run the tests from a temporary Heat stack:
 
     The idea in this solution is to consider a test as an application which
     tests another one. The same way the Mincer creates application stacks, it
-    also creates temporary Heat stack used to run the tests called the
-    *Garden gnomes*.
+    also creates temporary Heat stack used to run the tests.
 
-    Garden gnomes are ephemeral stacks designed to run a tasks against an
+    These ephemeral stacks are designed to run tasks against an
     application.
     By using this solution, we can leverage Heat to express complex tests
     scenarios and then we do not add complexity in the Mincer.
 
-    Garden Gnome are very similar to an application:
+    They are very similar to an application:
 
     - same YAML structure
     - with optional media and ssh key structure
-    - a heat.yaml file.
+    - a heat.yaml file
 
-    But the "Garden Gnome" are also different:
+    But they are also different:
 
     - limited lifetime (ephemeral stacks)
     - hard drive are volatile
-    - are in a "Gnome Reserve" section of the marmite
+    - are in a *test* section of the marmite
 
-This is an example of a Garden Gnome used to run benchmark against a Wordpress
+This is an example of a test used to run benchmark against a Wordpress
 instance (Solution B).
 
 .. graphviz::
@@ -255,18 +249,6 @@ instance (Solution B).
    }
 
 
-
-
-
-Conclusion
-==========
-
-We, think that we should implement the solution B.
-
-Example
-=======
-
-
 Code architecture
 =================
 
@@ -293,14 +275,25 @@ Code architecture
         arrowtail = "empty"
         ]
 
-	interface [ shape = "parallelogram"  ]
+	"provider\ninterface" [ shape = "parallelogram"  ]
+        "tester\ninterface (#1)" [ shape = "parallelogram" ]
+        "tester\ninterface (#2)" [ shape = "parallelogram" ]
 
         main -> mincer
         mincer -> marmite
-	mincer -> interface
+	mincer -> "provider\ninterface"
+        mincer -> "tester\ninterface (#1)"
+        mincer -> "tester\ninterface (#2)"
 	mincer -> environment
-	interface -> provider
+	"provider\ninterface" -> "a provider"
+        "tester\ninterface (#1)" -> "a first\ntest"
+        "tester\ninterface (#2)" -> "another\test"
 	mincer -> mediamanager
-	mediamanager -> media_1
-	mediamanager -> media_2
+        mediamanager -> "media (#1)"
+	mediamanager -> "media (#2)"
     }
+
+.. rubric:: Footnotes
+
+.. [#other_cloud] For the moment, we only work with OpenStack Heat. The support of
+   other cloud technologies is a mid-term goal.
