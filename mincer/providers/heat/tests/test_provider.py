@@ -44,14 +44,14 @@ description: >
 """)
 
 
-class fake_service_catalog():
+class fake_service_catalog(object):
 
     def url_for(self, service_type='fake_service'):
 
         return "http://somewhere/%s" % service_type
 
 
-class fake_keystone():
+class fake_keystone(object):
 
     def __init__(self, **kwargs):
 
@@ -59,16 +59,16 @@ class fake_keystone():
         self.auth_token = "garantie_100%_truly_random"
 
 
-class fake_novaclient():
+class fake_novaclient(object):
 
-    class fake_keypairs():
+    class fake_keypairs(object):
         def __init__(self, **kwargs):
             return
 
         def create(self, name, key):
             return True
 
-    class fake_floating_ips():
+    class fake_floating_ips(object):
         def __init__(self, **kwargs):
             return
 
