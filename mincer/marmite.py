@@ -142,6 +142,9 @@ class Test(object):
         except KeyError:
             raise NotFound("test '%s' has no 'params' key" % self.test_name)
 
+    def medias(self):
+        return self.test_tree.get('medias', list())
+
 
 class NotFound(Exception):
     """Exception raised when an object is not found."""

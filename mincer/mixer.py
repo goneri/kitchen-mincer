@@ -14,13 +14,10 @@
 # under the License.
 
 import logging
-# from stevedore import driver
+from stevedore import driver
 
 from mincer import marmite
 from mincer import mediamanager  # noqa
-from mincer.providers.heat import provider
-from mincer.testers.simple_check import tester
-
 
 LOG = logging.getLogger(__name__)
 
@@ -41,30 +38,26 @@ class Mixer(object):
 
     def _load_provider(self, environment):
 
-        return provider.Heat(params=environment.provider_params(),
-                             args=self.args)
+        kwargs = dict(params=environment.provider_params(), args=self.args)
 
-        # kwargs = dict(params=environment.provider_params(), args=self.args)
-
-        # return driver.DriverManager(
-        #    namespace=MINCER_PROVIDERS_NS,
-        #    name=environment.provider(),
-        #    invoke_on_load=True,
-        #    on_load_failure_callback=self.report_error,
-        #    invoke_kwds=kwargs).driver
+        return driver.DriverManager(
+            namespace=MINCER_PROVIDERS_NS,
+            name=environment.provider(),
+            invoke_on_load=True,
+            on_load_failure_callback=self.report_error,
+            invoke_kwds=kwargs).driver
 
     def _load_test(self, test, provider):
 
-        return tester.SimpleCheck(provider, test.params())
+        kwargs = dict(provider=provider,
+                      params=test.params, medias=test.medias)
 
-        # kwargs = dict(provider=provider, params=test.params())
-
-        # return driver.DriverManager(
-        #    namespace=MINCER_TESTS_NS,
-        #    name=test.type(),
-        #    invoke_on_load=True,
-        #    on_load_failure_callback=self.report_error,
-        #    invoke_kwds=kwargs).driver
+        return driver.DriverManager(
+            namespace=MINCER_TESTS_NS,
+            name=test.driver(),
+            invoke_on_load=True,
+            on_load_failure_callback=self.report_error,
+            invoke_kwds=kwargs).driver
 
     def test(self, env_name):
         environment = self.marmite.environments[env_name]
@@ -89,13 +82,14 @@ class Mixer(object):
 
         provider = self._load_provider(environment)
         provider.connect(environment.identity())
-        provider.upload(mm)
-        provider.register_key_pairs(environment.key_pairs())
-        provider.register_floating_ips(environment.floating_ips())
-        provider.create(self.marmite.application().name())
+        provider.launch_application(
+            self.marmite.application().name(),
+            provider.upload(mm),
+            provider.register_key_pairs(environment.key_pairs()),
+            provider.register_floating_ips(environment.floating_ips()))
 
         for test in self.marmite.testers():
             test_instance = self._load_test(test, provider)
             test_instance.launch()
 
-        # provider.delete()
+        provider.cleanup_application()

@@ -16,16 +16,81 @@
 
 import logging
 import string
-import subprocess
+import tempfile
+import yaml
+
+from mincer import mediamanager  # noqa
 
 LOG = logging.getLogger(__name__)
 
 
+class HeatConfig(object):
+    def __init__(self):
+        self.struct = {
+            'heat_template_version': '2013-05-23',
+            'description': 'Zoubida',
+            'parameters': {
+                'volume_id_base_image': {
+                    'type': 'string',
+                    'description': 'The VM root system'
+                }
+            },
+            'resources': {
+                'tester_instance': {
+                    'type': 'OS::Nova::Server',
+                    'properties': {
+                        'image': {'get_param': 'volume_id_base_image'},
+                        'user_data_format': 'SOFTWARE_CONFIG',
+                        'flavor': 'm1.small'
+                    }
+                }
+            },
+            'outputs': {}
+        }
+
+        # TODO(Gonéri)
+        self.struct['resources']['tester_instance']['properties']['image'] = \
+            {'get_param': 'volume_id_base_image'}
+        self._test_cpt = 0
+
+    def add_test(self, cmd):
+
+        self.struct['resources']['%i_c' % self._test_cpt] = {
+            'type': 'OS::Heat::SoftwareConfig',
+            'properties': {
+                'group': 'script',
+                # TODO(Gonéri): str() otherwise we generate
+                # an unicode string rejected by Heat (py27)
+                'config': str('#!/bin/sh\n%s\n' % cmd)
+            }
+        }
+        self.struct['resources']['%i_d' % self._test_cpt] = {
+            'type': 'OS::Heat::SoftwareDeployment',
+            'properties': {
+                'config': {
+                    'get_resource': '%i_c' % self._test_cpt
+                },
+                'server': {
+                    'get_resource': 'tester_instance'
+                }
+            }
+        }
+        self.struct['outputs']['stdout_%i_d' % self._test_cpt] = {
+            'value': {
+                'get_attr': ['%i_d' % self._test_cpt, 'deploy_stdout']
+            }
+        }
+
+    def get_yaml(self):
+        return yaml.dump(self.struct)
+
+
 class SimpleCheck(object):
 
-    def __init__(self, provider, params):
+    def __init__(self, provider, params, medias):
         self.provider = provider
         self.params = params
+        self.medias = medias
 
     def _save_test_results(self, result, error_code):
         with open("/tmp/test_results", "wb") as file_result:
@@ -35,24 +100,45 @@ class SimpleCheck(object):
             else:
                 file_result.write("\n ===> Test failed !\n")
 
-    def _run_script_test(self, target, machine_ip):
-        command = string.Template(self.params[target]).\
-            substitute({"IP": machine_ip})
-        process = subprocess.Popen(command.split(),
-                                   stdout=subprocess.PIPE)
-        stdout = process.communicate()[0]
-        error_code = process.returncode
-        self._save_test_results(stdout, error_code)
+    def _feed_stack(self, cmd, machine_ip, heat_config):
+        command = string.Template(cmd).substitute({"IP": machine_ip})
+        heat_config.add_test(command)
 
     def launch(self):
 
+        heat_config = HeatConfig()
+
+        mm = mediamanager.MediaManager()
+        medias = self.medias()
+        for name in medias:
+            mm.append(mediamanager.Media(name, medias[name]))
+
+        self.provider.upload(mm)
+
+        params = self.params()
         for machine in self.provider.get_machines():
-            for target in self.params:
+            for target in params:
                 if target == '_ALL_' or target == machine["name"]:
                     machine_ip = machine["primary_ip_address"]
-                    self._run_script_test(target, machine_ip)
+                    cmd = params[target]
+                    self._feed_stack(cmd, machine_ip, heat_config)
                 else:
                     raise TargetNotFound("target '%s' not found" % target)
+        mm = mediamanager.MediaManager()
+        medias = self.medias()
+        for name in self.medias():
+            mm.append(mediamanager.Media(name, medias[name]))
+
+        f = tempfile.NamedTemporaryFile(delete=False)
+        f.write(heat_config.get_yaml())
+        f.close()
+        tmp_stack_id = self.provider.create_stack(
+            'simple-test-stack' + self.provider.application_stack_id,
+            f.name,
+            self.provider.upload(mm)
+        )
+        f.delete()
+        self.provider.delete_stack(tmp_stack_id)
 
 
 class TargetNotFound(Exception):

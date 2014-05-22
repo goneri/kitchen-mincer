@@ -124,13 +124,17 @@ class TestProvider(testtools.TestCase):
     def test_create(self, heat_mock):
         my_provider = provider.Heat(args=fake_args())
         self.assertEqual(my_provider.connect(fake_identity), None)
-        self.assertEqual(my_provider.create("test_stack"), None)
+        self.assertEqual(my_provider.launch_application(
+            "test_stack",
+            dict(),
+            dict(),
+            dict()), None)
 
     def test_register_key_pairs(self):
         my_provider = provider.Heat(args=fake_args())
         my_provider._novaclient = fake_novaclient()
-        my_provider.register_key_pairs({'robert': 'a_ssh_pub_key'})
-        self.assertEqual(my_provider._parameters['key_name'], 'robert')
+        t = my_provider.register_key_pairs({'robert': 'a_ssh_pub_key'})
+        self.assertEqual(t['key_name'], 'robert')
 
     def test_register_floating_ips(self):
         my_provider = provider.Heat(args=fake_args())
@@ -142,8 +146,8 @@ class TestProvider(testtools.TestCase):
     def test_get_machines(self):
         my_provider = provider.Heat(args=fake_args())
         my_provider._novaclient = fake_novaclient()
-        my_provider.heat = fake_heatclient()
-        my_provider._stack_id = None
+        my_provider._heat = fake_heatclient()
+        my_provider.application_stack_id = None
         result = [
             {
                 'id': 'lapin',

@@ -35,7 +35,6 @@ class Heat(object):
         self.params = params
         self.args = args
         self._keystone = None
-        self._parameters = {'flavor': 'm1.small'}
 
     def connect(self, identity):
         """This method connect to the Openstack.
@@ -53,6 +52,16 @@ class Heat(object):
                                         auth_url=identity['os_auth_url'],
                                         project_id=identity['os_tenant_name'])
 
+        self.heat_endpoint = self._keystone.service_catalog.url_for(
+            service_type='orchestration')
+
+        self._heat = heatclient.Client('1', endpoint=self.heat_endpoint,
+                                       token=self._keystone.auth_token,
+                                       auth_url=identity['os_auth_url'],
+                                       username=identity['os_username'],
+                                       password=identity['os_password'],
+                                       )
+
     def upload(self, medias):
         """Upload medias in Glance.
 
@@ -60,6 +69,7 @@ class Heat(object):
         :type medias: list
         """
 
+        parameters = dict()
         glance_endpoint = self._keystone.service_catalog.url_for(
             service_type='image')
 
@@ -82,7 +92,7 @@ class Heat(object):
                       media.name, media.checksum)
 
             if media.checksum in checksum_ids_images.keys():
-                self._parameters['volume_id_%s' % media.name] = \
+                parameters['volume_id_%s' % media.name] = \
                     checksum_ids_images[media.checksum]
                 continue
             image = glance.images.create(name=media.name)
@@ -102,26 +112,30 @@ class Heat(object):
                 time.sleep(5)
                 image = glance.images.get(image.id)
                 LOG.info("waiting for %s", media.name)
-            self._parameters['volume_id_%s' % image.name] = image.id
+            parameters['volume_id_%s' % image.name] = image.id
             LOG.debug("status: %s - %s", media.name, image.status)
+        return parameters
 
     def register_key_pairs(self, key_pairs):
         """Register key pairs.
         :param key_pairs: the key pairs
         :type  key_pairs: dict
         """
+        parameters = dict()
         for name in key_pairs:
             try:
                 self._novaclient.keypairs.create(name, key_pairs[name])
             except novaclient.exceptions.Conflict:
                 LOG.debug("Key %s already created", name)
             # TODO(Gonéri), this force the use of a sole key
-            self._parameters['key_name'] = name
+            parameters['key_name'] = name
+        return parameters
 
     def register_floating_ips(self, floating_ips):
         """Ensure that the provided floating ips are available. Push them
         on the Heat stack parameters.
         """
+        parameters = dict()
         for name in floating_ips:
             ip = floating_ips[name]
             found = None
@@ -129,53 +143,67 @@ class Heat(object):
             for entry in self._novaclient.floating_ips.list():
                 if ip != entry.ip:
                     continue
-                self._parameters['floating_ip_%s' % name] = entry.id
+                parameters['floating_ip_%s' % name] = entry.id
                 found = True
             if not found:
                 raise UnknownFloatingIP("floating ip '%s' not found" % ip)
+        return parameters
 
-    def create(self, name):
+    def launch_application(self, name, medias, key_pairs, floating_ips):
+        # TODO(Gonéri): not that pythonic, will be broken with py34
+        parameters = dict()
+        parameters.update(medias)
+        parameters.update(key_pairs)
+        parameters.update(floating_ips)
+        parameters['flavor'] = 'm1.small'
+        stack_id = self.create_stack(
+                name + str(uuid.uuid4()),
+                self.args.marmite_directory + "/heat.yaml",
+                parameters)
+        self.application_stack_id = stack_id
+
+    def create_stack(self, name, heat_file, params):
         """Run the stack and provides the parameters to Heat. """
-        heat_endpoint = self._keystone.service_catalog.url_for(
-            service_type='orchestration')
 
         tpl_files, template = template_utils.get_template_contents(
-            self.args.marmite_directory + "/heat.yaml"
+            heat_file
         )
 
-        self.heat = heatclient.Client('1', endpoint=heat_endpoint,
-                                      token=self._keystone.auth_token)
-
-        stack_name = "%s--%s" % (name, str(uuid.uuid4()))
+        self._heat.stacks.list()
         try:
-            resp = self.heat.stacks.create(
-                stack_name=stack_name,
-                parameters=self._parameters,
+            resp = self._heat.stacks.create(
+                stack_name=name,
+                parameters=params,
                 template=template,
-                files=dict(list(tpl_files.items())),
-                timeout_mins=60)
+                files=dict(list(tpl_files.items())))
         except heatclientexc.HTTPConflict:
-            LOG.error("Stack '%s' failed because of a conflict", stack_name)
+            LOG.error("Stack '%s' failed because of a conflict", name)
             raise AlreadyExisting()
 
-        self._stack_id = resp['stack']['id']
+        stack_id = resp['stack']['id']
         while True:
-            stack = self.heat.stacks.get(self._stack_id)
+            stack = self._heat.stacks.get(stack_id)
             LOG.info("Stack status: %s", stack.status)
+            if stack.status == 'FAILED':
+                raise StackCreationFailure()
             if stack.status != 'IN_PROGRESS':
                 break
             time.sleep(10)
         LOG.info("Stack final status: %s", stack.status)
+        return stack_id
 
-    def delete(self):
-        self.heat.stacks.delete(self._stack_id)
+    def delete_stack(self, stack_id):
+        self._heat.stacks.delete(stack_id)
+
+    def cleanup_application(self):
+        self.delete_stack(self.application_stack_id)
 
     def get_machines(self):
         """Return a list of dictionnary describing the machines from
            the running stack
         """
         machines = []
-        for resource in self.heat.resources.list(self._stack_id):
+        for resource in self._heat.resources.list(self.application_stack_id):
             if resource.resource_type != "OS::Nova::Server":
                 continue
             server = self._novaclient.servers.get(
@@ -185,8 +213,8 @@ class Heat(object):
             iface = ifaces.pop()
             if iface and \
                 len(iface.fixed_ips) > 0 and \
-                'ip_address' in iface.fixed_ips[0]:
-                primary_ip_address = iface.fixed_ips[0]['ip_address']
+                    'ip_address' in iface.fixed_ips[0]:
+                    primary_ip_address = iface.fixed_ips[0]['ip_address']
             machines.append({
                 'name': server.name,
                 'resource_name': resource.resource_name,
@@ -208,3 +236,7 @@ class UnknownFloatingIP(Exception):
 
 class UploadError(Exception):
     """Exception raised when the mincer failed to upload a media."""
+
+
+class StackCreationFailure(Exception):
+    """Exception raised if the stack failed to start properly."""
