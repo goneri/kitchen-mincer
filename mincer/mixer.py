@@ -16,8 +16,8 @@
 import logging
 from stevedore import driver
 
-from mincer import marmite
 from mincer import mediamanager  # noqa
+
 
 LOG = logging.getLogger(__name__)
 
@@ -27,9 +27,9 @@ MINCER_TESTS_NS = 'mincer.tests'
 
 
 class Mixer(object):
-    def __init__(self, marmite_dir, args):
+    def __init__(self, marmite, args):
         self.args = args
-        self.marmite = marmite.Marmite(marmite_dir)
+        self.marmite = marmite
 
     @staticmethod
     def report_error(manager, entrypoint, exception):
@@ -63,28 +63,23 @@ class Mixer(object):
         environment = self.marmite.environments[env_name]
         self._load_provider(environment)
 
-    def bootstrap(self, env_name):
-        """ Bootstrap the application. """
+    def bootstrap(self, env_name, refresh_medias):
+        """Bootstrap the application."""
         environment = self.marmite.environment(env_name)
-        mm = mediamanager.MediaManager()
-        medias = self.marmite.application().medias()
-        medias.update(environment.medias())
+        marmite_medias = self.marmite.application().medias()
+        marmite_medias.update(environment.medias())
+        medias = {}
 
-        for name in medias:
-            # Register the medias in the Media Manager
-            mm.append(mediamanager.Media(name, medias[name]))
-
-        for media in mm:
-            LOG.info("media%s> %s (%s)",
-                     media.name,
-                     media.getPath(),
-                     media.checksum)
+        for media_name in marmite_medias:
+            LOG.info("media%s>", media_name)
+            medias[media_name] = mediamanager.Media(media_name,
+                                                    marmite_medias[media_name])
 
         provider = self._load_provider(environment)
         provider.connect(environment.identity())
         provider.launch_application(
             self.marmite.application().name(),
-            provider.upload(mm),
+            provider.upload(medias, refresh_medias),
             provider.register_key_pairs(environment.key_pairs()),
             provider.register_floating_ips(environment.floating_ips()))
 

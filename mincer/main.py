@@ -16,6 +16,7 @@
 import argparse
 import logging
 
+from mincer import marmite
 from mincer import mixer
 
 logging.basicConfig(level=logging.INFO)
@@ -26,13 +27,15 @@ def main(args=None):
     parser.add_argument("--target", help="Target to run")
     parser.add_argument("--test", action="store_true",
                         help="Enter the test mode")
+    parser.add_argument('--refresh-medias', nargs='+',
+                        help="medias to refresh")
     parser.add_argument("marmite_directory", help="Main marmite directory.")
     args = parser.parse_args(args=args)
-    m = mixer.Mixer(args.marmite_directory, args)
+    m = mixer.Mixer(marmite.Marmite(args.marmite_directory), args)
     if args.test:
         m.test(args.target)
     elif args.target:
-        m.bootstrap(args.target)
+        m.bootstrap(args.target, args.refresh_medias or [])
 
 
 main()

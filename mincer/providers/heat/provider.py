@@ -15,6 +15,7 @@
 # under the License.
 
 import logging
+import os
 import time
 import uuid
 
@@ -62,11 +63,47 @@ class Heat(object):
                                        password=identity['os_password'],
                                        )
 
-    def upload(self, medias):
+    def _filter_medias(self, glance_client, medias, refresh_medias):
+        """Returns a tuple of two dicts.
+
+        The first dict corresponds to the medias which need to be uploaded
+        and the second corresponds to the medias which does not.
+
+        :param glance_client: the glance client
+        :type medias: glanceclient.Client
+        :param medias: list of Media objects
+        :type medias: list
+        :param refresh_medias: list of medias names to refresh
+        :type refresh_medias: list
+        """
+
+        # Make an association of names and IDs of existent Glance images.
+        names_ids_images = {}
+        for image in glance_client.images.list():
+            names_ids_images[image.name] = image.id
+
+        medias_to_upload = {}
+        medias_to_not_upload = {}
+
+        for media_name in medias.keys():
+            if media_name not in refresh_medias:
+                if media_name in names_ids_images.keys():
+                    medias_to_not_upload[media_name] = \
+                        names_ids_images[media_name]
+                else:
+                    medias_to_upload[media_name] = None
+            else:
+                medias_to_upload[media_name] = None
+
+        return medias_to_upload, medias_to_not_upload
+
+    def upload(self, medias, refresh_medias):
         """Upload medias in Glance.
 
         :param medias: list of Media objects
         :type medias: list
+        :param refresh_medias: list of medias names to refresh
+        :type refresh_medias: list
         """
 
         parameters = dict()
@@ -78,34 +115,38 @@ class Heat(object):
             glance_endpoint,
             token=self._keystone.auth_token)
 
-        # Make an association of checksum and id of existent Glance images.
-        checksum_ids_images = {}
-        for image in glance.images.list():
-            try:
-                checksum_ids_images[image.checksum] = image.id
-            except AttributeError:
-                LOG.warn("checksum for image '%s' not found", image.id)
+        medias_to_up, medias_to_not_up = self._filter_medias(glance,
+                                                          medias,
+                                                          refresh_medias)
 
-        # Upload each media if necessary
-        for media in medias:
-            LOG.debug("uploading media: '%s', checksum: '%s'",
-                      media.name, media.checksum)
+        # populate parameters for medias to not upload
+        for media_name in medias_to_not_up:
+            parameters['volume_id_%s' % media_name] = \
+                medias_to_not_up[media_name]
 
-            if media.checksum in checksum_ids_images.keys():
-                parameters['volume_id_%s' % media.name] = \
-                    checksum_ids_images[media.checksum]
-                continue
-            image = glance.images.create(name=media.name)
+        for media_name in medias_to_up:
+            LOG.debug("uploading media: '%s'", media_name)
+            media = medias[media_name]
+
+            image = glance.images.create(name=media_name)
             # TODO(Gonéri) clean the image in case of failure
-            if media.getPath():
+            if media.copy_from:
+                image.update(container_format='bare',
+                             disk_format=media.disk_format,
+                             copy_from=media.copy_from)
+            else:
+                if not os.path.exists(media.getPath()):
+                    if media._type == "dynamic":
+                        media._collect_data()
+                        media._produce_image()
+                    else:
+                        LOG.error("media '%s' inconsistent type '%s'"
+                                  % (media.name, media._type))
                 with open(media.getPath(), "rb") as media_data:
                     image.update(container_format='bare',
                                  disk_format=media.disk_format,
                                  data=media_data)
-            elif media.copy_from:
-                image.update(container_format='bare',
-                             disk_format=media.disk_format,
-                             copy_from=media.copy_from)
+
             while image.status != 'active':
                 if image.status == 'killed':
                     raise Exception("Glance error while waiting for image")
@@ -163,7 +204,7 @@ class Heat(object):
         self.application_stack_id = stack_id
 
     def create_stack(self, name, heat_file, params):
-        """Run the stack and provides the parameters to Heat. """
+        """Run the stack and provides the parameters to Heat."""
 
         tpl_files, template = template_utils.get_template_contents(
             heat_file

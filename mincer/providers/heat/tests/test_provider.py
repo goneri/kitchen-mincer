@@ -113,6 +113,23 @@ class fake_heatclient(object):
         return
 
 
+class fake_glanceclient(object):
+    class fake_images(object):
+        def __init__(self):
+            self.fake_image_1 = mock.Mock()
+            self.fake_image_1.name = "name_1"
+            self.fake_image_1.id = "id_1"
+            self.fake_image_2 = mock.Mock()
+            self.fake_image_2.name = "name_2"
+            self.fake_image_2.id = "id_2"
+
+        def list(self):
+            return [self.fake_image_1, self.fake_image_2]
+
+    def __init__(self):
+        self.images = self.fake_images()
+
+
 class TestProvider(testtools.TestCase):
     def setUp(self):
 
@@ -157,6 +174,18 @@ class TestProvider(testtools.TestCase):
             }
         ]
         self.assertEqual(my_provider.get_machines(), result)
+
+    def test_filter_medias(self):
+        my_provider = provider.Heat(args=fake_args())
+        medias = {"name_1": "", "name_2": "", "name_3": ""}
+        to_up, to_not_up = my_provider._filter_medias(fake_glanceclient(),
+                                                      medias,
+                                                      ["name_2"])
+
+        res_to_up = {"name_2": None, "name_3": None}
+        res_to_not_up = {"name_1": "id_1"}
+        self.assertDictEqual(to_up, res_to_up)
+        self.assertDictEqual(to_not_up, res_to_not_up)
 
 
 if __name__ == '__main__':

@@ -51,7 +51,7 @@ class Media(object):
     def __init__(self, name, description):
         self.disk_format = "raw"
         self.name = name
-        self._type = description['type']
+        self._type = description.get('type')
         self._disk_image_file = None
         self.checksum = description.get('checksum')
         self.disk_format = description.get('disk_format', 'raw')
