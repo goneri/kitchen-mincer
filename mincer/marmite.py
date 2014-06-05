@@ -17,6 +17,8 @@ import os
 
 import yaml
 
+from mincer import media
+
 
 class Marmite(object):
     """This class represents the marmite, it centralize all the access of the
@@ -96,7 +98,10 @@ class Environment(object):
         return credentials
 
     def medias(self):
-        return self.tree.get('medias', list())
+        ret = {}
+        for k, v in self.tree.get('medias', dict()).iteritems():
+            ret[k] = media.Media(k, v)
+        return ret
 
     def key_pairs(self):
         return self.tree.get('key_pairs', list())
@@ -122,7 +127,10 @@ class Application(object):
             raise NotFound("'params' not found")
 
     def medias(self):
-        return self.application_tree.get('medias', list())
+        ret = {}
+        for k, v in self.application_tree.get('medias', dict()).iteritems():
+            ret[k] = media.Media(k, v)
+        return ret
 
 
 class Test(object):
@@ -143,7 +151,10 @@ class Test(object):
             raise NotFound("test '%s' has no 'params' key" % self.test_name)
 
     def medias(self):
-        return self.test_tree.get('medias', list())
+        ret = {}
+        for k, v in self.test_tree.get('medias', dict()).iteritems():
+            ret[k] = media.Media(k, v)
+        return ret
 
 
 class NotFound(Exception):

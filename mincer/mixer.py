@@ -16,9 +16,6 @@
 import logging
 from stevedore import driver
 
-from mincer import mediamanager  # noqa
-
-
 LOG = logging.getLogger(__name__)
 
 
@@ -47,9 +44,9 @@ class Mixer(object):
             on_load_failure_callback=self.report_error,
             invoke_kwds=kwargs).driver
 
-    def _load_test(self, test, provider):
+    def _load_test(self, test, provider, refresh_medias):
 
-        kwargs = dict(provider=provider,
+        kwargs = dict(provider=provider, refresh_medias=refresh_medias,
                       params=test.params, medias=test.medias)
 
         return driver.DriverManager(
@@ -66,14 +63,11 @@ class Mixer(object):
     def bootstrap(self, env_name, refresh_medias):
         """Bootstrap the application."""
         environment = self.marmite.environment(env_name)
-        marmite_medias = self.marmite.application().medias()
-        marmite_medias.update(environment.medias())
-        medias = {}
+        medias = self.marmite.application().medias()
+        medias.update(environment.medias())
 
-        for media_name in marmite_medias:
+        for media_name in medias:
             LOG.info("media%s>", media_name)
-            medias[media_name] = mediamanager.Media(media_name,
-                                                    marmite_medias[media_name])
 
         provider = self._load_provider(environment)
         provider.connect(environment.identity())
@@ -84,7 +78,7 @@ class Mixer(object):
             provider.register_floating_ips(environment.floating_ips()))
 
         for test in self.marmite.testers():
-            test_instance = self._load_test(test, provider)
+            test_instance = self._load_test(test, provider, refresh_medias)
             test_instance.launch()
 
         provider.cleanup_application()

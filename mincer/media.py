@@ -31,21 +31,6 @@ class MediaManagerException(Exception):
     """
 
 
-class MediaManager(list):
-
-    def __init__(self):
-        self.type = Media
-
-    def append(self, media):
-        """Add a Media object in the MediaManager."""
-        if not isinstance(media, Media):
-            raise MediaManagerException("Item is not a Media")
-        if media._type == "dynamic":
-            media._collect_data()
-            media._produce_image()
-        super(MediaManager, self).append(media)
-
-
 class Media(object):
 
     def __init__(self, name, description):
@@ -66,6 +51,12 @@ class Media(object):
             self.data_dir = "%s/data" % self.basedir
             self._disk_image_file = "%s/disk.img" % self.basedir
             os.makedirs(self.data_dir)
+
+    def generate(self):
+        """Publish method to generate an image."""
+        if self._type == "dynamic":
+            self._collect_data()
+            self._produce_image()
 
     def getPath(self):
         """Returns the path to the temporary disk image."""

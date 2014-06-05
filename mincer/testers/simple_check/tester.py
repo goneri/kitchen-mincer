@@ -15,11 +15,12 @@
 # under the License.
 
 import logging
+import os
 import string
 import tempfile
 import yaml
 
-from mincer import mediamanager  # noqa
+from mincer import media  # noqa
 
 LOG = logging.getLogger(__name__)
 
@@ -87,7 +88,8 @@ class HeatConfig(object):
 
 class SimpleCheck(object):
 
-    def __init__(self, provider, params, medias):
+    def __init__(self, refresh_medias, provider, params, medias):
+        self._refresh_medias = refresh_medias
         self.provider = provider
         self.params = params
         self.medias = medias
@@ -108,13 +110,6 @@ class SimpleCheck(object):
 
         heat_config = HeatConfig()
 
-        mm = mediamanager.MediaManager()
-        medias = self.medias()
-        for name in medias:
-            mm.append(mediamanager.Media(name, medias[name]))
-
-        self.provider.upload(mm)
-
         params = self.params()
         for machine in self.provider.get_machines():
             for target in params:
@@ -124,20 +119,18 @@ class SimpleCheck(object):
                     self._feed_stack(cmd, machine_ip, heat_config)
                 else:
                     raise TargetNotFound("target '%s' not found" % target)
-        mm = mediamanager.MediaManager()
-        medias = self.medias()
-        for name in self.medias():
-            mm.append(mediamanager.Media(name, medias[name]))
 
+        medias = self.medias()
         f = tempfile.NamedTemporaryFile(delete=False)
         f.write(heat_config.get_yaml())
+        fname = f.name
         f.close()
         tmp_stack_id = self.provider.create_stack(
             'simple-test-stack' + self.provider.application_stack_id,
-            f.name,
-            self.provider.upload(mm)
+            fname,
+            self.provider.upload(medias, self._refresh_medias)
         )
-        f.delete()
+        os.unlink(fname)
         self.provider.delete_stack(tmp_stack_id)
 
 

@@ -137,8 +137,7 @@ class Heat(object):
             else:
                 if not os.path.exists(media.getPath()):
                     if media._type == "dynamic":
-                        media._collect_data()
-                        media._produce_image()
+                        media.generate()
                     else:
                         LOG.error("media '%s' inconsistent type '%s'"
                                   % (media.name, media._type))
