@@ -230,10 +230,23 @@ class Heat(object):
                 break
             time.sleep(10)
         LOG.info("Stack final status: %s", stack.status)
+        for line in self.retrieve_log(stack_id):
+            LOG.info(line)
         return stack_id
 
     def delete_stack(self, stack_id):
         self._heat.stacks.delete(stack_id)
+
+    def retrieve_log(self, stack_id):
+        stack = self._heat.stacks.get(stack_id=stack_id)
+        lines = []
+        for output in stack.outputs:
+            lines.append("Call of '%s'" % output['description'])
+            for line in output['output_value'].split('\n'):
+                lines.append("%s: %s" % (
+                    output['output_key'],
+                    line))
+        return lines
 
     def cleanup_application(self):
         self.delete_stack(self.application_stack_id)

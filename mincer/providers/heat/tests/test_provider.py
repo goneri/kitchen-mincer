@@ -108,8 +108,21 @@ class fake_heatclient(object):
             mock2.physical_resource_id = 'lapin'
             return [mock1, mock2]
 
+    class fake_stacks(object):
+        def __init__(self, **kwargs):
+            return
+
+        def get(self, stack_id):
+            mockStack = mock.Mock()
+            mockStack.outputs = [{
+                'description': "foobar",
+                'output_key': "stdout",
+                'output_value': "my ouput"}]
+            return mockStack
+
     def __init__(self, **kwargs):
         self.resources = self.fake_resources()
+        self.stacks = self.fake_stacks()
         return
 
 
@@ -187,6 +200,12 @@ class TestProvider(testtools.TestCase):
         self.assertDictEqual(to_up, res_to_up)
         self.assertDictEqual(to_not_up, res_to_not_up)
 
+    def test_retrieve_log(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._heat = fake_heatclient()
+        stack_id = 'georges michael'
+        result = ["Call of 'foobar'", 'stdout: my ouput']
+        self.assertEqual(my_provider.retrieve_log(stack_id), result)
 
 if __name__ == '__main__':
     unittest.main()

@@ -77,6 +77,7 @@ class HeatConfig(object):
             }
         }
         self.struct['outputs']['stdout_%i_d' % self._test_cpt] = {
+            'description': str(cmd),
             'value': {
                 'get_attr': ['%i_d' % self._test_cpt, 'deploy_stdout']
             }
