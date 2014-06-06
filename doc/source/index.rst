@@ -76,7 +76,7 @@ The marmite describes the application, where it should be deployed and validated
 The medias
 ----------
 
-The word media is used to describe all resources out of the Marmitte. For example:
+The word media is used to describe all resources out of the Marmite. For example:
 
 * a special operating system image available through HTTP
 * a snapshot of a Ceph volume
@@ -134,7 +134,7 @@ Initial deployment
 2. Prepare the provider if needed (e.g: Docker)
 3. Prepare media images (qcow2, raw)
     1. load the MediaManager object
-    2. get the media list from the marmitte object
+    2. get the media list from the marmite object
     3. fetch the media and produce the associated images
     4. upload the images in Glance and retrieve the image IDs
     5. Upload the keypairs
@@ -255,7 +255,7 @@ Code architecture
 - The entry point of the application is the Main class.
 - The Mincer class instantiates the Marmite object and load the provider specified
   in the marmite.yaml file.
-- The MediaManager is in charge of collecting the medias from the marmitte and
+- The MediaManager is in charge of collecting the medias from the marmite and
   provisioning each images with the corresponding application code afterwards it
   push them as images in Glance.
 - The Provider instantiates the MediaManager and start to deploy the application.
