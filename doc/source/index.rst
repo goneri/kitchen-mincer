@@ -224,7 +224,7 @@ instance (Solution B).
 
 
         subgraph clusterA {
-	    label = "my Wordpress"
+	    label = "my Wordpress (stack 1)"
 	    floatingIP [ shape = "pentagon" ]
 
 	    "VM Apache";
@@ -234,7 +234,7 @@ instance (Solution B).
 
 
         subgraph clusterB {
-            label = "garden Gnome -- benchmark"
+            label = "tester (stack 2)"
 	    style=filled
 	    color=lightgrey
 	    "VM test 1"
@@ -245,7 +245,7 @@ instance (Solution B).
 	"VM MySQL" -- "VM Apache"
 	"VM test 1" -- "floatingIP"
 	"VM test 2" -- "floatingIP"
-	"VM test 3" -- "floatingIP"
+	"VM test 3" -- "VM MySQL"
    }
 
 
