@@ -15,7 +15,6 @@
 # under the License.
 
 import logging
-import os
 import time
 import uuid
 
@@ -127,6 +126,7 @@ class Heat(object):
         for media_name in medias_to_up:
             LOG.debug("uploading media: '%s'", media_name)
             media = medias[media_name]
+            media.generate()
 
             image = glance.images.create(name=media_name)
             # TODO(Gonéri) clean the image in case of failure
@@ -135,12 +135,6 @@ class Heat(object):
                              disk_format=media.disk_format,
                              copy_from=media.copy_from)
             else:
-                if not os.path.exists(media.getPath()):
-                    if media._type == "dynamic":
-                        media.generate()
-                    else:
-                        LOG.error("media '%s' inconsistent type '%s'"
-                                  % (media.name, media._type))
                 with open(media.getPath(), "rb") as media_data:
                     image.update(container_format='bare',
                                  disk_format=media.disk_format,
