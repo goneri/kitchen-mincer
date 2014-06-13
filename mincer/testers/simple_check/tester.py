@@ -82,6 +82,7 @@ class HeatConfig(object):
                 'get_attr': ['%i_d' % self._test_cpt, 'deploy_stdout']
             }
         }
+        self._test_cpt += 1
 
     def get_yaml(self):
         return yaml.dump(self.struct)
