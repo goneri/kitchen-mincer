@@ -1,0 +1,57 @@
+heat_template_version: 2013-05-23
+
+description: >
+  A Jenkins server
+
+parameters:
+  key_name:
+    type: string
+    description : Name of a key pair to enable SSH access to instances.
+    default: default
+  flavor:
+    type: string
+    description: Flavor to use for the WordPress server.
+    constraints:
+      - custom_constraint: nova.flavor
+  volume_id_jenkins_image:
+    type: string
+    description: The VM root system
+
+resources:
+  jenkins_config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: script
+      config: { get_file: configure_jenkins.sh }
+
+
+  jenkins_deployment:
+    type: OS::Heat::SoftwareDeployment
+    properties:
+      config:
+        get_resource: jenkins_config
+      server:
+        get_resource: jenkins_instance
+
+  jenkins_instance:
+    type: OS::Nova::Server
+    properties:
+      image: { get_param: volume_id_jenkins_image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key_name }
+      user_data_format: SOFTWARE_CONFIG
+
+outputs:
+  WebsiteURL:
+    description: URL for Jenkins server
+    value:
+      str_replace:
+        template: http://host:8080
+        params:
+          host: { get_attr: [jenkins_instance, networks, private, 0] }
+  stdout_jenkins_deployment:
+    value:
+      get_attr: [jenkins_deployment, deploy_stdout]
+  stderr_jenkins_deployment:
+    value:
+      get_attr: [jenkins_deployment, deploy_stderr]

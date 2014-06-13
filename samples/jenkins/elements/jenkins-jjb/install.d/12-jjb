@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -e
+set -o xtrace
+
+source $(dirname $0)/defaults
+
+install-packages git python-setuptools python-pip
+git clone https://gerrit.wikimedia.org/r/p/integration/jenkins-job-builder.git
+cd jenkins-job-builder
+pip install .
+
+mkdir /etc/jenkins_jobs
+
+cat > /etc/jenkins_jobs/jenkins_jobs.ini <<EOF
+[job_builder]
+ignore_cache=True
+keep_descriptions=False
+
+[jenkins]
+user=
+password=
+url=http://localhost:8080/
+EOF
+
+mkdir -p /git/jjb.git
+git init --bare --shared /git/jjb.git
+

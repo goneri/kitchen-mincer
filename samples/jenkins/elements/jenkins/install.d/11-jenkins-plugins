@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+set -o xtrace
+
+source $(dirname $0)/defaults
+
+JENKINS_PLUGINS="scm-api git git-client git-server"
+
+mkdir -p /root/jenkins/plugins
+if [ -n "${JENKINS_PLUGINS}" ];then
+    for plugin in ${JENKINS_PLUGINS//,/ }; do
+        wget -q http://mirrors.xmission.com/hudson/plugins/${plugin}/latest/${plugin}.hpi -O /root/jenkins/plugins/${plugin}.hpi
+    done
+fi

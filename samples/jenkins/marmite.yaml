@@ -1,0 +1,44 @@
+description: A Jenkins
+
+# an account on an OpenStack cloud providing Heat API.
+environments:
+  devtest:
+# Implicite, heat is the default provider.
+#    provider: heat
+    identity:
+#NOTE(Gonéri): Why the os_ prefix?
+      os_auth_url: http://os-ci-test6.ring.enovance.com:5000/v2.0
+      os_username: admin
+      os_password: password
+      os_tenant_name: demo
+    key_pairs:
+      stack_os_ci-test7: |
+        ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCyiXfE1zHKdj6odbysr917Cn88ov0VQaPJtLKJyMNuRYAeMOFQHd50X8JO4dfZbmSo3YdJlVfz9FLRxE64mqj9bkN8hPFbkTG2F1AWXGPON5cmm4uiLPfQkWhX/LnClrhzZpNtMJYs5AEFeDs0POijcRugZsQA+wvLi0lSlhOfkqtjAJKpPUwy1wrJFDdvqdQBjpNQh/LB8c15XfQV2JT/3NX26dQe8zvHhL6NvfhBnAikodYkBr7UjSl36CBk0cPebZMZEBBiHdo76xORVkpmqDvkhFByXXeAsvRa2YWS4wxpiNJFswlRhjubGau7LrT113WMcPvgYXHYHf2IYJWD goneri.lebouder@enovance.com
+
+application:
+  # Name of the application, Stack will be called according to this name
+  name: jenkins
+
+  medias:
+    jenkins_image:
+        type: local
+        disk_format: qcow2
+        path: samples/jenkins/jenkins_debian.qcow2
+
+testers:
+    test_simple:
+        driver: simple_check
+        medias:
+            base_image:
+                type: block
+                disk_format: qcow2
+                copy_from: http://nowhere/ubuntu-vm.qcow2
+                checksum: e3224ba9d93b1df12db3b9e1d2f34ea7
+        # TODO(Gonéri):
+        #   a key/value list would be more logicial here
+        #   - _ALL_: ping -c5 $IP
+        #   - my_first_http_host: httping $IP
+        #   - etc
+        params:
+            _ALL_:
+                ping -c5 $IP
