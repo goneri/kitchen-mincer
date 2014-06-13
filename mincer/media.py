@@ -36,10 +36,9 @@ class Media(object):
         self.disk_format = "raw"
         self.name = name
         self._type = description.get('type')
-        self._disk_image_file = None
         self.checksum = description.get('checksum')
         self.disk_format = description.get('disk_format', 'raw')
-        self.location = description.get('location')
+        self._local_image = None
         self.copy_from = description.get('copy_from')
         self.checksum = description.get('checksum')
 
@@ -48,8 +47,13 @@ class Media(object):
             self.basedir = tempfile.mkdtemp()
             self._sources = description['sources']
             self.data_dir = "%s/data" % self.basedir
-            self._disk_image_file = "%s/disk.img" % self.basedir
+            self._dynamic_image = "%s/disk.img" % self.basedir
             os.makedirs(self.data_dir)
+        elif self._type == "local":
+            try:
+                self._local_image = description['path']
+            except KeyError:
+                raise MediaManagerException("Missing key 'path''")
 
     def generate(self):
         """Publish method to generate an image."""
@@ -58,11 +62,14 @@ class Media(object):
             self._produce_image()
 
     def getPath(self):
-        """Returns the path to the temporary disk image."""
-        return self._disk_image_file
+        """Returns the path to the disk image."""
+        if self._type == "dynamic":
+            return self._dyamic_image
+        elif self._type == "local":
+            return self._local_image
 
     def _collect_data(self):
-        """Retrieve the ressources from different location and
+        """Retrieve the ressources from different localisation and
         store them in a work directory
 
         ressources is a mandatory parameter.
