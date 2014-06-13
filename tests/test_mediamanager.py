@@ -64,11 +64,6 @@ class TestMedia(testtools.TestCase):
 
         _add_some_files(self.tdir_with_data)
 
-    def test_get_data_size(self):
-        self.assertEqual(self.media._get_data_size(self.tdir_empty), 0)
-        self.assertEqual(self.media._get_data_size(self.tdir_with_data),
-                         120000)
-
     def test_produce_image(self):
         media = mediamanager.Media("Boulghour", SAMPLE_MEDIAS)
         _add_some_files(media.basedir)

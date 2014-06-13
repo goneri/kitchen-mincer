@@ -16,7 +16,6 @@
 
 """Retrieve and upload data."""
 
-import functools
 import hashlib
 import os
 import subprocess
@@ -62,14 +61,6 @@ class Media(object):
         """Returns the path to the temporary disk image."""
         return self._disk_image_file
 
-    def _get_data_size(self, p):
-        """Compute the size, in bytes of a directory
-        """
-        prepend = functools.partial(os.path.join, p)
-        return sum([(os.path.getsize(f) if os.path.isfile(f) else
-                   self._get_data_size(f))
-                   for f in map(prepend, os.listdir(p))])
-
     def _collect_data(self):
         """Retrieve the ressources from different location and
         store them in a work directory
@@ -99,19 +90,23 @@ class Media(object):
     def _produce_image(self):
         """Push the collected data in an image
         """
-        size = self._get_data_size(self.data_dir) + 50 * 1024 * 1024
 
-        tarfile_name = "%s/final.tar" % self.basedir
+        tarfile_path = "%s/final.tar" % self.basedir
         try:
-            with tarfile.open(tarfile_name, "w") as tar:
+            with tarfile.open(tarfile_path, "w") as tar:
                 tar.add(self.data_dir, arcname=os.path.basename(self.data_dir))
         except Exception:
             raise MediaManagerException("Failed to move content in '%s'"
-                                        % tarfile_name)
+                                        % tarfile_path)
+
+        # The final size consists of the size of the tar file and
+        # the size of the metadatas of the FS which is majored to 5 percent.
+        tarfile_size = os.path.getsize(tarfile_path)
+        disk_image_size = tarfile_size + (tarfile_size * 0.05)
+
         try:
             with open(self._disk_image_file, "w") as f:
-                f.truncate(size)
-                f.close()
+                f.truncate(disk_image_size)
 
             g = guestfs.GuestFS()
             g.add_drive_opts(self._disk_image_file, format="raw", readonly=0)
@@ -122,8 +117,8 @@ class Media(object):
             partitions = g.list_partitions()
             g.mkfs("ext2", partitions[0])
             g.mount(partitions[0], "/")
-            g.tar_in(tarfile_name, '/')
-            os.unlink(tarfile_name)
+            g.tar_in(tarfile_path, '/')
+            os.unlink(tarfile_path)
         except Exception:
             raise MediaManagerException("Failed to move data in the image '%s'"
                                         % self._disk_image_file)
