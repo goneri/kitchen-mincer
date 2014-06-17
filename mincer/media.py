@@ -73,7 +73,8 @@ class Media(object):
             os.makedirs(target_dir)
 
             if source['type'] == 'git':
-                subprocess.call(["git", "clone", source['value'], target_dir],
+                subprocess.call(["git", "clone", "--depth", "1",
+                                 source['value'], target_dir],
                                 cwd=self.data_dir)
             elif source['type'] == 'script':
                 os.environ['BASE_DIR'] = os.getcwd()
@@ -100,9 +101,8 @@ class Media(object):
                                         % tarfile_path)
 
         # The final size consists of the size of the tar file and
-        # the size of the metadatas of the FS which is majored to 5 percent.
-        tarfile_size = os.path.getsize(tarfile_path)
-        disk_image_size = tarfile_size + (tarfile_size * 0.05)
+        # the size of the metadatas of the FS which is majored to 15 percent.
+        disk_image_size = os.path.getsize(tarfile_path) * 1.15
 
         try:
             with open(self._disk_image_file, "w") as f:
