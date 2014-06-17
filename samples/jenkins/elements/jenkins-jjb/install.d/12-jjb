@@ -5,7 +5,7 @@ set -o xtrace
 
 source $(dirname $0)/defaults
 
-install-packages git python-setuptools python-pip
+install-packages git python-setuptools python-pip git-daemon-sysvinit
 git clone https://gerrit.wikimedia.org/r/p/integration/jenkins-job-builder.git
 cd jenkins-job-builder
 pip install .
@@ -23,6 +23,13 @@ password=
 url=http://localhost:8080/
 EOF
 
-mkdir -p /git/jjb.git
-git init --bare --shared /git/jjb.git
+cat > /etc/default/git-daemon <<EOF
+GIT_DAEMON_ENABLE=true
+GIT_DAEMON_USER=gitdaemon
+GIT_DAEMON_DIRECTORY=/var/cache/git
+GIT_DAEMON_OPTIONS=""
+EOF
 
+mkdir -p /var/cache/git/demo.git
+git init --bare --shared /var/cache/git/demo.git
+touch /var/cache/git/demo.git/git-daemon-export-ok
