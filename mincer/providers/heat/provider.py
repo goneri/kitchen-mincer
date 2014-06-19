@@ -184,8 +184,11 @@ class Heat(object):
         return parameters
 
     def launch_application(self, name, medias, key_pairs, floating_ips):
-        # TODO(Gonéri): not that pythonic, will be broken with py34
         parameters = dict()
+        try:
+            parameters.update(self.args.extra_params)
+        except TypeError:
+            pass
         parameters.update(medias)
         parameters.update(key_pairs)
         parameters.update(floating_ips)

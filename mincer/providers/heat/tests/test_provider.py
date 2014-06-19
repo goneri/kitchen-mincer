@@ -33,7 +33,7 @@ fake_identity = {
 class fake_args(object):
 
     def __init__(self):
-
+        self.extra_params = {'roberto': 'sanchez'}
         self.marmite_directory = tempfile.mkdtemp()
         with open(self.marmite_directory + "/heat.yaml", 'w') as f:
             f.write("""
