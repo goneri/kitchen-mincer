@@ -16,17 +16,17 @@ parameters:
   volume_id_jenkins_image:
     type: string
     description: The VM root system
-  upstream_ip:
+  upstream_git:
     type: string
     description : IP address of the upstream git server
-    default: 127.0.0.1
+    default: ""
 
 resources:
   jenkins_config:
     type: OS::Heat::SoftwareConfig
     properties:
       inputs:
-        - name: upstream_ip
+        - name: upstream_git
       group: script
       config: { get_file: configure_jenkins.sh }
 
@@ -38,7 +38,7 @@ resources:
       server:
         get_resource: jenkins_instance
       input_values:
-        upstream_ip: { get_param: upstream_ip }
+        upstream_git: { get_param: upstream_git }
 
   jenkins_instance:
     type: OS::Nova::Server
