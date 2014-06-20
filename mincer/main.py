@@ -45,6 +45,8 @@ def get_args(args=None):
                         help="Enter the test mode")
     parser.add_argument('--refresh-medias', nargs='+',
                         help="medias to refresh")
+    parser.add_argument("--preserve", action="store_true",
+                        help="Do not clean the stack at end of the process")
     parser.add_argument("marmite_directory", help="Main marmite directory.")
     return parser.parse_args(args=args)
 

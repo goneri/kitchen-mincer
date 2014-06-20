@@ -81,4 +81,5 @@ class Mixer(object):
             test_instance = self._load_test(test, provider, refresh_medias)
             test_instance.launch()
 
-        provider.cleanup_application()
+        if not self.args.preserve:
+            provider.cleanup_application()
