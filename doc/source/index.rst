@@ -304,6 +304,12 @@ Code architecture
   push them as images in Glance.
 - The Provider instantiates the MediaManager and start to deploy the application.
 
+Workflow
+========
+
+.. toctree::
+    workflow
+
 
 
 .. blockdiag::
@@ -331,3 +337,5 @@ Code architecture
 
 .. [#other_cloud] For the moment, we only work with OpenStack Heat. The support of
    other cloud technologies is a mid-term goal.
+
+ 
