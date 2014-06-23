@@ -93,6 +93,53 @@ These medias can be either:
 * in the application itself, e.g: a Fedora repository or an eDeploy image
 * in the user configuration, e.g: a backup to restore or some additional configuration
 
+Syntax
+~~~~~~
+
+A media section is a hash of hash structure.
+
+.. code-block:: yaml
+
+  medias:
+    my_first_media_name:
+      # media definition
+    my_second_media_name:
+      # media definition
+
+A media has a **type** key and some associated additional keys.
+
+* Type **dynamic**: The image is generated on the mincer machine from a serie
+  of directives (*sources*). Sources subsection:
+
+  * type: script
+  * value: path to the script or the script itself inline
+  * target: where the resultat will be stored in the image
+
+.. code-block:: yaml
+
+          -
+            type: script
+            value: |
+                #!/bin/sh
+                cp $BASE_DIR/samples/wordpress/backup_wordpress.sql .
+            target: mysql
+..
+
+  Git dynamic media source:
+
+  * type: git
+  * value: URI to the git repository
+  * target: where the repository will be stored
+  * ref: the git reference to pull. The default is *master*
+
+* Type **local**: The image already exists on the machine. The *path* key is
+  used to specify the image location.
+* Type **block**: The image already exists on a remote location. The following
+  keys can be used:
+
+  * disk_format: default is qcow2
+  * copy_from: the HTTP URL to the image
+  * checksum: the checksum of the image
 
 marmite YAML file
 -----------------
