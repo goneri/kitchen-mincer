@@ -233,7 +233,7 @@ If we run the tests directly from the machine that run the mincer:
     The drawbacks of that solution are:
 
     - The Mincer will not scale very well because the server have limited resources.
-      For instance, it will be hard to stress the application with 100k+ 
+      For instance, it will be hard to stress the application with 100k+
       connections.
     - Test results depends on the Mincer host machine configuration, so it will be
       hard to reproduce some tests which is business strategic in our context.
