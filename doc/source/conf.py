@@ -8,8 +8,8 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.intersphinx',
               'sphinx.ext.coverage',
               'sphinx.ext.pngmath',
-              'sphinx.ext.graphviz',
               'sphinx.ext.todo',
+              'sphinxcontrib.blockdiag',
               ]
 todo_include_todos = True
 source_suffix = '.rst'
@@ -33,3 +33,5 @@ latex_documents = [
     ('index', 'Kitchen.tex', u'Kitchen Island Documentation',
      u'Anso Labs, LLC', 'manual'),
 ]
+blockdiag_antialias = True
+blockdiag_html_image_format = 'SVG'

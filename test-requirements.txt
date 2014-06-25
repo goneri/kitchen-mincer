@@ -10,3 +10,4 @@ mock>=1.0
 nose
 
 sphinx
+sphinxcontrib-blockdiag

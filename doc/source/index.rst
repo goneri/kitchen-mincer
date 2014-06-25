@@ -265,24 +265,21 @@ If we run the tests from a temporary Heat stack:
 This is an example of a test used to run benchmark against a Wordpress
 instance (Solution B).
 
-.. graphviz::
+.. blockdiag::
 
-    graph G {
+    blockdiag admin {
 
-
-        subgraph clusterA {
+        group clusterA {
 	    label = "my Wordpress (stack 1)"
-	    floatingIP [ shape = "pentagon" ]
+	    floatingIP
 
 	    "VM Apache";
 	    "VM MySQL";
             "floatingIP";
 	}
 
-
-        subgraph clusterB {
+        group clusterB {
             label = "tester (stack 2)"
-	    style=filled
 	    color=lightgrey
 	    "VM test 1"
 	    "VM test 2"
@@ -308,36 +305,26 @@ Code architecture
 - The Provider instantiates the MediaManager and start to deploy the application.
 
 
-.. graphviz::
 
-    digraph G {
+.. blockdiag::
 
-        node [
-        fontname = "Bitstream Vera Sans"
-        fontsize = 8
-        shape = "record"
-        ]
+    blockdiag {
 
-        edge [
-        arrowtail = "empty"
-        ]
-
-	"provider\ninterface" [ shape = "parallelogram"  ]
-        "tester\ninterface (#1)" [ shape = "parallelogram" ]
-        "tester\ninterface (#2)" [ shape = "parallelogram" ]
+	"provider\ninterface" [ stacked  ]
+        "tester\ninterface" [ stacked ]
+        "medias" [ stacked ]
 
         main -> mincer
         mincer -> marmite
 	mincer -> "provider\ninterface"
-        mincer -> "tester\ninterface (#1)"
-        mincer -> "tester\ninterface (#2)"
+        mincer -> "tester\ninterface"
+        "tester\ninterface" -> "a first\ntest"
+        "tester\ninterface" -> "another\ntest"
 	mincer -> environment
 	"provider\ninterface" -> "a provider"
-        "tester\ninterface (#1)" -> "a first\ntest"
-        "tester\ninterface (#2)" -> "another\test"
-	mincer -> mediamanager
-        mediamanager -> "media (#1)"
-	mediamanager -> "media (#2)"
+	mincer -> medias
+        medias -> "an ISO file"
+	medias -> "some files and\na git repository"
     }
 
 .. rubric:: Footnotes
