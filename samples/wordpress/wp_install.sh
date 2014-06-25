@@ -20,6 +20,6 @@ echo $test_public_key >> /home/stack/.ssh/authorized_keys
 
 chmod 700 /home/stack/.ssh
 chmod 600 /home/stack/.ssh/authorized_keys
-chown -R stack:stack /home/stack/.ssh
+chown -R stack:stack /home/stack/.ssh/
 
 echo "Wordpress is ready!"

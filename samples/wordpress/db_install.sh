@@ -22,6 +22,12 @@ EOF
 cat /srv/data/mysql/backup_wordpress.sql | mysql -u root wordpress
 
 mkdir /home/stack/.ssh
+chmod 700 /home/stack/.ssh
 echo $test_public_key >> /home/stack/.ssh/authorized_keys
+chmod 600 /home/stack/.ssh/authorized_keys
+sudo chown -R stack:stack /home/stack/.ssh/
+
+sed -i s/#AuthorizedKeysFile/AuthorizedKeysFile/g /etc/ssh/sshd_config
+service ssh restart
 
 echo "Wordpress database is ready!"

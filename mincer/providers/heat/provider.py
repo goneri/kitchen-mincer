@@ -127,11 +127,12 @@ class Heat(object):
 
         # populate parameters for medias to not upload
         for media_name in medias_to_not_up:
+            LOG.debug("not upload 'volume_id_%s'" % media_name)
             parameters['volume_id_%s' % media_name] = \
                 medias_to_not_up[media_name]
 
         for media_name in medias_to_up:
-            LOG.debug("uploading media: '%s'", media_name)
+            LOG.debug("upload '%s'", media_name)
             media = medias[media_name]
             media.generate()
 
@@ -231,7 +232,8 @@ class Heat(object):
             stack = self._heat.stacks.get(stack_id)
             LOG.info("Stack status: %s", stack.status)
             if stack.status == 'FAILED':
-                LOG.error("Error while creating Stack: %s", stack.stack_status_reason)
+                LOG.error("Error while creating Stack: %s",
+                          stack.stack_status_reason)
                 raise StackCreationFailure()
             if stack.status != 'IN_PROGRESS':
                 break

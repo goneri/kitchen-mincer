@@ -16,6 +16,7 @@
 
 from Crypto.PublicKey import RSA
 import logging
+import string
 
 from stevedore import driver
 
@@ -76,7 +77,13 @@ class Mixer(object):
 
         private_key = RSA.generate(2048)
         public_key = private_key.publickey()
-        return private_key.exportKey(), public_key.exportKey("OpenSSH")
+
+        #Heat replaces carriage return by spaces then it's escaped
+        r_private_key = string.replace(private_key.exportKey(), "\n", "\\n")
+        r_public_key = string.replace(public_key.exportKey("OpenSSH"), "\n",
+                                      "\\n")
+
+        return r_private_key, r_public_key
 
     def bootstrap(self, env_name, refresh_medias):
         """Bootstrap the application."""

@@ -25,7 +25,7 @@ environments:
       stack_os_ci-test7: |
         ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCyiXfE1zHKdj6odbysr917Cn88ov0VQaPJtLKJyMNuRYAeMOFQHd50X8JO4dfZbmSo3YdJlVfz9FLRxE64mqj9bkN8hPFbkTG2F1AWXGPON5cmm4uiLPfQkWhX/LnClrhzZpNtMJYs5AEFeDs0POijcRugZsQA+wvLi0lSlhOfkqtjAJKpPUwy1wrJFDdvqdQBjpNQh/LB8c15XfQV2JT/3NX26dQe8zvHhL6NvfhBnAikodYkBr7UjSl36CBk0cPebZMZEBBiHdo76xORVkpmqDvkhFByXXeAsvRa2YWS4wxpiNJFswlRhjubGau7LrT113WMcPvgYXHYHf2IYJWD goneri.lebouder@enovance.com
     floating_ips:
-      public_wordpress_ip: 172.24.4.3
+      public_wordpress_ip: 172.24.4.5
 
 application:
   # Name of the application, Stack will be called according to this name
@@ -76,3 +76,20 @@ testers:
         params:
             _ALL_:
                 ping -c5 $IP
+
+    test_serverspec:
+        driver: serverspec
+        medias:
+            serverspec_image:
+                type: local
+                path: samples/serverspec/serverspec_image.qcow2
+            serverspec_datas:
+                type: dynamic
+                sources:
+                  -
+                    type: local
+                    path: ~/serverspec
+                    target: serverspec
+        params:
+            targets:
+                - webserver_instance

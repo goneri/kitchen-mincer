@@ -158,11 +158,15 @@ class Media(object):
 
             target_dir = "%s/%s" % (self.data_dir, source['target'])
             os.makedirs(target_dir)
+            LOG.debug("target_dir: '%s'" % target_dir)
 
             if source['type'] == 'git':
                 subprocess.call(["git", "clone", "--depth", "1",
-                                 source['value'], target_dir],
+                                 source['path'], target_dir],
                                 cwd=self.data_dir)
+            elif source['type'] == 'local':
+                subprocess.call("cp -r %s/* %s" % (source['path'], target_dir),
+                                shell=True)
             elif source['type'] == 'script':
                 os.environ['BASE_DIR'] = os.getcwd()
                 f = tempfile.NamedTemporaryFile(delete=False)
