@@ -15,17 +15,18 @@
 # under the License.
 
 import fixtures
-import mock
 import os
 import tempfile
 import testtools
 import unittest
 
+
 try:
     import guestfs
-    from mincer import mediamanager  # noqa
 except ImportError:
     guestfs = None
+
+from mincer import media as mediaObj
 
 SAMPLE_MEDIAS = {
     'description': 'Roberto',
@@ -46,38 +47,32 @@ def _add_some_files(directory):
 
 class TestMedia(testtools.TestCase):
 
-    @testtools.skipUnless(
-        guestfs,
-        "Use this test only when we have guestfs installed")
     def setUp(self):
         super(TestMedia, self).setUp()
 
         self.useFixture(fixtures.NestedTempfile())
-        self.media = mediamanager.Media("Merguez Partie",
-                                        {'description': "Yo!",
-                                         'type': 'dynamic',
-                                         'sources': []})
-        self.assertIsInstance(self.media, mediamanager.Media)
+        self.media = mediaObj.Media("Merguez Partie",
+                                    {'description': "Yo!",
+                                     'type': 'dynamic',
+                                     'sources': []})
+        self.assertIsInstance(self.media, mediaObj.Media)
 
         self.tdir_empty = tempfile.mkdtemp()
         self.tdir_with_data = tempfile.mkdtemp()
 
         _add_some_files(self.tdir_with_data)
 
-    def test_produce_image(self):
-        media = mediamanager.Media("Boulghour", SAMPLE_MEDIAS)
-        _add_some_files(media.basedir)
+    @testtools.skipUnless(
+        guestfs, "Use this test only when we have guestfs installed")
+    def test_produce_image_with_guestfs(self):
+        media = mediaObj.Media("Alphonse", SAMPLE_MEDIAS)
+        media._produce_image()
+        self.assertRegexpMatches(media.checksum, '\w{32}')
 
-        with mock.patch('tarfile.open') as MockClass:
-            MockClass.return_value = False
-            self.assertRaises(mediamanager.MediaManagerException,
-                              media._produce_image)
-
-        with mock.patch("guestfs.GuestFS") as Mock:
-            Mock.return_value = False
-            self.assertRaises(mediamanager.MediaManagerException,
-                              media._produce_image)
-
+    def test__size_to_allocate(self):
+        media = mediaObj.Media("Alphonse", SAMPLE_MEDIAS)
+        size = media._size_to_allocate(self.tdir_with_data)
+        self.assertGreaterEqual(size, media._min_image_size)
 
 if __name__ == '__main__':
     unittest.main()
