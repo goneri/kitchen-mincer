@@ -47,6 +47,14 @@ cat > /tmp/jenkins_job.yaml <<EOF
     builders:
       - shell: |
           set -e
+          # Use a HTTP proxy if possible. This is a workaround
+          # for the case it's not possible to access external
+          # network from a tenant
+          if curl -I http://127.0.0.1:3128 2>&1|grep -q squid; then
+              export http_proxy=http://127.0.0.1:3128
+          fi
+
+          kitchen-mincer --target devtest .
           echo "this is the end"
           git checkout -b master `git log --pretty=%H`
           git push /var/cache/git/demo.git master:master

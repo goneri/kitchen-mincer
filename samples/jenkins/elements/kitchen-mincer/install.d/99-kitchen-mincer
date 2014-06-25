@@ -1,0 +1,4 @@
+#!/bin/bash
+
+install-packages build-essential python-dev libssl-dev libxml2-dev libxslt-dev libffi-dev python-guestfs
+pip install git+http://gerrit.sf.ring.enovance.com/r/kitchen-mincer

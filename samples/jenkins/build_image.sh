@@ -15,5 +15,12 @@ export JENKINS_PLUGINS=git
 
 export ELEMENTS_PATH=$PWD/elements:$PWD/repos/diskimage-builder/elements:$PWD/repos/heat-templates/hot/software-config/elements:$PWD/repos/tripleo-image-elements/elements
 ./repos/diskimage-builder/bin/disk-image-create -o jenkins_debian \
-    debian-systemd debian jenkins-jjb os-apply-config os-collect-config \
-    vm stackuser heat-config heat-config-script
+    debian-systemd \
+    jenkins-jjb \
+    kitchen-mincer \
+    os-apply-config \
+    os-collect-config \
+    vm \
+    stackuser \
+    heat-config \
+    heat-config-script
