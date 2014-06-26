@@ -83,4 +83,92 @@ ready for deployment and deploy the final version into production.
 Diagram
 -------
 
-.. image:: images/workflow.png
+.. blockdiag::
+
+    blockdiag {
+        node_width = 160;  // default value is 128
+        node_height = 80;  // default value is 40
+
+        // Set span metrix
+        span_width = 200;  // default value is 64
+        span_height = 100;  // default value is 40
+
+        group customer {
+            color = white
+
+            group customer1 {
+                label = "customer1"
+                color = "#faffd5"
+                shape = line
+            }
+
+            group customer2 {
+                label = "customer2"
+                color = "#faffd5"
+                shape = line
+
+            }
+        }
+
+        "product server" [ color = "#d9ead3", numbered = 1 ]
+        "eNovance CI" [ color = "#cfe2f3", numbered = 2 ]
+        "Customer1 CI" [ color = "#fff2cc", group = customer1, numbered = 3 ]
+        "Customer2 CI" [ color = "#fff2cc", group = customer2 ]
+        "Customer1 Prod" [ color = "#cfe2f3", group = customer1, numbered = 4 ]
+        "Customer2 Prod" [ color = "#cfe2f3", group = customer2 ]
+
+        "product server" -> "eNovance CI" [dir = forward];
+        "product server" -> "Customer1 Prod" [style = "3,3,3,3,15,3"];
+        "product server" -> "Customer2 Prod" [style = "3,3,3,3,15,3"];
+
+        "eNovance CI" -> "Customer1 CI" [dir = forward];
+        "eNovance CI" -> "Customer2 CI" [dir = forward];
+
+        "Customer1 CI" -> "product server"
+        "Customer2 CI" -> "product server"
+
+    }
+
+
+1. **product server**
+
+   - Product catalog
+   - Give OK for to deploy product
+   - Get Customer CI product validation
+
+2. **eNovance CI**
+
+   - Get new product from product server for validation on eNovance server
+
+3. **Customer1 CI**
+
+   - Product Validated and report back to Product Server with logs
+
+4. **Customer1 Prod**
+
+   - Product deployed
+
+
+Steps
+=====
+
+1. Get product for validation on customer CI.
+2. Report back (including logs) to product Server
+3. If the product has been OKed (e.g: manually by the eNovance ops), deploy it via
+   the Customer CI
+
+.. seqdiag::
+   :desctable:
+
+   seqdiag {
+      "product\nserver" => "eNovance CI" [label = "Get product to validate", return = "Return status and logs"];
+
+      "product\nserver" => "Customer1 CI" [label = "Get product to validate", return = "Return status and logs"];
+
+      "product\nserver" => "Customer2 CI" [label = "Get product to validate", return = "Return status and logs"];
+
+      === Wait for all the CI to validate the product ===
+
+      "product\nserver" => "Customer1 Prod" [label = "Get product to validate", return = "Return status and logs"];
+
+   }

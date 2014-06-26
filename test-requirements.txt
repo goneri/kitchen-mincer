@@ -11,3 +11,4 @@ nose
 
 sphinx
 sphinxcontrib-blockdiag
+sphinxcontrib-seqdiag

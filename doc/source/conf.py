@@ -10,6 +10,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.pngmath',
               'sphinx.ext.todo',
               'sphinxcontrib.blockdiag',
+              'sphinxcontrib.seqdiag',
               ]
 todo_include_todos = True
 source_suffix = '.rst'
@@ -35,3 +36,5 @@ latex_documents = [
 ]
 blockdiag_antialias = True
 blockdiag_html_image_format = 'SVG'
+seqdiag_antialias = True
+seqdiag_html_image_format = 'SVG'
