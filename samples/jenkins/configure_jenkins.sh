@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -vx
 if [ -z $upstream_git ]; then
     upstream_git="/git/input.git"
     mkdir -p /git/input.git
