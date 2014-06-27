@@ -33,13 +33,15 @@ Glossary
         * Heat file + Heat components
         * Collection of medias (e.g: distribution repository)
 
-    Marmitte: a application and environments
+    Marmite: a application and environments
         * an application
         * collection of medias (e.g: Application backup to restore)
         * environnement (reference or in-line)
 
     Environnement:
-        an account of an OpenStack cloud providing Heat API.
+        an account of an OpenStack cloud providing Heat API. A name
+        can be specified to describe the environemnt like
+        (testing/prod/staging etc..)
 
     Media:
         some data needed to run the application, see `the medias`_ bellow:
@@ -71,7 +73,11 @@ Glossary
 Marmite definition
 ==================
 
-The marmite describes the application, where it should be deployed and validated.
+The marmite describes the application, where it should be deployed and
+validated. The marmite version is the current git commit. In the
+future version may be a more elaborated schema which would combine the
+recent tag and current commit (i.e: the output of `git describe`) to
+allow different releases channel (i.e: stable/testing/experimental).
 
 The medias
 ----------
@@ -92,6 +98,20 @@ These medias can be either:
 
 * in the application itself, e.g: a Fedora repository or an eDeploy image
 * in the user configuration, e.g: a backup to restore or some additional configuration
+
+Storage
+-------
+
+For each deployment on a CI the logs of the deployment would be stored
+in a Swift storage server. Using a global admin account we store all
+deployments of a client.
+
+The path for the deployment ::
+
+   /CLIENT_ID/ENVIRONMENT_NAME/MARMITE_COMMIT_ID/
+
+In there we would store jenkins logs and other infos we can collect
+about the current deployment.
 
 Syntax
 ~~~~~~
@@ -337,5 +357,3 @@ Workflow
 
 .. [#other_cloud] For the moment, we only work with OpenStack Heat. The support of
    other cloud technologies is a mid-term goal.
-
- 
