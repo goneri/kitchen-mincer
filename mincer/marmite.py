@@ -14,6 +14,7 @@
 # under the License.
 
 import os
+import six
 
 import yaml
 
@@ -128,7 +129,8 @@ class Application(object):
 
     def medias(self):
         ret = {}
-        for k, v in self.application_tree.get('medias', dict()).iteritems():
+        m = self.application_tree.get('medias', dict())
+        for k, v in six.iteritems(m):
             ret[k] = media.Media(k, v)
         return ret
 

@@ -25,12 +25,6 @@ import tempfile
 
 LOG = logging.getLogger(__name__)
 
-try:
-    import guestfs
-except ImportError:
-    LOG.error("python-guestfs package is required to procude “dynamic” image")
-    guestfs = None
-
 
 class MediaManagerException(Exception):
     """Base class for media manager exceptions.
@@ -118,6 +112,13 @@ class Media(object):
     def _produce_image(self):
         """Push the collected data in an image
         """
+        try:
+            import guestfs
+        except ImportError:
+            LOG.error("python-guestfs package is required to "
+                      "produce 'dynamic' image")
+            guestfs = None
+
         tarfile_path = "%s/final.tar" % self.basedir
         with tarfile.open(tarfile_path, "w") as tar:
             tar.add(self.data_dir, arcname=os.path.basename(self.data_dir))
@@ -142,4 +143,5 @@ class Media(object):
         finally:
             if g:
                 g.close()
-        self.checksum = hashlib.md5(self._dynamic_image).hexdigest()
+        self.checksum = hashlib.md5(
+            self._dynamic_image.encode(encoding='ASCII')).hexdigest()
