@@ -110,6 +110,9 @@ class Environment(object):
     def floating_ips(self):
         return self.tree.get('floating_ips', list())
 
+    def logdispatchers_params(self):
+        return self.tree.get('logdispatchers', list())
+
 
 class Application(object):
     def __init__(self, application_tree):
@@ -129,7 +132,7 @@ class Application(object):
 
     def medias(self):
         ret = {}
-        m = self.application_tree.get('medias', dict())
+        m = self.application_tree.get('medias', {})
         for k, v in six.iteritems(m):
             ret[k] = media.Media(k, v)
         return ret

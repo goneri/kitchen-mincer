@@ -13,8 +13,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+
 import logging
 from stevedore import driver
+
+import mincer.logdispatcher
 
 LOG = logging.getLogger(__name__)
 
@@ -69,7 +72,10 @@ class Mixer(object):
         for media_name in medias:
             LOG.info("media%s>", media_name)
 
+        logdispatcher = mincer.logdispatcher.Logdispatcher(environment)
+
         provider = self._load_provider(environment)
+        provider.logdispatcher = logdispatcher
         provider.connect(environment.identity())
         provider.launch_application(
             self.marmite.application().name(),

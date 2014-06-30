@@ -200,12 +200,5 @@ class TestProvider(testtools.TestCase):
         self.assertDictEqual(to_up, res_to_up)
         self.assertDictEqual(to_not_up, res_to_not_up)
 
-    def test_retrieve_log(self):
-        my_provider = provider.Heat(args=fake_args())
-        my_provider._heat = fake_heatclient()
-        stack_id = 'georges michael'
-        result = ["Call of 'foobar'", 'stdout: my ouput']
-        self.assertEqual(my_provider.retrieve_log(stack_id), result)
-
 if __name__ == '__main__':
     unittest.main()

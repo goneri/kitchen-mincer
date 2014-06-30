@@ -24,6 +24,7 @@ from heatclient.common import template_utils
 import heatclient.exc as heatclientexc
 import keystoneclient.v2_0 as keystone_client
 import novaclient.client as novaclient
+import six
 
 LOG = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class Heat(object):
         self.params = params
         self.args = args
         self._keystone = None
+        self.logdispatcher = None
 
     def connect(self, identity):
         """This method connect to the Openstack.
@@ -227,8 +229,7 @@ class Heat(object):
                 break
             time.sleep(10)
         LOG.info("Stack final status: %s", stack.status)
-        for line in self.retrieve_log(stack_id):
-            LOG.info(line)
+        self.retrieve_log(stack_id)
         return stack_id
 
     def delete_stack(self, stack_id):
@@ -236,14 +237,10 @@ class Heat(object):
 
     def retrieve_log(self, stack_id):
         stack = self._heat.stacks.get(stack_id=stack_id)
-        lines = []
         for output in stack.outputs:
-            lines.append("Call of '%s'" % output['description'])
-            for line in output['output_value'].split('\n'):
-                lines.append("%s: %s" % (
-                    output['output_key'],
-                    line))
-        return lines
+            LOG.info("Call of '%s'" % output['description'])
+            content = six.StringIO(output['output_value'])
+            self.logdispatcher.store(output['output_key'], content)
 
     def cleanup_application(self):
         self.delete_stack(self.application_stack_id)
