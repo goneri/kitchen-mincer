@@ -32,6 +32,84 @@ class MediaManagerException(Exception):
 
 
 class Media(object):
+    """Media associated with the application.
+
+    A media section is a hash of hash table structure.
+
+    .. code-block:: yaml
+
+        medias:
+            my_first_media_name:
+            # media definition
+            my_second_media_name:
+            # media definition
+
+     A media entry has a **type** key and some associated additional keys.
+
+     * type **dynamic**: The image is generated on the mincer machine from
+       a serie of directives (*sources*).
+     * Type **local**: The image already exists on the machine. The *path*
+       key is used to specify the image location.
+     * Type **block**: The image already exists on a remote HTTP server.
+
+
+    The YAML configuration structure for a dynamic media:
+
+    .. code-block:: yaml
+        :linenos:
+
+        medias:
+          dump_mysql:
+            type: dynamic
+            sources:
+              -
+                type: script
+                value: |
+                    #!/bin/sh
+                    cp $BASE_DIR/samples/wordpress/backup_wordpress.sql .
+                target: mysql
+              -
+                type: git
+                value: https://github.com/WordPress/WordPress
+                target: wordpress
+                ref: 3.8.2
+
+    * medias: the root key of the media hash table.
+    * dump_mysql: the name of the media.
+    * type: the type of media, here dynamic
+    * sources: the component used to generate the dynamic media
+        * script:
+            * value: the script to call
+            * target: where to store the content
+        * git
+            * value: the Git repository URL
+            * target: where to store the content
+            * ref: the Git reference to pull. The default is *master*
+
+    YAML of a bloc media:
+
+    .. code-block:: yaml
+        :linenos:
+
+        medias:
+            ubuntu-13.10-server-amd64.iso:
+                type: block
+                disk_format: iso
+                copy_from: http://my.mirror/ubuntu-13.10-server-amd64.iso
+                checksum: 4d1a8b720cdd14b76ed9410c63a00d0e
+            base_image:
+                type: block
+                disk_format: qcow2
+                copy_from: http://my.mirror/ubuntu-vm.qcow2
+                checksum: e3224ba9d93b1df12db3b9e1d2f34ea7
+
+    The following keys can be used:
+
+        * disk_format: default is qcow2
+        * copy_from: the HTTP URL to the image
+        * checksum: the checksum of the image
+
+    """
 
     def __init__(self, name, description):
         self.disk_format = "raw"

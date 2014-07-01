@@ -79,6 +79,20 @@ future version may be a more elaborated schema which would combine the
 recent tag and current commit (i.e: the output of `git describe`) to
 allow different releases channel (i.e: stable/testing/experimental).
 
+marmite YAML file
+-----------------
+
+* environments
+    * identity
+    * medias
+    * key_pairs
+* application
+    * name
+    * medias
+    * garden gnome: the list of the associated tests
+* testers
+    * a_test_sample
+
 The medias
 ----------
 
@@ -116,68 +130,8 @@ about the current deployment.
 Syntax
 ~~~~~~
 
-A media section is a hash of hash structure.
 
-.. code-block:: yaml
-
-  medias:
-    my_first_media_name:
-      # media definition
-    my_second_media_name:
-      # media definition
-
-A media has a **type** key and some associated additional keys.
-
-* Type **dynamic**: The image is generated on the mincer machine from a serie
-  of directives (*sources*). Sources subsection:
-
-  * type: script
-  * value: path to the script or the script itself inline
-  * target: where the resultat will be stored in the image
-
-.. code-block:: yaml
-
-          -
-            type: script
-            value: |
-                #!/bin/sh
-                cp $BASE_DIR/samples/wordpress/backup_wordpress.sql .
-            target: mysql
-..
-
-  Git dynamic media source:
-
-  * type: git
-  * value: URI to the git repository
-  * target: where the repository will be stored
-  * ref: the git reference to pull. The default is *master*
-
-* Type **local**: The image already exists on the machine. The *path* key is
-  used to specify the image location.
-* Type **block**: The image already exists on a remote location. The following
-  keys can be used:
-
-  * disk_format: default is qcow2
-  * copy_from: the HTTP URL to the image
-  * checksum: the checksum of the image
-
-marmite YAML file
------------------
-
-* environments
-    * identity
-    * medias
-    * key_pairs
-* application
-    * name
-    * medias
-    * garden gnome: the list of the associated tests
-* testers
-    * a_test_sample
-
-.. include:: ../../samples/wordpress/marmite.yaml
-    :code: yaml
-    :number-lines:
+.. autoclass:: mincer.media.Media
 
 Directory hierarchy
 -------------------
@@ -313,45 +267,11 @@ instance (Solution B).
    }
 
 
-Code architecture
-=================
-
-- The entry point of the application is the Main class.
-- The Mincer class instantiates the Marmite object and load the provider specified
-  in the marmite.yaml file.
-- The MediaManager is in charge of collecting the medias from the marmite and
-  provisioning each images with the corresponding application code afterwards it
-  push them as images in Glance.
-- The Provider instantiates the MediaManager and start to deploy the application.
-
-Workflow
-========
 
 .. toctree::
     workflow
+    code
 
-
-
-.. blockdiag::
-
-    blockdiag {
-
-	"provider\ninterface" [ stacked  ]
-        "tester\ninterface" [ stacked ]
-        "medias" [ stacked ]
-
-        main -> mincer
-        mincer -> marmite
-	mincer -> "provider\ninterface"
-        mincer -> "tester\ninterface"
-        "tester\ninterface" -> "a first\ntest"
-        "tester\ninterface" -> "another\ntest"
-	mincer -> environment
-	"provider\ninterface" -> "a provider"
-	mincer -> medias
-        medias -> "an ISO file"
-	medias -> "some files and\na git repository"
-    }
 
 .. rubric:: Footnotes
 
