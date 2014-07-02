@@ -31,7 +31,7 @@ class AppendExtraParams(argparse.Action):
     """
     def __call__(self, parser, namespace, values, option_string=None):
         (k, v) = values.split('=')
-        items = copy.copy(argparse._ensure_value(namespace, self.dest, dict()))
+        items = copy.copy(argparse._ensure_value(namespace, self.dest, {}))
         items[k] = v
         setattr(namespace, self.dest, items)
 

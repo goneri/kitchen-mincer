@@ -26,7 +26,7 @@ class Marmite(object):
     marmite's fields.
     """
 
-    environments = dict()
+    environments = {}
 
     def __init__(self, marmite_dir):
 
@@ -41,7 +41,7 @@ class Marmite(object):
             raise NotFound("Marmite file '%s'" % marmite_path)
         self.marmite_tree = yaml.load(open(marmite_path, 'rb'))
         self._application = Application(self.marmite_tree['application'])
-        self.environments = dict()
+        self.environments = {}
         for name in self.marmite_tree['environments']:
             self.environments[name] = Environment(
                 name,
@@ -84,7 +84,7 @@ class Environment(object):
         return self.tree.get('provider', 'heat')
 
     def provider_params(self):
-        return self.tree.get('provider_params', dict())
+        return self.tree.get('provider_params', {})
 
     def identity(self):
         credentials = {}
@@ -100,18 +100,18 @@ class Environment(object):
 
     def medias(self):
         ret = {}
-        for k, v in self.tree.get('medias', dict()).iteritems():
+        for k, v in self.tree.get('medias', {}).iteritems():
             ret[k] = media.Media(k, v)
         return ret
 
     def key_pairs(self):
-        return self.tree.get('key_pairs', list())
+        return self.tree.get('key_pairs', [])
 
     def floating_ips(self):
-        return self.tree.get('floating_ips', list())
+        return self.tree.get('floating_ips', [])
 
     def logdispatchers_params(self):
-        return self.tree.get('logdispatchers', list())
+        return self.tree.get('logdispatchers', [])
 
 
 class Application(object):
@@ -157,7 +157,7 @@ class Test(object):
 
     def medias(self):
         ret = {}
-        for k, v in self.test_tree.get('medias', dict()).iteritems():
+        for k, v in self.test_tree.get('medias', {}).iteritems():
             ret[k] = media.Media(k, v)
         return ret
 

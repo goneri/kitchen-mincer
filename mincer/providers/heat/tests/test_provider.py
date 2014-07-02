@@ -156,9 +156,9 @@ class TestProvider(testtools.TestCase):
         self.assertEqual(my_provider.connect(fake_identity), None)
         self.assertEqual(my_provider.launch_application(
             "test_stack",
-            dict(),
-            dict(),
-            dict()), None)
+            {},
+            {},
+            {}), None)
 
     def test_register_key_pairs(self):
         my_provider = provider.Heat(args=fake_args())

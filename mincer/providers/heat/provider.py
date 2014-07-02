@@ -107,7 +107,7 @@ class Heat(object):
         :type refresh_medias: list
         """
 
-        parameters = dict()
+        parameters = {}
         glance_endpoint = self._keystone.service_catalog.url_for(
             service_type='image')
 
@@ -157,7 +157,7 @@ class Heat(object):
         :param key_pairs: the key pairs
         :type  key_pairs: dict
         """
-        parameters = dict()
+        parameters = {}
         for name in key_pairs:
             try:
                 self._novaclient.keypairs.create(name, key_pairs[name])
@@ -171,7 +171,7 @@ class Heat(object):
         """Ensure that the provided floating ips are available. Push them
         on the Heat stack parameters.
         """
-        parameters = dict()
+        parameters = {}
         for name in floating_ips:
             ip = floating_ips[name]
             found = None
@@ -186,7 +186,7 @@ class Heat(object):
         return parameters
 
     def launch_application(self, name, medias, key_pairs, floating_ips):
-        parameters = dict()
+        parameters = {}
         try:
             parameters.update(self.args.extra_params)
         except TypeError:
