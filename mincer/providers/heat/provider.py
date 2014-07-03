@@ -229,6 +229,7 @@ class Heat(object):
             stack = self._heat.stacks.get(stack_id)
             LOG.info("Stack status: %s", stack.status)
             if stack.status == 'FAILED':
+                LOG.error("Error while creating Stack: %s", stack.stack_status_reason)
                 raise StackCreationFailure()
             if stack.status != 'IN_PROGRESS':
                 break
