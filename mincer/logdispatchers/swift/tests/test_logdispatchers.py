@@ -14,15 +14,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import os
-
 import fixtures
+import mock
 import six
-import tempfile
 import testtools
 import unittest
 
-import mincer.logdispatchers.directory. logdispatcher as logdispatcher
+import mincer.logdispatchers.swift. logdispatcher as logdispatcher
 
 
 class TestLogdispatcher(testtools.TestCase):
@@ -31,21 +29,19 @@ class TestLogdispatcher(testtools.TestCase):
         super(TestLogdispatcher, self).setUp()
         self.useFixture(fixtures.NestedTempfile())
 
-    def test_create(self):
-        tmpdir = tempfile.mkdtemp()
-        ld = logdispatcher.Directory({'directory': tmpdir})
-        self.assertIsInstance(ld, logdispatcher.Directory)
-        self.assertTrue(os.path.exists(tmpdir))
+    def test__get_full_path(self):
+        provider = mock.Mock()
+        provider.put_object.value = True
+        ld = logdispatcher.Swift({'path_template': 'toto/$name'}, provider)
+        self.assertEqual(ld._get_full_path("zozo"), "toto/zozo")
 
     def test_store(self):
         blabla = "some initial text data"
-        tmpdir = tempfile.mkdtemp()
-        ld = logdispatcher.Directory({'directory': tmpdir})
+        provider = mock.Mock()
+        provider.put_object.value = True
+        ld = logdispatcher.Swift({}, provider)
         f = six.StringIO(blabla)
-        ld.store('robert.log', f)
-        self.assertEqual(
-            open(os.path.join(tmpdir, 'robert.log')).read(),
-            blabla)
+        self.assertEqual(ld.store('robert.log', f), None)
 
 
 if __name__ == '__main__':

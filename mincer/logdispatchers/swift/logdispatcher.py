@@ -15,12 +15,12 @@
 # under the License.
 
 import logging
-import os
+import string
 
 LOG = logging.getLogger(__name__)
 
 
-class Directory(object):
+class Swift(object):
     """Store log in a local directory.
 
     The YAML configuration structure is:
@@ -28,22 +28,29 @@ class Directory(object):
     .. code-block:: yaml
 
         -
-            name: local
-            driver: directory
-            path: /tmp
-            suffix: .my_log
+            name: os-ci-test6
+            driver: swift
+            container: log
+            path_template: somewhere/$name
+
 
     * name: a name used to identify the dispatcher.
     * driver: must by directory to use this module.
-    * path: a directory on the filesystem. The default is the local directory.
+    * path_template: a directory on the filesystem. The default is log/$name.
+      The $name variable will be expended with the name of the file.
     * suffix: the suffix of the file name of the log file (default: .log)
     """
 
     def __init__(self, params, provider):
         self.params = params
 
-        self._path = params.get('path', '.')
-        self._suffix = params.get('suffix', '.log')
+        self._container = params.get('container', 'log')
+        self._path_template = params.get('path_template', 'log/$name')
+        self._provider = provider
+
+    def _get_full_path(self, name=''):
+        file_path_template = string.Template(self._path_template)
+        return file_path_template.substitute(name=name)
 
     def store(self, name, content):
         """Save a log content in a file on the local file system.
@@ -52,7 +59,8 @@ class Directory(object):
         name -- the name of the file
         content -- a StringIO instance
         """
-        file = os.path.join(self._path, name + self._suffix)
-        with open(file, 'w') as f:
-            for line in content.getvalue():
-                f.write(line)
+        self._provider.put_object(
+            self._container,
+            self._get_full_path(name),
+            content.getvalue()
+        )

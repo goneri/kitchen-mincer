@@ -24,6 +24,8 @@ from heatclient.common import template_utils
 import heatclient.exc as heatclientexc
 import keystoneclient.v2_0 as keystone_client
 import novaclient.client as novaclient
+import swiftclient
+
 import six
 
 LOG = logging.getLogger(__name__)
@@ -56,6 +58,9 @@ class Heat(object):
 
         self.heat_endpoint = self._keystone.service_catalog.url_for(
             service_type='orchestration')
+        self.swift_endpoint = self._keystone.service_catalog.url_for(
+            service_type='object-store',
+            endpoint_type='publicURL')
 
         self._heat = heatclient.Client('1', endpoint=self.heat_endpoint,
                                        token=self._keystone.auth_token,
@@ -269,6 +274,13 @@ class Heat(object):
                 'primary_ip_address': primary_ip_address
             })
         return machines
+
+    def put_object(self, container, name, obj):
+        conn = swiftclient.client.Connection(
+            preauthurl=self.swift_endpoint,
+            preauthtoken=self._keystone.auth_token,
+        )
+        conn.put_object('log', name, obj)
 
 
 class AlreadyExisting(Exception):

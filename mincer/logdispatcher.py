@@ -28,13 +28,13 @@ class Logdispatcher(object):
 
     @staticmethod
     def report_error(manager, entrypoint, exception):
-        LOG.error("Error while loading provider %s", entrypoint)
+        LOG.error("Error while loading logdispatcher %s", entrypoint)
         raise exception
 
-    def __init__(self, environment):
+    def __init__(self, environment, provider):
         self.logdispatchers = []
         for params in environment.logdispatchers_params():
-            kwargs = dict(params=params)
+            kwargs = dict(params=params, provider=provider)
 
             ld = driver.DriverManager(
                 namespace=MINCER_LOGDISPATCHER_NS,

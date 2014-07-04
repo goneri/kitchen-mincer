@@ -72,9 +72,11 @@ class Mixer(object):
         for media_name in medias:
             LOG.info("media%s>", media_name)
 
-        logdispatcher = mincer.logdispatcher.Logdispatcher(environment)
-
         provider = self._load_provider(environment)
+        logdispatcher = mincer.logdispatcher.Logdispatcher(
+            environment, provider)
+        # TODO(Gonéri): logdispatcher object should be consumed only
+        # from mixer.py. To do so, we must collect the log directly here
         provider.logdispatcher = logdispatcher
         provider.connect(environment.identity())
         provider.launch_application(

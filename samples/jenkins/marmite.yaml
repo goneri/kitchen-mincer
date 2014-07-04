@@ -19,6 +19,11 @@ environments:
         name: local
         driver: directory
         path: .
+      -
+        name: swift-ci
+        driver: swift
+        container: log
+        path_template: 'my/log/$name'
 
 application:
   # Name of the application, Stack will be called according to this name

@@ -46,7 +46,7 @@ description: >
 
 class fake_service_catalog(object):
 
-    def url_for(self, service_type='fake_service'):
+    def url_for(self, service_type='fake_service', endpoint_type='roberto'):
 
         return "http://somewhere/%s" % service_type
 
@@ -143,6 +143,15 @@ class fake_glanceclient(object):
         self.images = self.fake_images()
 
 
+class fake_swift(object):
+    @staticmethod
+    def Connection(preauthurl=None, preauthtoken=None):
+        class fake_swift_conn(object):
+            def put_object(self, container, name, obj):
+                pass
+        return fake_swift_conn()
+
+
 class TestProvider(testtools.TestCase):
     def setUp(self):
 
@@ -199,6 +208,18 @@ class TestProvider(testtools.TestCase):
         res_to_not_up = {"name_1": "id_1"}
         self.assertDictEqual(to_up, res_to_up)
         self.assertDictEqual(to_not_up, res_to_not_up)
+
+    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
+    @mock.patch('swiftclient.client', fake_swift)
+    def test_put_object(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider.connect({
+            'os_auth_url': 'http://nowhere',
+            'os_username': 'admin',
+            'os_password': 'password',
+            'os_tenant_name': 'demo'
+        })
+        my_provider.put_object('log', 'robert', 'gaspart')
 
 if __name__ == '__main__':
     unittest.main()
