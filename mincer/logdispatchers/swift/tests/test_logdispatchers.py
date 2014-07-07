@@ -23,6 +23,16 @@ import unittest
 import mincer.logdispatchers.swift. logdispatcher as logdispatcher
 
 
+class fake_swift(object):
+    @staticmethod
+    def Connection(user=None, key=None, authurl=None,
+                   tenant_name=None, auth_version=None):
+        class fake_swift_conn(object):
+            def put_object(self, container, name, obj):
+                pass
+        return fake_swift_conn()
+
+
 class TestLogdispatcher(testtools.TestCase):
     def setUp(self):
 
@@ -40,6 +50,20 @@ class TestLogdispatcher(testtools.TestCase):
         provider = mock.Mock()
         provider.put_object.value = True
         ld = logdispatcher.Swift({}, provider)
+        f = six.StringIO(blabla)
+        self.assertEqual(ld.store('robert.log', f), None)
+
+    @mock.patch('swiftclient.client', fake_swift)
+    def test_another_server(self):
+        blabla = "some initial text data"
+        provider = mock.Mock()
+        provider.put_object.value = False
+        ld = logdispatcher.Swift({'identity': {
+            'user': None,
+            'key': None,
+            'authurl': None,
+            'tenant_name': None}},
+            provider)
         f = six.StringIO(blabla)
         self.assertEqual(ld.store('robert.log', f), None)
 

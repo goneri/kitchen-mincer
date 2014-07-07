@@ -17,6 +17,8 @@
 import logging
 import string
 
+import swiftclient
+
 LOG = logging.getLogger(__name__)
 
 
@@ -32,13 +34,32 @@ class Swift(object):
             driver: swift
             container: log
             path_template: somewhere/$name
+        -
+            name: os-ci-test7
+            driver: swift
+            container: log
+            identity:
+                user: admin
+                key: password
+                authurl: http://os-ci-test7.ring.enovance.com:5000/v2.0
+                tenant_name: demo
 
 
     * name: a name used to identify the dispatcher.
     * driver: must by directory to use this module.
-    * path_template: a directory on the filesystem. The default is log/$name.
-      The $name variable will be expended with the name of the file.
+    * path_template: a directory on the filesystem. The default is `log/$name`.
+      The `$name` variable will be expended with the name of the file.
     * suffix: the suffix of the file name of the log file (default: .log)
+
+    **Server authentification**: the default is to try to access the Swift
+    of the **provider**. If you need to access another another Heat server,
+    you can add an `identity` section with the following keys:
+
+    * user: the username
+    * key: the password of the account
+    * authurl: the API URL of the OpenStack, e.g:
+      `http://os-ci-test7.ring.enovance.com:5000/v2.0`
+    * tenant_name: the name of the OpenStack tenant (project)
     """
 
     def __init__(self, params, provider):
@@ -46,7 +67,15 @@ class Swift(object):
 
         self._container = params.get('container', 'log')
         self._path_template = params.get('path_template', 'log/$name')
-        self._provider = provider
+        if 'identity' in params:
+            self._swift_handler = swiftclient.client.Connection(
+                user=params['identity']['user'],
+                key=params['identity']['key'],
+                authurl=params['identity']['authurl'],
+                tenant_name=params['identity']['tenant_name'],
+                auth_version='2.0')
+        else:
+            self._swift_handler = provider
 
     def _get_full_path(self, name=''):
         file_path_template = string.Template(self._path_template)
@@ -59,7 +88,7 @@ class Swift(object):
         name -- the name of the file
         content -- a StringIO instance
         """
-        self._provider.put_object(
+        self._swift_handler.put_object(
             self._container,
             self._get_full_path(name),
             content.getvalue()

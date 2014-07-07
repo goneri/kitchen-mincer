@@ -24,6 +24,16 @@ environments:
         driver: swift
         container: log
         path_template: 'my/log/$name'
+      -
+        name: other-swift
+        driver: swift
+        container: robert
+        path_template: 'somewhere/$name'
+        identity:
+          user: admin
+          key: password
+          authurl: http://os-ci-test7.ring.enovance.com:5000/v2.0
+          tenant_name: demo
 
 application:
   # Name of the application, Stack will be called according to this name
