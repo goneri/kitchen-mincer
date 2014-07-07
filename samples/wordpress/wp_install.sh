@@ -15,4 +15,11 @@ sed -i s/username_here/$db_user/      /var/www/wp-config.php
 sed -i s/password_here/$db_password/  /var/www/wp-config.php
 sed -i s/localhost/$db_ipaddr/        /var/www/wp-config.php
 
+mkdir /home/stack/.ssh
+echo $test_public_key >> /home/stack/.ssh/authorized_keys
+
+chmod 700 /home/stack/.ssh
+chmod 600 /home/stack/.ssh/authorized_keys
+chown -R stack:stack /home/stack/.ssh
+
 echo "Wordpress is ready!"

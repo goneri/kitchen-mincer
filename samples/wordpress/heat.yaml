@@ -4,10 +4,13 @@ description: >
   Based on Heat Wordpress example
 
 parameters:
-  key_name:
+  app_key_name:
     type: string
     description : Name of a key pair to enable SSH access to instances.
     default: default
+  test_public_key:
+    type: string
+    description : Public key to enable SSH access to instances for tests purposes.
   flavor:
     type: string
     description: Flavor to use for the WordPress server.
@@ -102,6 +105,7 @@ resources:
         - name: db_user
         - name: db_password
         - name: db_ipaddr
+        - name: test_public_key
       group: script
       config: { get_file: wp_install.sh }
 
@@ -114,6 +118,7 @@ resources:
         - name: db_name
         - name: db_user
         - name: db_password
+        - name: test_public_key
       group: script
       config: { get_file: db_install.sh }
 
@@ -137,6 +142,7 @@ resources:
         db_user: { get_param: db_username }
         db_password: { get_attr: [ db_password, value ] }
         db_ipaddr: { get_attr: [ dbserver_instance, networks, private, 0 ] }
+        test_public_key: { get_param: test_public_key }
 
   db_deployment:
     type: OS::Heat::SoftwareDeployment
@@ -152,6 +158,7 @@ resources:
         db_name: { get_param: db_name }
         db_user: { get_param: db_username }
         db_password: { get_attr: [ db_password, value ] }
+        test_public_key: { get_param: test_public_key }
 
   ubuntu_mirror_deployment:
     type: OS::Heat::SoftwareDeployment
@@ -166,7 +173,7 @@ resources:
     properties:
       image: { get_param: volume_id_base_image }
       flavor: { get_param: flavor }
-      key_name: { get_param: key_name }
+      key_name: { get_param: app_key_name }
       user_data_format: SOFTWARE_CONFIG
 
   webserver_instance:
@@ -174,7 +181,7 @@ resources:
     properties:
       image: { get_param: volume_id_base_image }
       flavor: { get_param: flavor }
-      key_name: { get_param: key_name }
+      key_name: { get_param: app_key_name }
       user_data_format: SOFTWARE_CONFIG
 
   dbserver_instance:
@@ -182,7 +189,7 @@ resources:
     properties:
       image: { get_param: volume_id_base_image }
       flavor: { get_param: flavor }
-      key_name: { get_param: key_name }
+      key_name: { get_param: app_key_name }
       user_data_format: SOFTWARE_CONFIG
 
   wordpress_floating_ip:

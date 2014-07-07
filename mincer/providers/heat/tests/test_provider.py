@@ -172,8 +172,10 @@ class TestProvider(testtools.TestCase):
     def test_register_key_pairs(self):
         my_provider = provider.Heat(args=fake_args())
         my_provider._novaclient = fake_novaclient()
-        t = my_provider.register_key_pairs({'robert': 'a_ssh_pub_key'})
-        self.assertEqual(t['key_name'], 'robert')
+        t = my_provider.register_key_pairs({'robert': 'a_ssh_pub_key'},
+                                           "test_key")
+        self.assertEqual(t['app_key_name'], 'robert')
+        self.assertEqual(t['test_public_key'], 'test_key')
 
     def test_register_floating_ips(self):
         my_provider = provider.Heat(args=fake_args())

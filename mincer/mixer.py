@@ -14,7 +14,9 @@
 # under the License.
 
 
+from Crypto.PublicKey import RSA
 import logging
+
 from stevedore import driver
 
 import mincer.logdispatcher
@@ -47,10 +49,11 @@ class Mixer(object):
             on_load_failure_callback=self.report_error,
             invoke_kwds=kwargs).driver
 
-    def _load_test(self, test, provider, refresh_medias):
+    def _load_test(self, test, provider, refresh_medias, private_key):
 
         kwargs = dict(provider=provider, refresh_medias=refresh_medias,
-                      params=test.params, medias=test.medias)
+                      params=test.params, medias=test.medias,
+                      private_key=private_key)
 
         return driver.DriverManager(
             namespace=MINCER_TESTS_NS,
@@ -63,6 +66,18 @@ class Mixer(object):
         environment = self.marmite.environments[env_name]
         self._load_provider(environment)
 
+    def _generate_key_pairs(self):
+        """Generate ssh key pairs in OpenSSH format.
+
+        :returns: a tuple of string for the key pairs in
+        the format (private_key, public_key)
+        :rtype: tuple
+        """
+
+        private_key = RSA.generate(2048)
+        public_key = private_key.publickey()
+        return private_key.exportKey(), public_key.exportKey("OpenSSH")
+
     def bootstrap(self, env_name, refresh_medias):
         """Bootstrap the application."""
         environment = self.marmite.environment(env_name)
@@ -71,6 +86,8 @@ class Mixer(object):
 
         for media_name in medias:
             LOG.info("media%s>", media_name)
+
+        test_priv_key, test_pub_key = self._generate_key_pairs()
 
         provider = self._load_provider(environment)
         logdispatcher = mincer.logdispatcher.Logdispatcher(
@@ -82,11 +99,12 @@ class Mixer(object):
         provider.launch_application(
             self.marmite.application().name(),
             provider.upload(medias, refresh_medias),
-            provider.register_key_pairs(environment.key_pairs()),
+            provider.register_key_pairs(environment.key_pairs(), test_pub_key),
             provider.register_floating_ips(environment.floating_ips()))
 
         for test in self.marmite.testers():
-            test_instance = self._load_test(test, provider, refresh_medias)
+            test_instance = self._load_test(test, provider, refresh_medias,
+                                            test_priv_key)
             test_instance.launch()
 
         if not self.args.preserve:

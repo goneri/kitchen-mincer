@@ -157,19 +157,21 @@ class Heat(object):
             LOG.debug("status: %s - %s", media.name, image.status)
         return parameters
 
-    def register_key_pairs(self, key_pairs):
-        """Register key pairs.
-        :param key_pairs: the key pairs
-        :type  key_pairs: dict
+    def register_key_pairs(self, marmite_key_pair, test_public_key):
+        """Register the key pair.
+        :param marmite_key_pair: the key pair
+        :type  marmite_key_pair: dict
+        :param test_public_key: the public key pair for test purpose
+        :type  test_key_pair: str
         """
-        parameters = {}
-        for name in key_pairs:
+        parameters = {'test_public_key': test_public_key}
+        for name in marmite_key_pair:
             try:
-                self._novaclient.keypairs.create(name, key_pairs[name])
+                self._novaclient.keypairs.create(name, marmite_key_pair[name])
             except novaclient.exceptions.Conflict:
                 LOG.debug("Key %s already created", name)
-            # TODO(Gonéri), this force the use of a sole key
-            parameters['key_name'] = name
+            parameters['app_key_name'] = name
+
         return parameters
 
     def register_floating_ips(self, floating_ips):

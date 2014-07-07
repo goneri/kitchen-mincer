@@ -1,6 +1,7 @@
 six>=1.4.1
 pbr>=0.5.21,<1.0
 PyYAML
+pycrypto>=2.6.1
 stevedore
 python-glanceclient
 python-keystoneclient

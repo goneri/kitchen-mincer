@@ -90,11 +90,12 @@ class HeatConfig(object):
 
 class SimpleCheck(object):
 
-    def __init__(self, refresh_medias, provider, params, medias):
+    def __init__(self, refresh_medias, provider, params, medias, private_key):
         self._refresh_medias = refresh_medias
         self.provider = provider
         self.params = params
         self.medias = medias
+        self._private_key = private_key
 
     def _save_test_results(self, result, error_code):
         with open("/tmp/test_results", "wb") as file_result:

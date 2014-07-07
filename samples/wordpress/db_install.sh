@@ -20,4 +20,8 @@ FLUSH PRIVILEGES;
 EXIT
 EOF
 cat /srv/data/mysql/backup_wordpress.sql | mysql -u root wordpress
+
+mkdir /home/stack/.ssh
+echo $test_public_key >> /home/stack/.ssh/authorized_keys
+
 echo "Wordpress database is ready!"
