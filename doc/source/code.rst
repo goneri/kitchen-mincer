@@ -65,3 +65,8 @@ Directory
 ---------
 
 .. autoclass:: mincer.logdispatchers.directory.Directory
+
+Swift
+-----
+
+.. autoclass:: mincer.logdispatchers.swift.Swift
