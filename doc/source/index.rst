@@ -245,6 +245,9 @@ instance (Solution B).
 
         group clusterA {
 	    label = "my Wordpress (stack 1)"
+            shape = line
+            style = dashed
+
 	    floatingIP
 
 	    "VM Apache";
@@ -254,7 +257,10 @@ instance (Solution B).
 
         group clusterB {
             label = "tester (stack 2)"
-	    color=lightgrey
+            color = red
+            shape = line
+            style = dashed
+
 	    "VM test 1"
 	    "VM test 2"
 	    "VM test 3"
