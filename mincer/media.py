@@ -162,7 +162,7 @@ class Media(object):
 
             if source['type'] == 'git':
                 subprocess.call(["git", "clone", "--depth", "1",
-                                 source['path'], target_dir],
+                                 source['value'], target_dir],
                                 cwd=self.data_dir)
             elif source['type'] == 'local':
                 subprocess.call("cp -r %s/* %s" % (source['path'], target_dir),
