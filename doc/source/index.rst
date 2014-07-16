@@ -244,7 +244,7 @@ instance (Solution B).
     blockdiag admin {
 
         group clusterA {
-	    label = "my Wordpress (stack 1)"
+	    label = "my Wordpress (product stack)"
             shape = line
             style = dashed
 
@@ -256,7 +256,7 @@ instance (Solution B).
 	}
 
         group clusterB {
-            label = "tester (stack 2)"
+            label = "tester"
             color = red
             shape = line
             style = dashed
