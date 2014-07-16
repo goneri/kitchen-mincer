@@ -85,4 +85,5 @@ class Serverspec(object):
             parameters
         )
 
+        self._provider.retrieve_log(tmp_stack_id)
         self._provider.delete_stack(tmp_stack_id)
