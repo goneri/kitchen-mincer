@@ -61,8 +61,7 @@ application:
 # and the following patch https://review.openstack.org/#/c/91733/
         type: block
         disk_format: qcow2
-        copy_from: http://nowhere/ubuntu-vm.qcow2
-        checksum: e3224ba9d93b1df12db3b9e1d2f34ea7
+        path: samples/wordpress/base_image.qcow2
 
 testers:
     test_simple:
@@ -71,8 +70,7 @@ testers:
             base_image:
                 type: block
                 disk_format: qcow2
-                copy_from: http://nowhere/ubuntu-vm.qcow2
-                checksum: e3224ba9d93b1df12db3b9e1d2f34ea7
+                path: samples/wordpress/base_image.qcow2
         # TODO(Gonéri):
         #   a key/value list would be more logicial here
         #   - _ALL_: ping -c5 $IP
