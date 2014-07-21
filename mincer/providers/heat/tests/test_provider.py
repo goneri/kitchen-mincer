@@ -234,7 +234,7 @@ class TestProvider(testtools.TestCase):
             'os_password': 'password',
             'os_tenant_name': 'demo'
         })
-        my_provider.put_object('log', 'robert', 'gaspart')
+        my_provider.swift.put_object('log', 'robert', 'gaspart')
 
 if __name__ == '__main__':
     unittest.main()

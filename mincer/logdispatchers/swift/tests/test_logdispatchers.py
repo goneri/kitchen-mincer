@@ -48,7 +48,8 @@ class TestLogdispatcher(testtools.TestCase):
     def test_store(self):
         blabla = "some initial text data"
         provider = mock.Mock()
-        provider.put_object.value = True
+        provider.swift = mock.Mock()
+        provider.swift.put_object.value = True
         ld = logdispatcher.Swift({}, provider)
         f = six.StringIO(blabla)
         self.assertEqual(ld.store('robert.log', f), None)
@@ -57,7 +58,8 @@ class TestLogdispatcher(testtools.TestCase):
     def test_another_server(self):
         blabla = "some initial text data"
         provider = mock.Mock()
-        provider.put_object.value = False
+        provider.swift = mock.Mock()
+        provider.swift.put_object.value = False
         ld = logdispatcher.Swift({'identity': {
             'user': None,
             'key': None,

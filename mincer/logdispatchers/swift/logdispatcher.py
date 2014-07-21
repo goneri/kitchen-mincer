@@ -75,7 +75,13 @@ class Swift(object):
                 tenant_name=params['identity']['tenant_name'],
                 auth_version='2.0')
         else:
-            self._swift_handler = provider
+            self._swift_handler = provider.swift
+
+        try:
+            self._swift_handler.head_container(self._container)
+        except swiftclient.exceptions.ClientException as e:
+            LOG.error("Fail to access Swift container '%s'" % self._container)
+            raise e
 
     def _get_full_path(self, name=''):
         file_path_template = string.Template(self._path_template)
