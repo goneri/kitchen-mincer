@@ -16,6 +16,7 @@
 
 from Crypto.PublicKey import RSA
 import logging
+import six
 import string
 
 from stevedore import driver
@@ -85,8 +86,25 @@ class Mixer(object):
 
         return r_private_key, r_public_key
 
+    def _store_log(self, logs, environment, provider):
+        logdispatcher = mincer.logdispatcher.Logdispatcher(
+            environment, provider)
+
+        for name, content in six.iteritems(logs):
+            logdispatcher.store(name, content)
+
     def bootstrap(self, env_name, refresh_medias):
-        """Bootstrap the application."""
+        """Bootstrap the application.
+
+        This method bootstraps the application, run the tests
+        and store the logs.
+
+        :param env_name: the name of the used environment
+        :type env_name: str
+        :param refresh_medias: the list of the medias to refresh
+        :type refresh_medias: list
+        """
+
         environment = self.marmite.environment(env_name)
         medias = self.marmite.application().medias()
         medias.update(environment.medias())
@@ -97,17 +115,13 @@ class Mixer(object):
         test_priv_key, test_pub_key = self._generate_key_pairs()
 
         provider = self._load_provider(environment)
-        logdispatcher = mincer.logdispatcher.Logdispatcher(
-            environment, provider)
-        # TODO(Gonéri): logdispatcher object should be consumed only
-        # from mixer.py. To do so, we must collect the log directly here
-        provider.logdispatcher = logdispatcher
         provider.connect(environment.identity())
-        provider.launch_application(
+        logs = provider.launch_application(
             self.marmite.application().name(),
             provider.upload(medias, refresh_medias),
             provider.register_key_pairs(environment.key_pairs(), test_pub_key),
             provider.register_floating_ips(environment.floating_ips()))
+        self._store_log(logs, environment, provider)
 
         for test in self.marmite.testers():
             test_instance = self._load_test(test, provider, refresh_medias,

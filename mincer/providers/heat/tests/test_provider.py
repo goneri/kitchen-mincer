@@ -161,13 +161,26 @@ class TestProvider(testtools.TestCase):
     @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
     @mock.patch('heatclient.v1.client.Client')
     def test_create(self, heat_mock):
+        fa = fake_args()
+        my_provider = provider.Heat(args=fake_args())
+        self.assertEqual(my_provider.connect(fake_identity), None)
+        template_path = fa.marmite_directory + "/heat.yaml"
+        stack_result = my_provider.create_stack("test_stack",
+                                                template_path, {})
+        self.assertIsInstance(stack_result, dict)
+        self.assertTrue("logs" in stack_result)
+        self.assertTrue("stack_id" in stack_result)
+
+    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
+    @mock.patch('heatclient.v1.client.Client')
+    def test_appllication(self, heat_mock):
         my_provider = provider.Heat(args=fake_args())
         self.assertEqual(my_provider.connect(fake_identity), None)
         self.assertEqual(my_provider.launch_application(
             "test_stack",
             {},
             {},
-            {}), None)
+            {}), {})
 
     def test_register_key_pairs(self):
         my_provider = provider.Heat(args=fake_args())

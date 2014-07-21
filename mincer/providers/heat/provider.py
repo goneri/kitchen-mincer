@@ -38,7 +38,6 @@ class Heat(object):
         self.params = params
         self.args = args
         self._keystone = None
-        self.logdispatcher = None
 
     def connect(self, identity):
         """This method connect to the Openstack.
@@ -203,20 +202,30 @@ class Heat(object):
         parameters.update(key_pairs)
         parameters.update(floating_ips)
         parameters['flavor'] = 'm1.small'
-        stack_id = self.create_stack(
+        stack_result = self.create_stack(
                 name + str(uuid.uuid4()),
                 self.args.marmite_directory + "/heat.yaml",
                 parameters)
-        self.application_stack_id = stack_id
+        self.application_stack_id = stack_result["stack_id"]
+        return stack_result["logs"]
 
-    def create_stack(self, name, heat_file, params):
-        """Run the stack and provides the parameters to Heat."""
+    def create_stack(self, name, template_path, params):
+        """Run the stack and provides the parameters to Heat.
+
+        :param name: name of the stack
+        :type name: str
+        :param template_path: path of the heat template
+        :type template_path: str
+        :param params: parameters of the template
+        :type params: dict
+        :returns: a dictionary with a key "stack_id" and a key "logs"
+        :rtype: dict
+        """
 
         tpl_files, template = template_utils.get_template_contents(
-            heat_file
+            template_path
         )
 
-        self._heat.stacks.list()
         try:
             resp = self._heat.stacks.create(
                 stack_name=name,
@@ -228,8 +237,8 @@ class Heat(object):
             raise AlreadyExisting()
 
         stack_id = resp['stack']['id']
+        stack = self._heat.stacks.get(stack_id)
         while True:
-            stack = self._heat.stacks.get(stack_id)
             LOG.info("Stack status: %s", stack.status)
             if stack.status == 'FAILED':
                 LOG.error("Error while creating Stack: %s",
@@ -239,18 +248,14 @@ class Heat(object):
                 break
             time.sleep(10)
         LOG.info("Stack final status: %s", stack.status)
-        self.retrieve_log(stack_id)
-        return stack_id
+
+        logs = {}
+        for output in stack.outputs:
+            logs[output['output_key']] = six.StringIO(output['output_value'])
+        return {"stack_id": stack_id, "logs": logs}
 
     def delete_stack(self, stack_id):
         self._heat.stacks.delete(stack_id)
-
-    def retrieve_log(self, stack_id):
-        stack = self._heat.stacks.get(stack_id=stack_id)
-        for output in stack.outputs:
-            LOG.info("Call of '%s'" % output['description'])
-            content = six.StringIO(output['output_value'])
-            self.logdispatcher.store(output['output_key'], content)
 
     def cleanup_application(self):
         self.delete_stack(self.application_stack_id)
