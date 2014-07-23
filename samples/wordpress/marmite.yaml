@@ -7,10 +7,10 @@ environments:
 #    provider: heat
     identity:
 #NOTE(Gonéri): Why the os_ prefix?
-      os_auth_url: http://os-ci-test6.ring.enovance.com:5000/v2.0
-      os_username: admin
-      os_password: password
-      os_tenant_name: demo
+      os_auth_url: $OS_AUTH_URL
+      os_username: $OS_USERNAME
+      os_password: $OS_PASSWORD
+      os_tenant_name: $OS_TENANT_NAME
     medias:
       dump_mysql:
         type: dynamic
