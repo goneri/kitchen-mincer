@@ -112,12 +112,16 @@ class fake_heatclient(object):
         def __init__(self, **kwargs):
             return
 
+        def create(self, **kwargs):
+            return {"stack": {"id": "12345"}}
+
         def get(self, stack_id):
             mockStack = mock.Mock()
             mockStack.outputs = [{
                 'description': "foobar",
                 'output_key': "stdout",
-                'output_value': "my ouput"}]
+                'output_value': "my output"}]
+            mockStack.status = 'CREATE_COMPLETE'
             return mockStack
 
     def __init__(self, **kwargs):
@@ -159,8 +163,8 @@ class TestProvider(testtools.TestCase):
         self.useFixture(fixtures.NestedTempfile())
 
     @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
-    @mock.patch('heatclient.v1.client.Client')
-    def test_create(self, heat_mock):
+    @mock.patch('heatclient.v1.client.Client', fake_heatclient)
+    def test_create(self):
         fa = fake_args()
         my_provider = provider.Heat(args=fake_args())
         self.assertEqual(my_provider.connect(fake_identity), None)
@@ -172,15 +176,14 @@ class TestProvider(testtools.TestCase):
         self.assertTrue("stack_id" in stack_result)
 
     @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
-    @mock.patch('heatclient.v1.client.Client')
-    def test_appllication(self, heat_mock):
+    @mock.patch('heatclient.v1.client.Client', fake_heatclient)
+    def test_appllication(self):
         my_provider = provider.Heat(args=fake_args())
         self.assertEqual(my_provider.connect(fake_identity), None)
-        self.assertEqual(my_provider.launch_application(
-            "test_stack",
-            {},
-            {},
-            {}), {})
+        actual = my_provider.launch_application("test_stack", {}, {}, {})
+        self.assertIsInstance(actual, dict)
+        self.assertTrue("stdout" in actual)
+        self.assertEqual(actual["stdout"].getvalue(), "my output")
 
     def test_register_key_pairs(self):
         my_provider = provider.Heat(args=fake_args())

@@ -30,6 +30,8 @@ import six
 
 LOG = logging.getLogger(__name__)
 
+RETRY_MAX = 1000
+
 
 class Heat(object):
     """The Heat provider which run stacks on an OpenStack."""
@@ -242,16 +244,18 @@ class Heat(object):
             raise AlreadyExisting()
 
         stack_id = resp['stack']['id']
-        stack = self._heat.stacks.get(stack_id)
-        while True:
-            LOG.info("Stack status: %s", stack.status)
-            if stack.status == 'FAILED':
+        for _ in six.moves.range(1, RETRY_MAX):
+            stack = self._heat.stacks.get(stack_id)
+            if stack.status in ('COMPLETE', 'CREATE_COMPLETE'):
+                break
+            elif stack.status == 'FAILED':
                 LOG.error("Error while creating Stack: %s",
                           stack.stack_status_reason)
                 raise StackCreationFailure()
-            if stack.status != 'IN_PROGRESS':
-                break
             time.sleep(10)
+        else:
+            raise StackTimeoutException("status: %s" % stack.status)
+
         LOG.info("Stack final status: %s", stack.status)
 
         logs = {}
@@ -307,3 +311,9 @@ class UploadError(Exception):
 
 class StackCreationFailure(Exception):
     """Exception raised if the stack failed to start properly."""
+
+
+class StackTimeoutException(Exception):
+    """Exception raised if the stack is not created after a certain
+    amount of time.
+    """
