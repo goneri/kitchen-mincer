@@ -125,6 +125,12 @@ class fake_heatclient(object):
             mockStack.status = 'CREATE_COMPLETE'
             return mockStack
 
+        def validate(self, template='a', files='b'):
+            return({'Parameters':
+                    {'flavor':
+                     {'Default': 'toto'},
+                     'roberto': {}}})
+
     class fake_events(object):
         def __init__(self, *args, **kwargs):
             return
@@ -182,6 +188,20 @@ class TestProvider(testtools.TestCase):
         self.assertIsInstance(stack_result, dict)
         self.assertTrue("logs" in stack_result)
         self.assertTrue("stack_id" in stack_result)
+
+    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
+    @mock.patch('heatclient.v1.client.Client', fake_heatclient)
+    def test_create_with_missing_params(self):
+        fa = fake_args()
+        args = fake_args()
+        args.extra_params = {}
+        my_provider = provider.Heat(args=args)
+        self.assertEqual(my_provider.connect(fake_identity), None)
+        template_path = fa.marmite_directory + "/heat.yaml"
+        self.assertRaises(
+            provider.InvalidStackParameter,
+            my_provider.create_stack,
+            "test_stack", template_path, {})
 
     @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
     @mock.patch('heatclient.v1.client.Client', fake_heatclient)

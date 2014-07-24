@@ -219,6 +219,51 @@ class Heat(object):
         self.application_stack_id = stack_result["stack_id"]
         return stack_result["logs"]
 
+    def get_stack_parameters(self, tpl_files, template, *args):
+        """Prepare the parameters, as expected by the stack
+
+           :param tpl_files: as returned by
+           template_utils.get_template_contents
+           :param template: as returned by
+            template_utils.get_template_contents
+           :param *args: the parameters
+           :type *args: list
+           :return: a dictionary
+           :rtype: dict
+        """
+        validate_ret = self._heat.stacks.validate(
+            template=template,
+            files=dict(list(tpl_files.items())))
+
+        if validate_ret is None:
+            LOG.info("Failed to validate the heat.yaml file")
+            raise StackCreationFailure()
+
+        stack_params = {}
+        for name in validate_ret['Parameters']:
+            try:
+                default = validate_ret['Parameters'][name]['Default']
+                stack_params[name] = default
+            except KeyError:
+                pass
+
+            for arg in args:
+                if arg is None:
+                    continue
+                if name not in arg:
+                    continue
+                stack_params[name] = arg[name]
+
+        missing = set(
+            validate_ret['Parameters'].keys()) - set(
+                stack_params.keys())
+        if missing:
+            LOG.error("Parameters '%s' are expected by the stack "
+                      "but is not provided" % (', '.join(missing)))
+            raise InvalidStackParameter()
+
+        return stack_params
+
     def create_stack(self, name, template_path, params):
         """Run the stack and provides the parameters to Heat.
 
@@ -235,11 +280,16 @@ class Heat(object):
         tpl_files, template = template_utils.get_template_contents(
             template_path
         )
+        stack_params = self.get_stack_parameters(
+            tpl_files,
+            template,
+            self.args.extra_params,
+            params)
 
         try:
             resp = self._heat.stacks.create(
                 stack_name=name,
-                parameters=params,
+                parameters=stack_params,
                 template=template,
                 files=dict(list(tpl_files.items())))
         except heatclientexc.HTTPConflict:
@@ -324,3 +374,7 @@ class StackCreationFailure(Exception):
 
 class StackTimeoutException(Exception):
     """Exception raised if the stack is not created in time."""
+
+
+class InvalidStackParameter(Exception):
+    """The parameters do not match what the stack expect."""
