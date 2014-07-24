@@ -71,7 +71,8 @@ def main():
 
     setup_logging(args.debug)
 
-    m = mixer.Mixer(marmite.Marmite(args.marmite_directory), args)
+    m = mixer.Mixer(marmite.Marmite(args.marmite_directory,
+                                    extra_params=args.extra_params), args)
     if args.test:
         m.test(args.target)
     elif args.target:

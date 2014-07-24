@@ -15,6 +15,7 @@
 
 import os
 
+import jinja2
 import six
 import yaml
 
@@ -29,7 +30,7 @@ class Marmite(object):
 
     environments = {}
 
-    def __init__(self, marmite_dir):
+    def __init__(self, marmite_dir, extra_params=None):
 
         """Marmite constructor
 
@@ -39,10 +40,20 @@ class Marmite(object):
         if marmite_dir is None:
             raise ValueError("'marmite_dir' argument is required")
         self.marmite_dir = marmite_dir
-        marmite_path = os.path.join(self.marmite_dir, "marmite.yaml")
-        if not os.path.exists(marmite_path):
-            raise NotFound("Marmite file '%s'" % marmite_path)
-        self.marmite_tree = yaml.load(open(marmite_path, 'rb'))
+
+        if extra_params is None:
+            extra_params = {}
+
+        template_loader = jinja2.FileSystemLoader(searchpath=marmite_dir)
+        env = jinja2.Environment(loader=template_loader,
+                                 undefined=jinja2.StrictUndefined)
+        try:
+            template = env.get_template("marmite.yaml")
+        except jinja2.exceptions.TemplateNotFound:
+            raise NotFound()
+        marmite = template.render(extra_params)
+
+        self.marmite_tree = yaml.load(marmite)
         self._application = Application(self.marmite_tree['application'])
         self.environments = {}
         for name in self.marmite_tree['environments']:
