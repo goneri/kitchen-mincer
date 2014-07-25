@@ -134,7 +134,7 @@ class SimpleCheck(object):
             self.provider.upload(medias, self._refresh_medias)
         )
         os.unlink(fname)
-        self.provider.delete_stack(tmp_stack_id)
+        self.provider.delete_stack(tmp_stack_id['stack_id'])
 
 
 class TargetNotFound(Exception):
