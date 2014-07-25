@@ -68,6 +68,11 @@ class Heat(object):
                                        password=identity['os_password'],
                                        )
 
+        self.swift = swiftclient.client.Connection(
+            preauthurl=self.swift_endpoint,
+            preauthtoken=self._keystone.auth_token,
+        )
+
     def _filter_medias(self, glance_client, medias, refresh_medias):
         """Returns a tuple of two dicts.
 
@@ -284,13 +289,6 @@ class Heat(object):
                 'primary_ip_address': primary_ip_address
             })
         return machines
-
-    def put_object(self, container, name, obj):
-        conn = swiftclient.client.Connection(
-            preauthurl=self.swift_endpoint,
-            preauthtoken=self._keystone.auth_token,
-        )
-        conn.put_object('log', name, obj)
 
 
 class AlreadyExisting(Exception):
