@@ -124,10 +124,17 @@ class fake_heatclient(object):
             mockStack.status = 'CREATE_COMPLETE'
             return mockStack
 
+    class fake_events(object):
+        def __init__(self, *args, **kwargs):
+            return
+
+        def list(self, *args, **kwargs):
+            return []
+
     def __init__(self, **kwargs):
         self.resources = self.fake_resources()
         self.stacks = self.fake_stacks()
-        return
+        self.events = self.fake_events()
 
 
 class fake_glanceclient(object):

@@ -20,8 +20,6 @@ import logging
 from mincer import marmite
 from mincer import mixer
 
-logging.basicConfig(level=logging.INFO)
-
 
 class AppendExtraParams(argparse.Action):
     """A the AppendExtraParams action to argparse. This action
@@ -39,6 +37,8 @@ class AppendExtraParams(argparse.Action):
 def get_args(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", help="Target to run")
+    parser.add_argument("--debug", action="store_true",
+                        help="Debug mode")
     parser.add_argument("--extra_params", action=AppendExtraParams,
                         help="Additional parameters")
     parser.add_argument("--test", action="store_true",
@@ -51,8 +51,25 @@ def get_args(args=None):
     return parser.parse_args(args=args)
 
 
+def setup_logging(debug):
+    log_lvl = logging.DEBUG if debug else logging.INFO
+    logging.basicConfig(
+        format="%(levelname)s (%(module)s) %(message)s",
+        level=log_lvl)
+    logging.getLogger('iso8601').setLevel(logging.DEBUG)
+
+    requests_log = logging.getLogger("requests")
+    requests_log.setLevel(logging.WARNING)
+
+    iso_log = logging.getLogger("iso8601")
+    iso_log.setLevel(logging.WARNING)
+
+
 def main():
     args = get_args()
+
+    setup_logging(args.debug)
+
     m = mixer.Mixer(marmite.Marmite(args.marmite_directory), args)
     if args.test:
         m.test(args.target)

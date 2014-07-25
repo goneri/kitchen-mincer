@@ -243,9 +243,14 @@ class Heat(object):
             LOG.error("Stack '%s' failed because of a conflict", name)
             raise AlreadyExisting()
 
+        oldevents = []
         stack_id = resp['stack']['id']
         for _ in six.moves.range(1, RETRY_MAX):
             stack = self._heat.stacks.get(stack_id)
+            newevents = self._heat.events.list(stack_id)
+            diffevents = list(set(newevents) - set(oldevents))
+            for i in diffevents:
+                LOG.info("%s - %s", i.resource_name, i.event_time)
             if stack.status in ('COMPLETE', 'CREATE_COMPLETE'):
                 break
             elif stack.status == 'FAILED':
