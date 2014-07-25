@@ -33,3 +33,12 @@ application:
         type: block
         disk_format: qcow2
         copy_from: http://os-ci-edeploy.ring.enovance.com/edeploy-roles/{{ dist }}-{{ release }}/openstack-full-{{ dist }}-{{ release }}.img
+
+  # TODO(Gonéri): fix the syntax here
+  scenario:
+    -
+      description: "Bootstrap everythin"
+      driver: simple_check
+      params:
+        - a
+        - b

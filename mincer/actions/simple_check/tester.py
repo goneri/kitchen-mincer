@@ -114,7 +114,7 @@ class SimpleCheck(object):
 
         heat_config = HeatConfig()
 
-        params = self.params()
+        params = self.params
         for machine in self.provider.get_machines():
             for target in params:
                 if target == '_ALL_' or target == machine["name"]:
@@ -124,7 +124,7 @@ class SimpleCheck(object):
                 else:
                     raise TargetNotFound("target '%s' not found" % target)
 
-        medias = self.medias()
+        medias = self.medias
         f = tempfile.NamedTemporaryFile(delete=False)
         f.write(heat_config.get_yaml())
         fname = f.name

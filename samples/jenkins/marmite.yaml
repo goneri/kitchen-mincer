@@ -44,20 +44,15 @@ application:
         disk_format: qcow2
         path: samples/jenkins/jenkins_debian.qcow2
 
-testers:
-    test_simple:
-        driver: simple_check
-        medias:
-            base_image:
-                type: block
-                disk_format: qcow2
-                copy_from: http://nowhere/ubuntu-vm.qcow2
-                checksum: e3224ba9d93b1df12db3b9e1d2f34ea7
-        # TODO(Gonéri):
-        #   a key/value list would be more logicial here
-        #   - _ALL_: ping -c5 $IP
-        #   - my_first_http_host: httping $IP
-        #   - etc
-        params:
-            _ALL_:
-                ping -c5 $IP
+  scenario:
+    -
+      medias:
+        base_image:
+          type: local
+          disk_format: qcow2
+          path: samples/jenkins/jenkins_debian.qcow2
+      name: test_simple
+      driver: simple_check
+      params:
+        _ALL_:
+          ping -c5 $IP
