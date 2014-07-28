@@ -28,16 +28,18 @@ class Serverspec(object):
     """
 
     def __init__(self, refresh_medias, provider, params, medias, private_key):
-        """:param refresh_medias: the medias to reupload
-           :type group_id: list
-           :param provider: the provider to use
-           :type provider: mincer.providers.heat.provider.Heat
-           :param params: the parameters needed by serverspec
-           :type params: list
-           :param medias: list of Media objects associated to the driver
-           :type medias: list
-           :parma private_key: the private key to use
-           :type private_key: str
+        """Serverspec constructor.
+
+        :param refresh_medias: the medias to reupload
+        :type group_id: list
+        :param provider: the provider to use
+        :type provider: mincer.providers.heat.provider.Heat
+        :param params: the parameters needed by serverspec
+        :type params: list
+        :param medias: list of Media objects associated to the driver
+        :type medias: list
+        :parma private_key: the private key to use
+        :type private_key: str
         """
 
         self._refresh_medias = refresh_medias

@@ -14,23 +14,26 @@
 # under the License.
 
 import os
-import six
 
+import six
 import yaml
 
 from mincer import media
 
 
 class Marmite(object):
-    """This class represents the marmite, it centralize all the access of the
-    marmite's fields.
+    """This class represents the marmite
+
+    it centralize all the access of the marmite's fields.
     """
 
     environments = {}
 
     def __init__(self, marmite_dir):
 
-        """:param marmite_dir: the path of the marmite directory
+        """Marmite constructor
+
+        :param marmite_dir: the path of the marmite directory
         :type group_id: str
         """
         if marmite_dir is None:

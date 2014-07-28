@@ -13,12 +13,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-
-from Crypto.PublicKey import RSA
 import logging
-import six
 import string
 
+from Crypto.PublicKey import RSA
+import six
 from stevedore import driver
 
 import mincer.logdispatcher
@@ -79,7 +78,7 @@ class Mixer(object):
         private_key = RSA.generate(2048)
         public_key = private_key.publickey()
 
-        #Heat replaces carriage return by spaces then it's escaped
+        # Heat replaces carriage return by spaces then it's escaped
         r_private_key = string.replace(private_key.exportKey(), "\n", "\\n")
         r_public_key = string.replace(public_key.exportKey("OpenSSH"), "\n",
                                       "\\n")

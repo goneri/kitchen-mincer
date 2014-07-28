@@ -24,9 +24,8 @@ from heatclient.common import template_utils
 import heatclient.exc as heatclientexc
 import keystoneclient.v2_0 as keystone_client
 import novaclient.client as novaclient
-import swiftclient
-
 import six
+import swiftclient
 
 LOG = logging.getLogger(__name__)
 
@@ -43,6 +42,7 @@ class Heat(object):
 
     def connect(self, identity):
         """This method connect to the Openstack.
+
         :param identity: the OS identity of the environment
         :type identity: dict
         """
@@ -166,6 +166,7 @@ class Heat(object):
 
     def register_key_pairs(self, marmite_key_pair, test_public_key):
         """Register the key pair.
+
         :param marmite_key_pair: the key pair
         :type  marmite_key_pair: dict
         :param test_public_key: the public key pair for test purpose
@@ -182,7 +183,9 @@ class Heat(object):
         return parameters
 
     def register_floating_ips(self, floating_ips):
-        """Ensure that the provided floating ips are available. Push them
+        """Prepare the floating IP in the tenant
+
+        Ensure that the provided floating ips are available. Push them
         on the Heat stack parameters.
         """
         parameters = {}
@@ -275,8 +278,11 @@ class Heat(object):
         self.delete_stack(self.application_stack_id)
 
     def get_machines(self):
-        """Return a list of dictionnary describing the machines from
-           the running stack
+        """Collect machine informations from a running stack.
+
+        :returns: a list of dictionnary describing the machines from
+        the running stack
+        :rtype: dict
         """
         machines = []
         for resource in self._heat.resources.list(self.application_stack_id):
@@ -301,9 +307,7 @@ class Heat(object):
 
 
 class AlreadyExisting(Exception):
-    """Exception raised when there is a conflict with a stack
-    already deployed.
-    """
+    """Exception raised when there is a conflict with a stack."""
 
 
 class UnknownFloatingIP(Exception):
@@ -319,6 +323,4 @@ class StackCreationFailure(Exception):
 
 
 class StackTimeoutException(Exception):
-    """Exception raised if the stack is not created after a certain
-    amount of time.
-    """
+    """Exception raised if the stack is not created in time."""

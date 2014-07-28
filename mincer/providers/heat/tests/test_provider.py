@@ -14,11 +14,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import tempfile
+import unittest
+
 import fixtures
 import mock
-import tempfile
 import testtools
-import unittest
 
 import mincer.providers.heat. provider as provider
 

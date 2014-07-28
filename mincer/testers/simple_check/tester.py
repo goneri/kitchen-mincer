@@ -18,6 +18,7 @@ import logging
 import os
 import string
 import tempfile
+
 import yaml
 
 from mincer import media  # noqa

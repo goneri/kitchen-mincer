@@ -27,8 +27,7 @@ LOG = logging.getLogger(__name__)
 
 
 class MediaManagerException(Exception):
-    """Base class for media manager exceptions.
-    """
+    """Base class for media manager exceptions."""
 
 
 class Media(object):
@@ -149,10 +148,10 @@ class Media(object):
             return self._local_image
 
     def _collect_data(self):
-        """Retrieve the ressources from different localisation and
-        store them in a work directory
+        """Process the different sources
 
-        ressources is a mandatory parameter.
+        Retrieve the ressources from different localisation and
+        store them in a work directory
         """
         for source in self._sources:
 
@@ -192,8 +191,7 @@ class Media(object):
         return disk_image_size
 
     def _produce_image(self):
-        """Push the collected data in an image
-        """
+        """Push the collected data in an image."""
         try:
             import guestfs
         except ImportError:

@@ -14,12 +14,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import fixtures
 import os
 import tempfile
-import testtools
 import unittest
 
+import fixtures
+import testtools
 
 try:
     import guestfs

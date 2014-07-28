@@ -15,12 +15,12 @@
 # under the License.
 
 import os
+import tempfile
+import unittest
 
 import fixtures
 import six
-import tempfile
 import testtools
-import unittest
 
 import mincer.logdispatchers.directory. logdispatcher as logdispatcher
 

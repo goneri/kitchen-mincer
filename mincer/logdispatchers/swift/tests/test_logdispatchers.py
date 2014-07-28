@@ -14,11 +14,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import unittest
+
 import fixtures
 import mock
 import six
 import testtools
-import unittest
 
 import mincer.logdispatchers.swift. logdispatcher as logdispatcher
 

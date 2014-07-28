@@ -22,8 +22,9 @@ from mincer import mixer
 
 
 class AppendExtraParams(argparse.Action):
-    """A the AppendExtraParams action to argparse. This action
-    expects the parameter to be in the key=value format.
+    """The AppendExtraParams action to argparse.
+
+    This action expects the parameter to be in the key=value format.
     It adds the the key/value in a dictionary.
     This is useful to allow extra parameters to be specified multiple times.
     """
