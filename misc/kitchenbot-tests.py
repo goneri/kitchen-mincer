@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+import logging
+import os
+import subprocess
+import time
+
+import gerritlib.gerrit
+
+HTTP_SERVER = "http://os-ci-test7.ring.enovance.com:8500/"
+DEFAULT_USERNAME = "chmouel.boudjnah"
+RUN_SCRIPT = "./run_script.sh"
+KEY = "./id_rsa-nopasswd"
+WATCHED_PROJECTS = ("kitchen-mincer",)
+OUTPUT_DIR = "/var/www/static"
+DEFAULT_SERVER = "gerrit.sf.ring.enovance.com"
+
+
+class Bottine(object):
+    def __init__(self):
+        self.gerrit = None
+        self.log = logging.getLogger('bottine')
+        self.server = DEFAULT_SERVER
+        self.port = 29418
+        self.username = DEFAULT_USERNAME
+        self.keyfile = os.path.expanduser(KEY)
+        self.run_script = os.path.abspath(os.path.expanduser(RUN_SCRIPT))
+        self.connected = False
+
+    def connect(self):
+        # Import here because it needs to happen after daemonization
+        try:
+            self.gerrit = gerritlib.gerrit.Gerrit(
+                self.server, self.username, self.port, self.keyfile)
+            self.gerrit.startWatching()
+            self.log.info('Start watching Gerrit event stream.')
+            self.connected = True
+        except Exception:
+            self.log.exception('Exception while connecting to gerrit')
+            self.connected = False
+            # Delay before attempting again.
+            time.sleep(1)
+
+    def run_command(self, data):
+        output_dir = "%s/%s/%s" % (OUTPUT_DIR, data['change']['number'],
+                                   data['patchSet']['number'])
+        os.makedirs(output_dir)
+
+        env = {'CHANGE_ID': data['change']['number'],
+               'LOG_FILE': output_dir + "/output.txt",
+               'REF_ID': data['patchSet']['ref'],
+               'AUTHOR': data['patchSet']['author']['email']}
+        ret = subprocess.call([self.run_script], env=env, shell=True)
+        if ret != 0:
+            rets = "FAILED"
+            retvote = '-1'
+        else:
+            rets = "SUCCESS"
+            retvote = '+1'
+
+        url = "%s/%s/%s/output.txt" % (
+            HTTP_SERVER, data['change']['number'],
+            data['patchSet']['number'])
+
+        self.gerrit.review(data['change']['project'],
+                           "%s,%s" % (data['change']['number'],
+                                      data['patchSet']['number']),
+                           "run_tests.sh: %s: %s" % (rets, url),
+                           action={'verified': retvote},)
+
+    def _read(self, data):
+        if data['type'] != 'patchset-created':
+            return
+
+        if data['change']['project'] not in WATCHED_PROJECTS:
+            return
+
+        self.log.info('Receiving event notification: %r' % data)
+        self.run_command(data)
+
+    def run(self):
+        while True:
+            while not self.connected:
+                self.connect()
+            try:
+                event = self.gerrit.getEvent()
+                self.log.info('Received event: %s' % event)
+                self._read(event)
+            except Exception:
+                self.log.exception('Exception encountered in event loop')
+                if not self.gerrit.watcher_thread.is_alive():
+                    # Start new gerrit connection. Don't need to restart IRC
+                    # bot, it will reconnect on its own.
+                    self.connected = False
+
+
+def setup_logging():
+    logging.basicConfig(level=logging.INFO)
+
+
+def main():
+    setup_logging()
+    k = Bottine()
+    k.run()
+
+if __name__ == '__main__':
+    main()
