@@ -43,14 +43,23 @@ application:
         type: local
         disk_format: qcow2
         path: samples/jenkins/jenkins_debian.qcow2
+    base_image:
+        type: local
+        disk_format: qcow2
+        path: samples/jenkins/base_image.qcow2
 
   scenario:
     -
-      medias:
-        base_image:
-          type: local
-          disk_format: qcow2
-          path: samples/jenkins/jenkins_debian.qcow2
+      name: prepare the marmite
+      driver: local_script
+      params:
+        work_dir: ./samples/spinal-stack/
+        command: ls
+    -
+      name: prepare environment
+      driver: start_infra
+      params:
+    -
       name: test_simple
       driver: simple_check
       params:

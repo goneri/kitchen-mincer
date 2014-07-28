@@ -132,7 +132,7 @@ class SimpleCheck(object):
         tmp_stack_id = self.provider.create_stack(
             'simple-test-stack' + self.provider.application_stack_id,
             fname,
-            self.provider.upload(medias, self._refresh_medias)
+            medias
         )
         os.unlink(fname)
         self.provider.delete_stack(tmp_stack_id['stack_id'])

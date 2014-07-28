@@ -39,6 +39,9 @@ class Heat(object):
         self.params = params
         self.args = args
         self._keystone = None
+        self.medias = {}
+        self.key_pairs = {}
+        self.floating_ips = {}
 
     def connect(self, identity):
         """This method creates Openstack clients and connects to APIs.
@@ -176,7 +179,7 @@ class Heat(object):
                 LOG.debug("Key %s already created", name)
             parameters['app_key_name'] = name
 
-        return parameters
+        self.key_pairs = parameters
 
     def register_floating_ips(self, floating_ips):
         """Prepare the floating IP in the tenant
@@ -184,7 +187,6 @@ class Heat(object):
         Ensure that the provided floating ips are available. Push them
         on the Heat stack parameters.
         """
-        parameters = {}
         for name in floating_ips:
             ip = floating_ips[name]
             found = None
@@ -192,24 +194,22 @@ class Heat(object):
             for entry in self._novaclient.floating_ips.list():
                 if ip != entry.ip:
                     continue
-                parameters['floating_ip_%s' % name] = str(entry.id)
+                self.floating_ips['floating_ip_%s' % name] = str(entry.id)
                 found = True
             if not found:
                 raise UnknownFloatingIP("floating ip '%s' not found" % ip)
-        return parameters
 
-    def launch_application(self, name, medias, key_pairs, floating_ips):
+    def launch_application(self):
         parameters = {}
         try:
             parameters.update(self.args.extra_params)
         except TypeError:
             pass
-        parameters.update(medias)
-        parameters.update(key_pairs)
-        parameters.update(floating_ips)
+        parameters.update(self.key_pairs)
+        parameters.update(self.floating_ips)
         parameters['flavor'] = 'm1.small'
         stack_result = self.create_stack(
-                name + str(uuid.uuid4()),
+                self.name + str(uuid.uuid4()),
                 self.args.marmite_directory + "/heat.yaml",
                 parameters)
         self.application_stack_id = stack_result["stack_id"]
@@ -280,7 +280,8 @@ class Heat(object):
             tpl_files,
             template,
             self.args.extra_params,
-            params)
+            params,
+            self.medias)
 
         try:
             resp = self._heat.stacks.create(

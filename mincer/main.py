@@ -41,7 +41,7 @@ def get_args(args=None):
     parser.add_argument("--debug", action="store_true",
                         help="Debug mode")
     parser.add_argument("--extra_params", action=AppendExtraParams,
-                        help="Additional parameters")
+                        help="Additional parameters", default={})
     parser.add_argument("--test", action="store_true",
                         help="Enter the test mode")
     parser.add_argument('--refresh-medias', nargs='+',

@@ -30,7 +30,7 @@ class Marmite(object):
 
     environments = {}
 
-    def __init__(self, marmite_dir, extra_params=None):
+    def __init__(self, marmite_dir, extra_params={}):
 
         """Marmite constructor
 
@@ -40,9 +40,6 @@ class Marmite(object):
         if marmite_dir is None:
             raise ValueError("'marmite_dir' argument is required")
         self.marmite_dir = marmite_dir
-
-        if extra_params is None:
-            extra_params = {}
 
         template_loader = jinja2.FileSystemLoader(searchpath=marmite_dir)
         env = jinja2.Environment(loader=template_loader,

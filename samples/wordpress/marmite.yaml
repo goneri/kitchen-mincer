@@ -63,36 +63,20 @@ application:
         disk_format: qcow2
         path: samples/wordpress/base_image.qcow2
 
-testers:
-    test_simple:
-        driver: simple_check
-        medias:
-            base_image:
-                type: block
-                disk_format: qcow2
-                path: samples/wordpress/base_image.qcow2
-        # TODO(Gonéri):
-        #   a key/value list would be more logicial here
-        #   - _ALL_: ping -c5 $IP
-        #   - my_first_http_host: httping $IP
-        #   - etc
-        params:
-            _ALL_:
-                ping -c5 $IP
-
-    test_serverspec:
-        driver: serverspec
-        medias:
-            serverspec_image:
-                type: local
-                path: samples/serverspec/serverspec_image.qcow2
-            serverspec_datas:
-                type: dynamic
-                sources:
-                  -
-                    type: local
-                    path: ~/serverspec
-                    target: serverspec
-        params:
-            targets:
-                - webserver_instance
+  scenario:
+    -
+      name: prepare environment
+      driver: start_servers
+      params:
+    -
+      name: ensure we can ping the machines
+      driver: simple_check
+      params:
+        _ALL_:
+           ping -c5 $IP
+    -
+      name: run serverspec
+      driver: serverspec
+      params:
+        targets:
+          - webserver_instance

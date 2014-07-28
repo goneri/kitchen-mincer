@@ -87,6 +87,11 @@ class Mixer(object):
         return r_private_key, r_public_key
 
     def _store_log(self, logs, environment, provider):
+
+        # TODO(Gonéri): add a test for this case
+        if not logs:
+            return
+
         logdispatcher = mincer.logdispatcher.Logdispatcher(
             environment, provider)
 
@@ -122,15 +127,15 @@ class Mixer(object):
             scenario.append(action)
 
         provider.connect(environment.identity())
-        logs = provider.launch_application(
-            self.marmite.application().name(),
-            provider.upload(medias, refresh_medias),
-            provider.register_key_pairs(environment.key_pairs(), test_pub_key),
-            provider.register_floating_ips(environment.floating_ips()))
-        self._store_log(logs, environment, provider)
+        provider.name = self.marmite.application().name()
+        provider.medias = provider.upload(medias, refresh_medias)
+        provider.register_key_pairs(
+            environment.key_pairs(), test_pub_key)
+        provider.register_floating_ips(environment.floating_ips())
 
         for action in scenario:
-            action.launch()
+            logs = action.launch()
+            self._store_log(logs, environment, provider)
 
         if not self.args.preserve:
             provider.cleanup_application()

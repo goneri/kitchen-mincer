@@ -205,10 +205,11 @@ class TestProvider(testtools.TestCase):
 
     @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
     @mock.patch('heatclient.v1.client.Client', fake_heatclient)
-    def test_appllication(self):
+    def test_application(self):
         my_provider = provider.Heat(args=fake_args())
         self.assertEqual(my_provider.connect(fake_identity), None)
-        actual = my_provider.launch_application("test_stack", {}, {}, {})
+        my_provider.name = "test_stack"
+        actual = my_provider.launch_application()
         self.assertIsInstance(actual, dict)
         self.assertTrue("stdout" in actual)
         self.assertEqual(actual["stdout"].getvalue(), "my output")
@@ -216,8 +217,9 @@ class TestProvider(testtools.TestCase):
     def test_register_key_pairs(self):
         my_provider = provider.Heat(args=fake_args())
         my_provider._novaclient = fake_novaclient()
-        t = my_provider.register_key_pairs({'robert': 'a_ssh_pub_key'},
-                                           "test_key")
+        my_provider.register_key_pairs({'robert': 'a_ssh_pub_key'},
+                                       "test_key")
+        t = my_provider.key_pairs
         self.assertEqual(t['app_key_name'], 'robert')
         self.assertEqual(t['test_public_key'], 'test_key')
 

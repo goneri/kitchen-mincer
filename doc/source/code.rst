@@ -51,7 +51,7 @@ The test engines.
 simple_test
 -----------
 
-.. autoclass:: mincer.testers.simple_check.SimpleCheck
+.. autoclass:: mincer.actions.simple_check.SimpleCheck
 
 
 Logdispatchers
