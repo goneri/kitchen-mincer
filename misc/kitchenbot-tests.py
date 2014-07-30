@@ -43,13 +43,16 @@ class Bottine(object):
     def run_command(self, data):
         output_dir = "%s/%s/%s" % (OUTPUT_DIR, data['change']['number'],
                                    data['patchSet']['number'])
-        os.makedirs(output_dir)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
 
         env = {'CHANGE_ID': data['change']['number'],
                'LOG_FILE': output_dir + "/output.txt",
                'REF_ID': data['patchSet']['ref'],
                'AUTHOR': data['patchSet']['author']['email']}
         ret = subprocess.call([self.run_script], env=env, shell=True)
+        self.log.info("script: %s has exited with return value of %s",
+                      self.run_script, ret)
         if ret != 0:
             rets = "FAILED"
             retvote = '-1'
@@ -68,14 +71,19 @@ class Bottine(object):
                            action={'verified': retvote},)
 
     def _read(self, data):
-        if data['type'] != 'patchset-created':
-            return
+        check = False
+        if data['type'] == 'comment-added' and \
+           data['comment'].endswith('\nrecheck'):
+            check = True
+        elif data['type'] == 'patchset-created':
+            check = True
 
         if data['change']['project'] not in WATCHED_PROJECTS:
-            return
+            check = False
 
-        self.log.info('Receiving event notification: %r' % data)
-        self.run_command(data)
+        if check:
+            self.log.info('Receiving event notification: %r' % data)
+            self.run_command(data)
 
     def run(self):
         while True:
