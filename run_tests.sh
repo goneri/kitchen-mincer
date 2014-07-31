@@ -34,5 +34,9 @@ elif [[ ${TARGET} == "test7" ]];then
 fi
 
 kitchen-mincer --target devtest samples/jenkins
+retcode=$?
 
-exit $?
+# NOTE(chmou): Temporary until we figure out a better solution, for now we assume we own the host for CI
+{ heat stack-list| awk '/COMPLETE|FAILED/ {print $4}' | xargs -r heat stack-delete ;} || true
+
+exit $retcode
