@@ -4,6 +4,8 @@ exec > >(tee -a ${LOG_FILE}) 2>&1
 
 set -eux -o pipefail
 
+export PIP_DOWNLOAD_CACHE=/var/tmp/pip
+
 OS_ENV_TARGET=test7
 TOX_TARGET=py27
 REPO=http://gerrit.sf.ring.enovance.com/r/kitchen-mincer
