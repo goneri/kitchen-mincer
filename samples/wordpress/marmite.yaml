@@ -65,17 +65,17 @@ application:
 
   scenario:
     -
-      name: prepare environment
-      driver: start_servers
+      description: prepare environment
+      driver: start_infra
       params:
     -
-      name: ensure we can ping the machines
+      description: ensure we can ping the machines
       driver: simple_check
       params:
         _ALL_:
            ping -c5 $IP
     -
-      name: run serverspec
+      description: run serverspec
       driver: serverspec
       params:
         targets:

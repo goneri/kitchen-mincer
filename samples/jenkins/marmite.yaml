@@ -50,17 +50,17 @@ application:
 
   scenario:
     -
-      name: prepare the marmite
+      description: prepare the marmite
       driver: local_script
       params:
         work_dir: ./samples/spinal-stack/
         command: ls
     -
-      name: prepare environment
+      description: prepare environment
       driver: start_infra
       params:
     -
-      name: test_simple
+      description: test_simple
       driver: simple_check
       params:
         _ALL_:

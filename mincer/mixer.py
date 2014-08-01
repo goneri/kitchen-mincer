@@ -54,7 +54,8 @@ class Mixer(object):
     def _load_action(self, action, provider, refresh_medias, private_key):
 
         kwargs = dict(provider=provider, refresh_medias=refresh_medias,
-                      params=action.params(), medias=action.medias(),
+                      # TODO(Gonéri), drop the medias argument
+                      params=action.params(), medias={},
                       private_key=private_key)
 
         return driver.DriverManager(
