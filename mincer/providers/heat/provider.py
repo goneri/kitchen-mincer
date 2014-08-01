@@ -41,7 +41,7 @@ class Heat(object):
         self._keystone = None
 
     def connect(self, identity):
-        """This method connect to the Openstack.
+        """This method creates Openstack clients and connects to APIs.
 
         :param identity: the OS identity of the environment
         :type identity: dict
@@ -59,6 +59,8 @@ class Heat(object):
 
         self.heat_endpoint = self._keystone.service_catalog.url_for(
             service_type='orchestration')
+        self.glance_endpoint = self._keystone.service_catalog.url_for(
+            service_type='image')
         self.swift_endpoint = self._keystone.service_catalog.url_for(
             service_type='object-store',
             endpoint_type='publicURL')
@@ -69,20 +71,23 @@ class Heat(object):
                                        username=identity['os_username'],
                                        password=identity['os_password'],
                                        )
+        self._glance = glanceclient.Client(
+            1,
+            self.glance_endpoint,
+            token=self._keystone.auth_token)
 
         self.swift = swiftclient.client.Connection(
             preauthurl=self.swift_endpoint,
             preauthtoken=self._keystone.auth_token,
         )
 
-    def _filter_medias(self, glance_client, medias, refresh_medias):
+
+    def _filter_medias(self, medias, refresh_medias):
         """Returns a tuple of two dicts.
 
         The first dict corresponds to the medias which need to be uploaded
         and the second corresponds to the medias which does not.
 
-        :param glance_client: the glance client
-        :type medias: glanceclient.Client
         :param medias: list of Media objects
         :type medias: list
         :param refresh_medias: list of medias names to refresh
@@ -91,7 +96,7 @@ class Heat(object):
 
         # Make an association of names and IDs of existent Glance images.
         names_ids_images = {}
-        for image in glance_client.images.list():
+        for image in self._glance.images.list():
             names_ids_images[image.name] = image.id
 
         medias_to_upload = {}
@@ -119,17 +124,9 @@ class Heat(object):
         """
 
         parameters = {}
-        glance_endpoint = self._keystone.service_catalog.url_for(
-            service_type='image')
 
-        glance = glanceclient.Client(
-            1,
-            glance_endpoint,
-            token=self._keystone.auth_token)
-
-        medias_to_up, medias_to_not_up = self._filter_medias(glance,
-                                                          medias,
-                                                          refresh_medias)
+        medias_to_up, medias_to_not_up = self._filter_medias(medias,
+                                                             refresh_medias)
 
         # populate parameters for medias to not upload
         for media_name in medias_to_not_up:
@@ -142,7 +139,7 @@ class Heat(object):
             media = medias[media_name]
             media.generate()
 
-            image = glance.images.create(name=media_name)
+            image = self._glance.images.create(name=media_name)
             # TODO(Gonéri) clean the image in case of failure
             if media.copy_from:
                 image.update(container_format='bare',
@@ -158,7 +155,7 @@ class Heat(object):
                 if image.status == 'killed':
                     raise Exception("Glance error while waiting for image")
                 time.sleep(5)
-                image = glance.images.get(image.id)
+                image = self._glance.images.get(image.id)
                 LOG.info("waiting for %s", media.name)
             parameters['volume_id_%s' % image.name] = image.id
             LOG.debug("status: %s - %s", media.name, image.status)
