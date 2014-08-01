@@ -19,14 +19,29 @@ export JENKINS_PLUGINS=git
 )
 
 export ELEMENTS_PATH=$PWD/elements:$PWD/repos/diskimage-builder/elements:$PWD/repos/heat-templates/hot/software-config/elements:$PWD/repos/tripleo-image-elements/elements
-./repos/diskimage-builder/bin/disk-image-create -o jenkins_debian \
-    debian-systemd \
-    heat-cfntools \
-    jenkins-jjb \
-    kitchen-mincer \
-    os-apply-config \
-    os-collect-config \
-    vm \
-    stackuser \
-    heat-config \
-    heat-config-script
+
+if [ ! -f jenkins_debian.qcow2 ]; then
+    ./repos/diskimage-builder/bin/disk-image-create -o jenkins_debian \
+        debian-systemd \
+        heat-cfntools \
+        jenkins-jjb \
+        kitchen-mincer \
+        os-apply-config \
+        os-collect-config \
+        vm \
+        stackuser \
+        heat-config \
+        heat-config-script
+fi
+if [ ! -f base_image.qcow2 ]; then
+    ./repos/diskimage-builder/bin/disk-image-create -o base_image \
+        debian-systemd \
+        heat-cfntools \
+        kitchen-mincer \
+        os-apply-config \
+        os-collect-config \
+        vm \
+        stackuser \
+        heat-config \
+        heat-config-script
+fi
