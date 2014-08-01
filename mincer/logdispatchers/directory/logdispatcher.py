@@ -52,7 +52,7 @@ class Directory(object):
         name -- the name of the file
         content -- a StringIO instance
         """
-        file = os.path.join(self._path, name + self._suffix)
-        with open(file, 'w') as f:
+        fp = os.path.join(self._path, name + self._suffix)
+        with open(fp, 'w') as f:
             for line in content.getvalue():
                 f.write(line)

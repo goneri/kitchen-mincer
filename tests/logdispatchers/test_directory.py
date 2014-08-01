@@ -19,6 +19,7 @@ import tempfile
 import unittest
 
 import fixtures
+import mock
 import six
 import testtools
 
@@ -27,22 +28,22 @@ import mincer.logdispatchers.directory. logdispatcher as logdispatcher
 
 class TestLogdispatcher(testtools.TestCase):
     def setUp(self):
-
+        self.provider = mock.Mock()
         super(TestLogdispatcher, self).setUp()
         self.useFixture(fixtures.NestedTempfile())
 
     def test_create(self):
         tmpdir = tempfile.mkdtemp()
-        ld = logdispatcher.Directory({'directory': tmpdir})
+        ld = logdispatcher.Directory({'directory': tmpdir}, self.provider)
         self.assertIsInstance(ld, logdispatcher.Directory)
         self.assertTrue(os.path.exists(tmpdir))
 
     def test_store(self):
         blabla = "some initial text data"
         tmpdir = tempfile.mkdtemp()
-        ld = logdispatcher.Directory({'directory': tmpdir})
+        ld = logdispatcher.Directory({'path': tmpdir}, self.provider)
         f = six.StringIO(blabla)
-        ld.store('robert.log', f)
+        ld.store('robert', f)
         self.assertEqual(
             open(os.path.join(tmpdir, 'robert.log')).read(),
             blabla)

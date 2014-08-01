@@ -29,8 +29,11 @@ class fake_swift(object):
     def Connection(user=None, key=None, authurl=None,
                    tenant_name=None, auth_version=None):
         class fake_swift_conn(object):
-            def put_object(self, container, name, obj):
+            def _generic(self, *args, **kwargs):
                 pass
+            head_container = _generic
+            put_object = _generic
+
         return fake_swift_conn()
 
 
