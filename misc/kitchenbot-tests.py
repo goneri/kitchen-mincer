@@ -7,9 +7,9 @@ import time
 import gerritlib.gerrit
 
 HTTP_SERVER = "http://os-ci-test7.ring.enovance.com:8500/"
-DEFAULT_USERNAME = "chmouel.boudjnah"
+DEFAULT_USERNAME = "jenkins2"
 RUN_SCRIPT = "./run_script.sh"
-KEY = "./id_rsa-nopasswd"
+KEY = "./id_rsa-jenkins2"
 WATCHED_PROJECTS = ("kitchen-mincer",)
 OUTPUT_DIR = "/var/www/static"
 DEFAULT_SERVER = "gerrit.sf.ring.enovance.com"
