@@ -13,11 +13,6 @@ export JENKINS_PLUGINS=git
 [ -d repos/tripleo-image-elements ] || git clone https://git.openstack.org/openstack/tripleo-image-elements.git repos/tripleo-image-elements
 [ -d repos/heat-templates ] || git clone git://git.openstack.org/openstack/heat-templates repos/heat-templates
 
-(
-    cd repos/heat-templates
-    curl 'https://review.openstack.org/changes/108330/revisions/4940c653b1735bac59b49697223c25ce699b3fce/patch?download'|base64 -d|patch -p1
-)
-
 export ELEMENTS_PATH=$PWD/elements:$PWD/repos/diskimage-builder/elements:$PWD/repos/heat-templates/hot/software-config/elements:$PWD/repos/tripleo-image-elements/elements
 
 if [ ! -f jenkins_debian.qcow2 ]; then
