@@ -1,4 +1,5 @@
 #!/bin/bash
+LOG_FILE=${LOG_DIR}/output.txt
 exec > >(tee -a ${LOG_FILE}) 2>&1
 
 set -eux -o pipefail
@@ -26,6 +27,9 @@ function is_elapsed() {
 }
 
 function clean() {
+    # NOTE(chmou): This is for debugging
+    [[ -e ${CANONICAL}/NOERASE ]] && return 0
+
     rm -rf ${CANONICAL}
 }
 trap clean EXIT
@@ -51,15 +55,25 @@ if [[ -d  ${VIRTUALENV_CACHE_DIR} ]] && ! is_elapsed ${VIRTUALENV_CACHE_DIR}; th
     # quickly for us.
     rm -rf .virtualenv/lib
     cp -a ${VIRTUALENV_CACHE_DIR}/lib .virtualenv/lib
-   .virtualenv/bin/pip install -e.
+   .virtualenv/bin/pip install -e. -r test-requirements.txt -r requirements.txt
+
+    # Binaries that we need to use or that get messy
+   .virtualenv/bin/pip install tox nose coverage --force --upgrade
 else
    echo "Regenerating the virtualenv cache"
-   .virtualenv/bin/pip install -e.
+   .virtualenv/bin/pip install -e. -r test-requirements.txt -r requirements.txt
+   .virtualenv/bin/pip install tox
    rm -rf ${VIRTUALENV_CACHE_DIR}
    cp -a .virtualenv ${VIRTUALENV_CACHE_DIR}
 fi
 
 ./run_tests.sh ${OS_ENV_TARGET}
 retcode=$?
+
+rm -rf ${LOG_DIR}/cover ${LOG_DIR}/diff_cover
+.virtualenv/bin/pip install diff_cover
+.virtualenv/bin/nosetests -s --with-coverage --cover-html --cover-html-dir=${LOG_DIR}/cover --cover-package mincer
+.virtualenv/bin/coverage xml
+.virtualenv/bin/diff-cover coverage.xml --html-report ${LOG_DIR}/diff-cover-report.html
 
 exit ${retcode}
