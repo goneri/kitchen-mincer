@@ -17,37 +17,17 @@
 import logging
 import os
 
+from mincer import action
+
 LOG = logging.getLogger(__name__)
 
 
-class Serverspec(object):
+class Serverspec(action.PluginActionBase):
     """Deploy Serverspec stack and run rake command.
 
     The Serverspec driver deploy a stack which run the rake command
     from within the stack.
     """
-
-    def __init__(self, refresh_medias, provider, params, medias, private_key):
-        """Serverspec constructor.
-
-        :param refresh_medias: the medias to reupload
-        :type group_id: list
-        :param provider: the provider to use
-        :type provider: mincer.providers.heat.provider.Heat
-        :param params: the parameters needed by serverspec
-        :type params: list
-        :param medias: list of Media objects associated to the driver
-        :type medias: list
-        :parma private_key: the private key to use
-        :type private_key: str
-        """
-
-        self._refresh_medias = refresh_medias
-        self._provider = provider
-        self._params = params
-        self._test_medias = medias
-        self._private_key = private_key
-
     def _get_server_spec_template_path(self):
         """Returns the path of the serverspec Heat template."""
 
@@ -59,8 +39,8 @@ class Serverspec(object):
         """Returns the ip address associated of the targets."""
 
         targets_ips = {}
-        targets = self._params()["targets"]
-        for machine in self._provider.get_machines():
+        targets = self.params["targets"]
+        for machine in self.provider.get_machines():
             for target in targets:
                 if target in machine["name"]:
                     targets_ips["target"] = machine["primary_ip_address"]
@@ -74,18 +54,14 @@ class Serverspec(object):
         parameters = {"test_private_key": self._private_key}
         parameters.update(self._get_targets_ips())
 
-        volumes = self._provider.upload(self._test_medias(),
-                                        self._refresh_medias)
-        parameters.update(volumes)
-
         LOG.debug("parameters: %s" % str(parameters))
 
         LOG.info("Running Serverspec stack test")
-        tmp_stack_id = self._provider.create_stack(
-            'serverspec%s' % self._provider.application_stack_id,
+        tmp_stack_id = self.provider.create_stack(
+            'serverspec%s' % self.provider.application_stack_id,
             self._get_server_spec_template_path(),
             parameters
         )
 
-        self._provider.retrieve_log(tmp_stack_id)
-        self._provider.delete_stack(tmp_stack_id)
+        self.provider.retrieve_log(tmp_stack_id)
+        self.provider.delete_stack(tmp_stack_id)

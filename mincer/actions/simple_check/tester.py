@@ -21,6 +21,7 @@ import tempfile
 
 import yaml
 
+from mincer import action
 from mincer import media  # noqa
 
 LOG = logging.getLogger(__name__)
@@ -89,15 +90,7 @@ class HeatConfig(object):
         return yaml.dump(self.struct)
 
 
-class SimpleCheck(object):
-
-    def __init__(self, refresh_medias, provider, params, medias, private_key):
-        self._refresh_medias = refresh_medias
-        self.provider = provider
-        self.params = params
-        self.medias = medias
-        self._private_key = private_key
-
+class SimpleCheck(action.PluginActionBase):
     def _save_test_results(self, result, error_code):
         with open("/tmp/test_results", "wb") as file_result:
             file_result.write(result)
@@ -110,25 +103,41 @@ class SimpleCheck(object):
         command = string.Template(cmd).substitute({"IP": machine_ip})
         heat_config.add_test(command)
 
-    def launch(self):
-
-        heat_config = HeatConfig()
-
-        params = self.params
+    def _prepare_stack_params(self, machines, params):
+        stack_params = []
         for machine in self.provider.get_machines():
             for target in params:
                 if target == '_ALL_' or target == machine["name"]:
                     machine_ip = machine["primary_ip_address"]
                     cmd = params[target]
-                    self._feed_stack(cmd, machine_ip, heat_config)
-                else:
-                    raise TargetNotFound("target '%s' not found" % target)
+                    stack_params.append({
+                        'cmd': cmd,
+                        'machine_ip': machine_ip})
+        return(stack_params)
 
-        medias = self.medias
+    def _get_temp_stack_file(self, heat_config):
         f = tempfile.NamedTemporaryFile(delete=False)
-        f.write(heat_config.get_yaml())
+        f.write(bytearray(heat_config.get_yaml(), 'UTF-8'))
         fname = f.name
         f.close()
+        return fname
+
+    def launch(self):
+
+        heat_config = HeatConfig()
+
+        params = self.params
+
+        machines = self.provider.get_machines()
+        for stack_param in self._prepare_stack_params(machines, params):
+            self._feed_stack(stack_param['cmd'],
+                             stack_param['machine_ip'],
+                             heat_config)
+
+        # TODO(Gonéri): Probably not needed anymore
+        medias = self.medias
+
+        fname = self._get_temp_stack_file(heat_config)
         tmp_stack_id = self.provider.create_stack(
             'simple-test-stack' + self.provider.application_stack_id,
             fname,

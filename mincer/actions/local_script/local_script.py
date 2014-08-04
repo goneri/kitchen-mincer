@@ -17,22 +17,16 @@
 import logging
 import subprocess
 
+from mincer import action
 from mincer import media  # noqa
 
 LOG = logging.getLogger(__name__)
 
 
-class LocalScript(object):
-
-    def __init__(self, refresh_medias, provider, params, medias, private_key):
-        self._refresh_medias = refresh_medias
-        self.provider = provider
-        self.params = params
-        self.medias = medias
-        self._private_key = private_key
+class LocalScript(action.PluginActionBase):
 
     def launch(self):
-        subprocess.call(
+        return subprocess.call(
             self.params['command'],
             cwd=self.params['work_dir'],
             shell=True)
