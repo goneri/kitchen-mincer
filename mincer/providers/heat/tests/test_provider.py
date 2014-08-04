@@ -157,7 +157,7 @@ class fake_glanceclient(object):
         def list(self):
             return [self.fake_image_1, self.fake_image_2]
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.images = self.fake_images()
 
 
@@ -243,12 +243,18 @@ class TestProvider(testtools.TestCase):
         ]
         self.assertEqual(my_provider.get_machines(), result)
 
+    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
+    @mock.patch('glanceclient.Client', fake_glanceclient)
     def test_filter_medias(self):
         my_provider = provider.Heat(args=fake_args())
+        my_provider.connect({
+            'os_auth_url': 'http://nowhere',
+            'os_username': 'admin',
+            'os_password': 'password',
+            'os_tenant_name': 'demo'
+        })
         medias = {"name_1": "", "name_2": "", "name_3": ""}
-        to_up, to_not_up = my_provider._filter_medias(fake_glanceclient(),
-                                                      medias,
-                                                      ["name_2"])
+        to_up, to_not_up = my_provider._filter_medias(medias, ["name_2"])
 
         res_to_up = {"name_2": None, "name_3": None}
         res_to_not_up = {"name_1": "id_1"}

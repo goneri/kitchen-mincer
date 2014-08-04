@@ -81,7 +81,6 @@ class Heat(object):
             preauthtoken=self._keystone.auth_token,
         )
 
-
     def _filter_medias(self, medias, refresh_medias):
         """Returns a tuple of two dicts.
 
