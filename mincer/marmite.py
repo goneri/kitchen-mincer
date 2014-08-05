@@ -76,18 +76,6 @@ class Marmite(object):
         except KeyError:
             raise NotFound("environment '%s' not found" % name)
 
-    def testers(self):
-        try:
-            tests_names = self.marmite_tree['testers']
-        except KeyError:
-            raise NotFound("'testers' section is missing in the marmite")
-
-        tests = []
-        for test_name in tests_names:
-            tests.append(Test(self.marmite_tree['testers'][test_name],
-                              test_name))
-        return tests
-
 
 class Environment(object):
     def __init__(self, name, environment_tree):
@@ -151,27 +139,32 @@ class Application(object):
             ret[k] = media.Media(k, v)
         return ret
 
+    def scenario(self):
+        scenario = []
+        for action in self.application_tree.get('scenario', []):
+            scenario.append(Action(action))
+        return scenario
 
-class Test(object):
-    def __init__(self, test_tree, test_name):
-        self.test_tree = test_tree
-        self.test_name = test_name
+
+class Action(object):
+    def __init__(self, tree):
+        self.tree = tree
 
     def driver(self):
         try:
-            return self.test_tree['driver']
+            return self.tree['driver']
         except KeyError:
-            raise NotFound("test '%s' has no 'driver' key" % self.test_name)
+            raise NotFound("test has no 'driver' key")
 
     def params(self):
         try:
-            return self.test_tree['params']
+            return self.tree['params']
         except KeyError:
-            raise NotFound("test '%s' has no 'params' key" % self.test_name)
+            raise NotFound("test has no 'params' key")
 
     def medias(self):
         ret = {}
-        for k, v in self.test_tree.get('medias', {}).iteritems():
+        for k, v in self.tree.get('medias', {}).iteritems():
             ret[k] = media.Media(k, v)
         return ret
 

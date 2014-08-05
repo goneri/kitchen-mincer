@@ -26,7 +26,7 @@ LOG = logging.getLogger(__name__)
 
 
 MINCER_PROVIDERS_NS = 'mincer.providers'
-MINCER_TESTS_NS = 'mincer.tests'
+MINCER_ACTIONS_NS = 'mincer.actions'
 
 
 class Mixer(object):
@@ -50,15 +50,16 @@ class Mixer(object):
             on_load_failure_callback=self.report_error,
             invoke_kwds=kwargs).driver
 
-    def _load_test(self, test, provider, refresh_medias, private_key):
+    # TODO(Gonéri): should be moved in the Marmite object
+    def _load_action(self, action, provider, refresh_medias, private_key):
 
         kwargs = dict(provider=provider, refresh_medias=refresh_medias,
-                      params=test.params, medias=test.medias,
+                      params=action.params(), medias=action.medias(),
                       private_key=private_key)
 
         return driver.DriverManager(
-            namespace=MINCER_TESTS_NS,
-            name=test.driver(),
+            namespace=MINCER_ACTIONS_NS,
+            name=action.driver(),
             invoke_on_load=True,
             on_load_failure_callback=self.report_error,
             invoke_kwds=kwargs).driver
@@ -114,6 +115,12 @@ class Mixer(object):
         test_priv_key, test_pub_key = self._generate_key_pairs()
 
         provider = self._load_provider(environment)
+        scenario = []
+        for step in self.marmite.application().scenario():
+            action = self._load_action(step, provider,
+                                    refresh_medias, test_priv_key)
+            scenario.append(action)
+
         provider.connect(environment.identity())
         logs = provider.launch_application(
             self.marmite.application().name(),
@@ -122,10 +129,8 @@ class Mixer(object):
             provider.register_floating_ips(environment.floating_ips()))
         self._store_log(logs, environment, provider)
 
-        for test in self.marmite.testers():
-            test_instance = self._load_test(test, provider, refresh_medias,
-                                            test_priv_key)
-            test_instance.launch()
+        for action in scenario:
+            action.launch()
 
         if not self.args.preserve:
             provider.cleanup_application()

@@ -25,43 +25,10 @@ parameters:
     default: ""
 
 resources:
-  jenkins_config:
-    type: OS::Heat::SoftwareConfig
-    properties:
-      inputs:
-        - name: upstream_git
-      group: script
-      config: { get_file: configure_jenkins.sh }
-
-  jenkins_deployment:
-    type: OS::Heat::SoftwareDeployment
-    properties:
-      config:
-        get_resource: jenkins_config
-      server:
-        get_resource: jenkins_instance
-      input_values:
-        upstream_git: { get_param: upstream_git }
-
   jenkins_instance:
     type: OS::Nova::Server
     properties:
       image: { get_param: volume_id_jenkins_image }
       flavor: { get_param: flavor }
       key_name: { get_param: app_key_name }
-      user_data_format: SOFTWARE_CONFIG
 
-outputs:
-  WebsiteURL:
-    description: URL for Jenkins server
-    value:
-      str_replace:
-        template: http://host:8080
-        params:
-          host: { get_attr: [jenkins_instance, networks, private, 0] }
-  stdout_jenkins_deployment:
-    value:
-      get_attr: [jenkins_deployment, deploy_stdout]
-  stderr_jenkins_deployment:
-    value:
-      get_attr: [jenkins_deployment, deploy_stderr]
