@@ -19,7 +19,9 @@ import unittest
 
 import fixtures
 import mock
+import six
 import testtools
+
 
 import mincer.providers.heat. provider as provider
 
@@ -146,20 +148,54 @@ class fake_heatclient(object):
 
 
 class fake_glanceclient(object):
+
     class fake_images(object):
-        def __init__(self):
+        def __init__(self, create_image_id, **kwargs):
+            self.create_image_id = create_image_id
             self.fake_image_1 = mock.Mock()
             self.fake_image_1.name = "name_1"
-            self.fake_image_1.id = "id_1"
+            self.fake_image_1.id = 0
+            self.fake_image_1.status = 'active'
             self.fake_image_2 = mock.Mock()
             self.fake_image_2.name = "name_2"
-            self.fake_image_2.id = "id_2"
+            self.fake_image_2.id = 1
+            self.fake_image_2.status = 'active'
+            self.fake_image_3 = mock.Mock()
+            self.fake_image_3.name = "name_3"
+            self.fake_image_3.id = 2
+            self.fake_image_3.status = 'killed'
+            self.fake_images = [self.fake_image_1, self.fake_image_2,
+                                self.fake_image_3]
 
         def list(self):
-            return [self.fake_image_1, self.fake_image_2]
+            return self.fake_images
 
-    def __init__(self, *args, **kwargs):
-        self.images = self.fake_images()
+        def create(self, *args, **kwargs):
+            return self.fake_images[self.create_image_id]
+
+        def get(self, image_id):
+            return self.fake_images[image_id]
+
+    def __init__(self, create_image_id):
+        self.images = self.fake_images(create_image_id)
+
+
+def fake_client_with_create_image_0(*args, **kwargs):
+    return fake_glanceclient(0)
+
+
+def fake_client_with_create_image_1(*args, **kwargs):
+    return fake_glanceclient(1)
+
+
+def fake_client_with_create_image_2(*args, **kwargs):
+    return fake_glanceclient(2)
+
+
+class mock_callable(object):
+    def __call__(self, **kwargs):
+        class_to_load = kwargs["class"]
+        return class_to_load(kwargs["params"])
 
 
 class fake_swift(object):
@@ -255,7 +291,7 @@ class TestProvider(testtools.TestCase):
         self.assertEqual(my_provider.get_machines(), result)
 
     @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
-    @mock.patch('glanceclient.Client', fake_glanceclient)
+    @mock.patch('glanceclient.Client', fake_client_with_create_image_0)
     def test_filter_medias(self):
         my_provider = provider.Heat(args=fake_args())
         my_provider.connect({
@@ -267,8 +303,8 @@ class TestProvider(testtools.TestCase):
         medias = {"name_1": "", "name_2": "", "name_3": ""}
         to_up, to_not_up = my_provider._filter_medias(medias, ["name_2"])
 
-        res_to_up = {"name_2": None, "name_3": None}
-        res_to_not_up = {"name_1": "id_1"}
+        res_to_up = {"name_2": None}
+        res_to_not_up = {"name_1": 0, 'name_3': 2}
         self.assertDictEqual(to_up, res_to_up)
         self.assertDictEqual(to_not_up, res_to_not_up)
 
@@ -283,6 +319,65 @@ class TestProvider(testtools.TestCase):
             'os_tenant_name': 'demo'
         })
         my_provider.swift.put_object('log', 'robert', 'gaspart')
+
+    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
+    @mock.patch('glanceclient.Client', fake_client_with_create_image_0)
+    def test_upload_with_copy_from(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider.connect({
+            'os_auth_url': 'http://nowhere',
+            'os_username': 'admin',
+            'os_password': 'password',
+            'os_tenant_name': 'demo'
+        })
+        fm = mock.Mock()
+        fm.generate.return_value = None
+
+        medias = {"name_1": fm, "name_2": fm}
+        actual_parameters = my_provider.upload(medias, ["name_1"])
+        expected_parameters = {'volume_id_name_1': 0, 'volume_id_name_2': 1}
+        self.assertDictEqual(actual_parameters, expected_parameters)
+
+    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
+    @mock.patch('glanceclient.Client', fake_client_with_create_image_1)
+    @mock.patch('%s.open' % six.moves.builtins.__name__)
+    def test_upload_with_local_image(self, mock_open):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider.connect({
+            'os_auth_url': 'http://nowhere',
+            'os_username': 'admin',
+            'os_password': 'password',
+            'os_tenant_name': 'demo'
+        })
+
+        fake_image = mock.Mock()
+        fake_image.name = "name_1"
+        fake_image.id = 0
+        fake_image.copy_from = False
+        fake_image.generate.return_value = None
+
+        medias = {"name_1": "", "name_2": fake_image}
+        actual_parameters = my_provider.upload(medias, ["name_2"])
+        expected_parameters = {'volume_id_name_1': 0, 'volume_id_name_2': 1}
+        self.assertDictEqual(actual_parameters, expected_parameters)
+
+    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
+    @mock.patch('glanceclient.Client', fake_client_with_create_image_2)
+    def test_upload_exception(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider.connect({
+            'os_auth_url': 'http://nowhere',
+            'os_username': 'admin',
+            'os_password': 'password',
+            'os_tenant_name': 'demo'
+        })
+        fm = mock.Mock()
+        fm.generate.return_value = None
+
+        medias = {"name_1": fm, "name_2": ""}
+        self.assertRaises(provider.ImageException,
+                          my_provider.upload, medias, ["name_1"])
+
 
 if __name__ == '__main__':
     unittest.main()

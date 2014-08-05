@@ -155,12 +155,12 @@ class Heat(object):
 
             while image.status != 'active':
                 if image.status == 'killed':
-                    raise Exception("Glance error while waiting for image")
+                    raise ImageException("Error while waiting for image")
                 time.sleep(5)
                 image = self._glance.images.get(image.id)
                 LOG.info("waiting for %s", media.name)
             parameters['volume_id_%s' % image.name] = image.id
-            LOG.debug("status: %s - %s", media.name, image.status)
+            LOG.debug("status: %s - %s", image.name, image.status)
         return parameters
 
     def register_key_pairs(self, marmite_key_pair, test_public_key):
@@ -375,3 +375,7 @@ class StackTimeoutException(Exception):
 
 class InvalidStackParameter(Exception):
     """The parameters do not match what the stack expect."""
+
+
+class ImageException(IndexError):
+    """Raised when an error occurs while uploading an image."""
