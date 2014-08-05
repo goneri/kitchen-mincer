@@ -1,1 +1,1 @@
-from .serverspec import Serverspec # flake8: noqa
+from .serverspec_check import Serverspec # flake8: noqa
