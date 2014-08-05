@@ -48,6 +48,14 @@ class Bottine(object):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
+
+        # Vote 0 before starting and notify that we are testing.
+        self.gerrit.review(data['change']['project'],
+                           "%s,%s" % (data['change']['number'],
+                                      data['patchSet']['number']),
+                           "Starting kitchenbot tests",
+                           action={'verified': "0"},)
+
         env = {'CHANGE_ID': data['change']['number'],
                'LOG_DIR': output_dir,
                'REF_ID': data['patchSet']['ref'],
@@ -66,7 +74,7 @@ class Bottine(object):
             HTTP_SERVER, data['change']['number'],
             data['patchSet']['number'])
 
-        msg = "* run_tests.sh: %s: %s/output.txt\n" % (rets, url)
+        msg = "* functionals: %s: %s/output.txt\n" % (rets, url)
         msg += "* coverage: %s/cover/index.html\n" % url
         msg += "* diff-cover: %s/diff-cover-report.html\n" % url
         msg += "* docs: %s/docs/index.html" % url
