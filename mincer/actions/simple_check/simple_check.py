@@ -91,14 +91,6 @@ class HeatConfig(object):
 
 
 class SimpleCheck(action.PluginActionBase):
-    def _save_test_results(self, result, error_code):
-        with open("/tmp/test_results", "wb") as file_result:
-            file_result.write(result)
-            if error_code == 0:
-                file_result.write("\n ===> Test success ! \o/\n\n")
-            else:
-                file_result.write("\n ===> Test failed !\n")
-
     def _feed_stack(self, cmd, machine_ip, heat_config):
         command = string.Template(cmd).substitute({"IP": machine_ip})
         heat_config.add_test(command)
