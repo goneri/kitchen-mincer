@@ -6,7 +6,7 @@ import time
 
 import gerritlib.gerrit
 
-HTTP_SERVER = "http://os-ci-test7.ring.enovance.com:8500/"
+HTTP_SERVER = "http://os-ci-test7.ring.enovance.com:8500"
 DEFAULT_USERNAME = "jenkins2"
 RUN_SCRIPT = "./run_script.sh"
 KEY = "./id_rsa-jenkins2"
@@ -41,13 +41,15 @@ class Bottine(object):
             time.sleep(1)
 
     def run_command(self, data):
+        if 'change' not in data:
+            return
         output_dir = "%s/%s/%s" % (OUTPUT_DIR, data['change']['number'],
                                    data['patchSet']['number'])
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
         env = {'CHANGE_ID': data['change']['number'],
-               'LOG_FILE': output_dir + "/output.txt",
+               'LOG_DIR': output_dir,
                'REF_ID': data['patchSet']['ref'],
                'AUTHOR': data['patchSet']['author']['email']}
         ret = subprocess.call([self.run_script], env=env, shell=True)
@@ -60,14 +62,18 @@ class Bottine(object):
             rets = "SUCCESS"
             retvote = '+1'
 
-        url = "%s/%s/%s/output.txt" % (
+        url = "%s/%s/%s" % (
             HTTP_SERVER, data['change']['number'],
             data['patchSet']['number'])
+
+        msg = "* run_tests.sh: %s: %s/output.txt\n" % (rets, url)
+        msg += "* coverage: %s/cover/index.html\n" % url
+        msg += "* diff-cover: %s/diff-cover-report.html" % url
 
         self.gerrit.review(data['change']['project'],
                            "%s,%s" % (data['change']['number'],
                                       data['patchSet']['number']),
-                           "run_tests.sh: %s: %s" % (rets, url),
+                           msg,
                            action={'verified': retvote},)
 
     def _read(self, data):
