@@ -76,4 +76,8 @@ rm -rf ${LOG_DIR}/cover ${LOG_DIR}/diff_cover
 .virtualenv/bin/coverage xml
 .virtualenv/bin/diff-cover coverage.xml --html-report ${LOG_DIR}/diff-cover-report.html
 
+# Build docs
+.virtualenv/bin/python setup.py build_sphinx
+mv doc/build/html ${LOG_DIR}/docs
+
 exit ${retcode}

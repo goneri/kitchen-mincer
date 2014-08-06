@@ -68,7 +68,8 @@ class Bottine(object):
 
         msg = "* run_tests.sh: %s: %s/output.txt\n" % (rets, url)
         msg += "* coverage: %s/cover/index.html\n" % url
-        msg += "* diff-cover: %s/diff-cover-report.html" % url
+        msg += "* diff-cover: %s/diff-cover-report.html\n" % url
+        msg += "* docs: %s/docs/index.html" % url
 
         self.gerrit.review(data['change']['project'],
                            "%s,%s" % (data['change']['number'],
