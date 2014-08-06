@@ -194,7 +194,7 @@ class Heat(object):
             for entry in self._novaclient.floating_ips.list():
                 if ip != entry.ip:
                     continue
-                self.floating_ips['floating_ip_%s' % name] = str(entry.id)
+                self.floating_ips['floating_ip_%s' % name] = str(entry.ip)
                 found = True
             if not found:
                 raise UnknownFloatingIP("floating ip '%s' not found" % ip)

@@ -71,10 +71,11 @@ class fake_novaclient(object):
 
     class fake_floating_ips(object):
         def __init__(self, **kwargs):
-            return
+            self._floating_ip = mock.Mock()
+            self._floating_ip.ip = "127.0.0.1"
 
         def list(self):
-            return ()
+            return [self._floating_ip]
 
     class fake_servers(object):
         def __init__(self, **kwargs):
@@ -224,6 +225,14 @@ class TestProvider(testtools.TestCase):
         self.assertEqual(t['test_public_key'], 'test_key')
 
     def test_register_floating_ips(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._novaclient = fake_novaclient()
+        my_provider.register_floating_ips(
+            {"test_floating_ip": "127.0.0.1"})
+        expected_parameters = {"floating_ip_test_floating_ip": "127.0.0.1"}
+        self.assertDictEqual(my_provider.floating_ips, expected_parameters)
+
+    def test_register_floating_ips_unknown_floating_iP(self):
         my_provider = provider.Heat(args=fake_args())
         my_provider._novaclient = fake_novaclient()
         self.assertRaises(provider.UnknownFloatingIP,
