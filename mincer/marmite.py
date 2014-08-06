@@ -27,6 +27,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Marmite(object):
+
     """This class represents the marmite
 
     it centralize all the access of the marmite's fields.
@@ -35,11 +36,12 @@ class Marmite(object):
     environments = {}
 
     def __init__(self, marmite_dir, extra_params={}):
-
         """Marmite constructor
 
         :param marmite_dir: the path of the marmite directory
-        :type group_id: str
+        :type marmite_dir: str
+        :param extra_params: optional parameter to pass to Heat
+        :type extra_params: dict
         """
         if marmite_dir is None:
             raise ValueError("'marmite_dir' argument is required")
@@ -68,6 +70,7 @@ class Marmite(object):
                 self.marmite_tree['environments'][name])
 
     def _validate(self):
+        """Validate the structure of the marmite."""
         All = voluptuous.All
         Required = voluptuous.Required
         Length = voluptuous.Length
@@ -90,27 +93,80 @@ class Marmite(object):
             raise InvalidStructure()
 
     def description(self):
+        """Return de description string of the marmite.
+
+        :returns: description of the marmite
+        :rtype: str
+
+        """
         return self.marmite_tree['description']
 
     def application(self):
+        """Return the application of the marmite.
+
+        :returns: the application structure
+        :rtype: dict
+
+        """
         return self._application
 
     def environment(self, name):
+        """Return the environment from the marmite.
+
+        :returns: the environment
+        :type: dict
+
+        """
         return self.environments[name]
 
 
 class Environment(object):
+
+    """The object that describe the customer environment."""
+
     def __init__(self, name, environment_tree):
+        """the Environment constructor
+
+        :param name: the name of the environment
+        :param environment_tree: the structure used to describe the environment
+        :type environment_tree: dict()
+        :returns: None
+        :rtype: None
+
+        """
         self.name = name
         self.tree = environment_tree
 
     def provider(self):
+        """return the optionnal `provider` key.
+
+        This key is used to describe the provider to use. _heat_ is the
+        default value.
+
+        :returns: the name of the provider driver to load
+        :rtype: str
+
+        """
         return self.tree.get('provider', 'heat')
 
     def provider_params(self):
+        """return an optional `provider_params` key.
+
+        :returns: the provider
+        :rtype: dict
+
+        """
         return self.tree.get('provider_params', {})
 
     def identity(self):
+        """return the credentials for the provider
+
+        variable `$foo` are expended with environment variable called `foo`.
+
+        :returns: the crednetials
+        :rtype: dict
+
+        """
         credentials = {}
         identities = self.tree['identity']
         for credential, value in identities.items():
@@ -123,6 +179,12 @@ class Environment(object):
         return credentials
 
     def medias(self):
+        """Return the medias of the customer.
+
+        :returns: the medias
+        :rtype: dict
+
+        """
         ret = {}
         try:
             for k, v in self.tree['medias'].iteritems():
@@ -132,24 +194,65 @@ class Environment(object):
         return ret
 
     def key_pairs(self):
+        """Return the customer keypair
+
+        :returns: a list of keypairs
+        :rtype: dict
+
+        """
         return self.tree.get('key_pairs', [])
 
     def floating_ips(self):
+        """Return the floating IP to associate with the application.
+
+        :returns: the floating IP
+        :rtype: dict
+
+        """
         return self.tree.get('floating_ips', {})
 
     def logdispatchers_params(self):
+        """Return the logdispatchers
+
+        :returns: the logdispatchers configured in the environment
+        :rtype: list
+
+        """
         return self.tree.get('logdispatchers', [])
 
 
 class Application(object):
-    def __init__(self, application_tree):
 
+    """Object used to describe an Application."""
+
+    def __init__(self, application_tree):
+        """Application constructor
+
+        :param application_tree: the data structure that describe the
+        Application
+        :type application_tree: dict
+        :returns: None
+        :rtype: None
+
+        """
         self.application_tree = application_tree
 
     def name(self):
+        """Return the name of the application.
+
+        :returns: the name of the application
+        :rtype: str
+
+        """
         return self.application_tree['name']
 
     def medias(self):
+        """Return the medias associated to the application.
+
+        :returns: the medias
+        :rtype: dict
+
+        """
         ret = {}
         m = self.application_tree['medias']
         for k, v in six.iteritems(m):
@@ -157,6 +260,12 @@ class Application(object):
         return ret
 
     def scenario(self):
+        """Return the scenario of the application.
+
+        :returns: the actions of the scenario
+        :rtype: list of Action objects
+
+        """
         scenario = []
         for action in self.application_tree['scenario']:
             scenario.append(Action(action))
@@ -164,19 +273,44 @@ class Application(object):
 
 
 class Action(object):
+
+    """Class that describe a scenario action."""
+
     def __init__(self, tree):
+        """The action constructor.
+
+        :param tree: the data structure that describe the action
+        :type tree: dict
+        :returns: None
+        :rtype: None
+
+        """
         self.tree = tree
 
     def driver(self):
+        """Return the driver used by the action.
+
+        :returns: the driver name
+        :rtype: str
+
+        """
         return self.tree['driver']
 
     def params(self):
+        """Return the parameters of the action.
+
+        :returns: the `params` key
+        :rtype: str
+
+        """
         return self.tree['params']
 
 
 class NotFound(Exception):
+
     """Exception raised when an object is not found."""
 
 
 class InvalidStructure(Exception):
+
     """Exception raised when a marmite is not valide."""

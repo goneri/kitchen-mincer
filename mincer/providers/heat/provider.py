@@ -33,9 +33,20 @@ RETRY_MAX = 1000
 
 
 class Heat(object):
+
     """The Heat provider which run stacks on an OpenStack."""
 
     def __init__(self, params={}, args={}):
+        """constructor of the Heat provider
+
+        :param params: the configuration structure
+        :type params: dict
+        :param args: the CLI arguments as parsed by argparse
+        :type args: argparse.Namespace
+        :returns: None
+        :rtype: None
+
+        """
         self.params = params
         self.args = args
         self._keystone = None
@@ -44,7 +55,7 @@ class Heat(object):
         self.floating_ips = {}
 
     def connect(self, identity):
-        """This method creates Openstack clients and connects to APIs.
+        """Connect Openstack clients.
 
         :param identity: the OS identity of the environment
         :type identity: dict
@@ -320,12 +331,14 @@ class Heat(object):
     def get_stack_parameters(self, tpl_files, template, *args):
         """Prepare the parameters, as expected by the stack
 
-           :param tpl_files: as returned by
-           template_utils.get_template_contents
-           :param template: as returned by
+           :param tpl_files: the files as returned by
             template_utils.get_template_contents
-           :param *args: the parameters
-           :type *args: list
+           :type tpl_files: dict
+           :param template: the template as returned by
+            template_utils.get_template_contents
+           :type template: string
+           :param args: the parameters
+           :type args: list
            :return: a dictionary
            :rtype: dict
         """
@@ -421,16 +434,23 @@ class Heat(object):
         return {"stack_id": stack_id, "logs": logs}
 
     def delete_stack(self, stack_id):
+        """Delete a stack
+
+        :param stack_id: the ID of the stack to destroy
+        :type stack_id: str
+
+        """
         self._heat.stacks.delete(stack_id)
 
     def cleanup_application(self):
+        """Clean up the tenant."""
         self.delete_stack(self.application_stack_id)
 
     def get_machines(self):
         """Collect machine informations from a running stack.
 
         :returns: a list of dictionnary describing the machines from
-        the running stack
+         the running stack
         :rtype: dict
         """
         machines = []

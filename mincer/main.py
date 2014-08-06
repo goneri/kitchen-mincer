@@ -22,13 +22,29 @@ from mincer import mixer
 
 
 class AppendExtraParams(argparse.Action):
+
     """The AppendExtraParams action to argparse.
 
-    This action expects the parameter to be in the key=value format.
-    It adds the the key/value in a dictionary.
+    This action expects the parameter to be in the `key=value` format.
+    It adds the key/value in a dictionary.
     This is useful to allow extra parameters to be specified multiple times.
     """
+
     def __call__(self, parser, namespace, values, option_string=None):
+        """argparse.Action callback
+
+        :param parser: unused
+        :type parse: None
+        :param namespace: the command-line argument object
+        :type namespace: argeparse.Namespace instance
+        :param values: a list of value
+        :type values: list() or str()
+        :param option_string: unused parameter
+        :type option_string: None
+        :returns: None
+        :rtype: None
+
+        """
         (k, v) = values.split('=')
         items = copy.copy(argparse._ensure_value(namespace, self.dest, {}))
         items[k] = v
@@ -36,6 +52,17 @@ class AppendExtraParams(argparse.Action):
 
 
 def get_args(args=None):
+    """Parse the argument
+
+    In a script, parse_args() will typically be called with no arguments,
+    and the ArgumentParser will automatically determine the command-line
+    arguments from sys.argv.
+
+    :param args: optional list of argument
+    :returns: object holding attributes
+    :rtype: argparse.Namespace
+
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", help="Target to run")
     parser.add_argument("--debug", action="store_true",
@@ -53,6 +80,13 @@ def get_args(args=None):
 
 
 def setup_logging(debug):
+    """Configure the logging class
+
+    :param debug: boolean to enable debugging
+    :returns: None
+    :rtype: None
+
+    """
     log_lvl = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(
         format="%(levelname)s (%(module)s) %(message)s",
@@ -67,6 +101,12 @@ def setup_logging(debug):
 
 
 def main():
+    """The entry point of the application.
+
+    :returns: None
+    :rtype: None
+
+    """
     args = get_args()
 
     setup_logging(args.debug)

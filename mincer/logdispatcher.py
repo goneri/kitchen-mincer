@@ -24,14 +24,40 @@ MINCER_LOGDISPATCHER_NS = 'mincer.logdispatchers'
 
 
 class Logdispatcher(object):
+
     """Dispatch the stack logs to the different logger backend."""
 
     @staticmethod
     def report_error(manager, entrypoint, exception):
+        """Log an error and rease an exception
+
+        This method is called by Stevedore throught the
+        on_load_failure_callback callback.
+
+        :param manager: None, unused
+        :type manager: Stevedore manager
+        :param entrypoint: the entrypoint
+        :type entrypoint: str
+        :param exception: the raised exception
+        :type exception: exception
+        :returns: None
+        :rtype: None
+
+        """
         LOG.error("Error while loading logdispatcher %s", entrypoint)
         raise exception
 
     def __init__(self, environment, provider):
+        """Logdispatcher constructor
+
+        :param environment: the name of the environment
+        :type environment: str
+        :param provider: the Mincer provider object
+        :type provider: a provider instance
+        :returns: None
+        :rtype: None
+
+        """
         self.logdispatchers = []
         for params in environment.logdispatchers_params():
             kwargs = dict(params=params, provider=provider)
@@ -51,5 +77,15 @@ class Logdispatcher(object):
         content (StringIO): a StringIO instance
     """
     def store(self, name, content):
+        """Store a content in the different logdispatcher backend
+
+        :param name: the name of the content (e.g: run-2014-06-11)
+        :type name: str
+        :param content: the content to store
+        :type content: str
+        :returns: None
+        :rtype: None
+
+        """
         for ld in self.logdispatchers:
             ld.store(name, content)

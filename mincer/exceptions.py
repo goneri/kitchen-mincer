@@ -15,4 +15,7 @@
 
 
 class NotFound(Exception):
+
+    """Exception raised when an element is missing."""
+
     pass

@@ -20,23 +20,26 @@ import six
 
 
 class PluginActionBase(object):
+
+    """The base class used by the actions."""
+
     six.add_metaclass(abc.ABCMeta)
 
     def __init__(self, refresh_medias, provider, params, medias, private_key):
         """Action constructor.
 
         :param refresh_medias: the medias to reupload
-        :type group_id: list
+        :type refresh_medias: list
         :param provider: the provider to use
         :type provider: mincer.providers.heat.provider.Heat
         :param params: the parameters needed by serverspec
         :type params: list
         :param medias: list of Media objects associated to the driver
         :type medias: list
-        :parma private_key: the private key to use
-        :type private_key: str
-        """
+        :param private_key: the private key used to access the machine
+        :type private_key: An Crypto.PublicKey.RSA key object
 
+        """
         self._refresh_medias = refresh_medias
         self.provider = provider
         self.params = params
@@ -45,4 +48,10 @@ class PluginActionBase(object):
 
     @abc.abstractmethod
     def launch(self):
+        """abc abstractmethod used to call the action
+
+        :returns: True on success or False
+        :rtype: Boolean
+
+        """
         raise NotImplementedError("launch() has to be defined")

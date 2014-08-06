@@ -25,7 +25,15 @@ LOG = logging.getLogger(__name__)
 
 class LocalScript(action.PluginActionBase):
 
+    """Action to run a script on the local machine."""
+
     def launch(self):
+        """Call the action
+
+        :returns: None
+        :rtype: None
+
+        """
         return subprocess.call(
             self.params['command'],
             cwd=self.params['work_dir'],

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+"""A bot used to run quality test against the kitchen Mincer"""
+
 import logging
 import os
 import subprocess

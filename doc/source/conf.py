@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.abspath('../../'))
@@ -38,3 +39,10 @@ blockdiag_antialias = True
 blockdiag_html_image_format = 'SVG'
 seqdiag_antialias = True
 seqdiag_html_image_format = 'SVG'
+
+try:
+    subprocess.check_call(['sphinx-apidoc', '-o', 'api', '../../mincer'])
+except subprocess.CalledProcessError as e:
+    print("Failed to generate to refresh the API directory"
+          "sphinx-apidoc call failed (%s): %s" % (e.returncode, e.returncode))
+    sys.exit(1)

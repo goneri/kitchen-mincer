@@ -21,6 +21,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Directory(object):
+
     """Store log in a local directory.
 
     The YAML configuration structure is:
@@ -40,6 +41,14 @@ class Directory(object):
     """
 
     def __init__(self, params, provider):
+        """constructor of Directory logdispatcher driver.
+
+        :param params: the logdispatcher parameter structure
+        :type params: dict
+        :param provider: the provider
+        :type provider: a provider instance
+
+        """
         self.params = params
 
         self._path = params.get('path', '.')
@@ -49,8 +58,11 @@ class Directory(object):
         """Save a log content in a file on the local file system.
 
         Keyword arguments:
-        name -- the name of the file
-        content -- a StringIO instance
+        :param name: the name of the file
+        :type name: str
+        :param content: the log content
+        :type content: a StringIO instance
+
         """
         fp = os.path.join(self._path, name + self._suffix)
         with open(fp, 'w') as f:

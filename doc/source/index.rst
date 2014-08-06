@@ -50,6 +50,7 @@ Glossary
     Media:
 
         Some data needed to run the application, see `the medias`_ bellow:
+
         * ISO image retrieved from a HTTP location
         * An eDeploy image disk
         * Some files collected and aggregated (git repo, etc...)
@@ -184,11 +185,6 @@ The path for the deployment ::
 
 In there we would store jenkins logs and other infos we can collect
 about the current deployment.
-
-Syntax
-~~~~~~
-
-.. autoclass:: mincer.media.Media
 
 Directory hierarchy
 -------------------
@@ -353,7 +349,7 @@ instance (Solution B).
 
 .. toctree::
     workflow
-    code
+    api/modules
 
 
 .. rubric:: Footnotes

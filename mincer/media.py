@@ -27,10 +27,12 @@ LOG = logging.getLogger(__name__)
 
 
 class MediaManagerException(Exception):
+
     """Base class for media manager exceptions."""
 
 
 class Media(object):
+
     """Media associated with the application.
 
     A media section is a hash of hash table structure.
@@ -111,8 +113,18 @@ class Media(object):
     """
 
     def __init__(self, name, description):
+        """Media object constructor
+
+        :param name: the name of the media
+        :type name: str
+        :param description: the description of the object
+        :type description: dict
+        :returns: None
+        :rtype: None
+
+        """
         self.disk_format = "raw"
-        self._min_image_size = 1024 * 1024 * 10
+        self._min_image_size = (1024 * 1024 * 10)
         self.name = name
         self._type = description.get('type')
         self.checksum = description.get('checksum')
@@ -141,7 +153,7 @@ class Media(object):
             self._produce_image()
 
     def getPath(self):
-        """Returns the path to the disk image."""
+        """Return the path to the disk image."""
         if self._type == "dynamic":
             return self._dynamic_image
         elif self._type == "local":

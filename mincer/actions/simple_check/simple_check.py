@@ -28,7 +28,11 @@ LOG = logging.getLogger(__name__)
 
 
 class HeatConfig(object):
+
+    """Heat config for the SimpleCheck action."""
+
     def __init__(self):
+        """Constructor for HeatConfig object."""
         self.struct = {
             'heat_template_version': '2013-05-23',
             'description': 'Zoubida',
@@ -57,7 +61,16 @@ class HeatConfig(object):
         self._test_cpt = 0
 
     def add_test(self, cmd):
+        """Store a command in the Heat template
 
+        Put a command in the heat template as a SoftwareConfig script
+
+        :param cmd: the command to call
+        :type cmd: str
+        :returns: None
+        :rtype: None
+
+        """
         self.struct['resources']['%i_c' % self._test_cpt] = {
             'type': 'OS::Heat::SoftwareConfig',
             'properties': {
@@ -87,6 +100,12 @@ class HeatConfig(object):
         self._test_cpt += 1
 
     def get_yaml(self):
+        """Return the Heat template
+
+        :returns: the Heat template as a YAML string
+        :rtype: str
+
+        """
         return yaml.dump(self.struct)
 
 
@@ -115,6 +134,13 @@ class SimpleCheck(action.PluginActionBase):
         return cmds
 
     def _get_temp_stack_file(self, heat_config):
+        """Return the heat_config as a temporary file
+
+        .. note:: The temporary file has to been removed.
+
+        :param heat_config: a HeatConfig instance
+
+        """
         f = tempfile.NamedTemporaryFile(delete=False)
         f.write(bytearray(heat_config.get_yaml(), 'UTF-8'))
         fname = f.name
@@ -122,7 +148,7 @@ class SimpleCheck(action.PluginActionBase):
         return fname
 
     def launch(self):
-
+        """Call the action."""
         heat_config = HeatConfig()
 
         for cmd in self._prepare_check_commands(
@@ -144,4 +170,5 @@ class SimpleCheck(action.PluginActionBase):
 
 
 class TargetNotFound(Exception):
+
     """Exception raised when an object is not found."""
