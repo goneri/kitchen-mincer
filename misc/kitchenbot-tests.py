@@ -62,7 +62,10 @@ class Bottine(object):
                'PROJECT': data['change']['project'],
                'LOG_DIR': output_dir,
                'REF_ID': data['patchSet']['ref'],
-               'AUTHOR': data['patchSet']['author']['email']}
+               'AUTHOR': data['patchSet']['author']['email'],
+               'PATH': os.environ['PATH'],
+               'HOME': os.environ['HOME'],
+               'LC_ALL': 'en_US.UTF-8'}
         ret = subprocess.call([self.run_script], env=env, shell=True)
         self.log.info("script: %s has exited with return value of %s",
                       self.run_script, ret)
@@ -79,8 +82,8 @@ class Bottine(object):
 
         msg = "* functionals: %s: %s/output.txt\n" % (rets, url)
         if os.path.exists(os.path.join(output_dir,
-                                       "cover/index.html")):
-            msg += "* coverage: %s/cover/index.html\n" % url
+                                       "coverage/index.html")):
+            msg += "* coverage: %s/coverage/index.html\n" % url
 
         if os.path.exists(os.path.join(output_dir,
                                        "diff-cover-report.html")):
