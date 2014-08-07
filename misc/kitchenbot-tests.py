@@ -84,7 +84,8 @@ class Bottine(object):
         elif data['type'] == 'patchset-created':
             check = True
 
-        if data['change']['project'] not in WATCHED_PROJECTS:
+        if 'change' in data and \
+           data['change']['project'] not in WATCHED_PROJECTS:
             check = False
 
         if check:
