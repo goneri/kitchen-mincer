@@ -10,7 +10,7 @@ HTTP_SERVER = "http://os-ci-test7.ring.enovance.com:8500"
 DEFAULT_USERNAME = "jenkins2"
 RUN_SCRIPT = "./run_script.sh"
 KEY = "./id_rsa-jenkins2"
-WATCHED_PROJECTS = ("kitchen-mincer",)
+WATCHED_PROJECTS = ("kitchen-mincer", "kitchen-saladier",)
 OUTPUT_DIR = "/var/www/static"
 DEFAULT_SERVER = "gerrit.sf.ring.enovance.com"
 
@@ -57,6 +57,7 @@ class Bottine(object):
                            action={'verified': "0"},)
 
         env = {'CHANGE_ID': data['change']['number'],
+               'PROJECT': data['change']['project'],
                'LOG_DIR': output_dir,
                'REF_ID': data['patchSet']['ref'],
                'AUTHOR': data['patchSet']['author']['email']}
@@ -75,9 +76,18 @@ class Bottine(object):
             data['patchSet']['number'])
 
         msg = "* functionals: %s: %s/output.txt\n" % (rets, url)
-        msg += "* coverage: %s/cover/index.html\n" % url
-        msg += "* diff-cover: %s/diff-cover-report.html\n" % url
-        msg += "* docs: %s/docs/index.html" % url
+        if os.path.exists(os.path.join(output_dir,
+                                       "cover/index.html")):
+            msg += "* coverage: %s/cover/index.html\n" % url
+
+        if os.path.exists(os.path.join(output_dir,
+                                       "diff-cover-report.html")):
+            msg += "* diff-cover: %s/diff-cover-report.html\n" % url
+
+
+        if os.path.exists(os.path.join(output_dir,
+                                       "docs/index.html")):
+            msg += "* docs: %s/docs/index.html" % url
 
         self.gerrit.review(data['change']['project'],
                            "%s,%s" % (data['change']['number'],

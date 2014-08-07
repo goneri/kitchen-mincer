@@ -8,11 +8,11 @@ export PIP_DOWNLOAD_CACHE=/var/tmp/pip
 
 OS_ENV_TARGET=test7
 TOX_TARGET=py27
-REPO=http://gerrit.sf.ring.enovance.com/r/kitchen-mincer
+REPO=http://gerrit.sf.ring.enovance.com/r/${PROJECT}
 REVISION_ID=${REF_ID##*/}
-CANONICAL="/tmp/kitchen-mincer-${CHANGE_ID}-${REVISION_ID}"
+CANONICAL="/tmp/${PROJECT}-${CHANGE_ID}-${REVISION_ID}"
 
-VIRTUALENV_CACHE_DIR=/var/tmp/kitchenci-venv
+VIRTUALENV_CACHE_DIR=/var/tmp/${PROJECT}-venv
 VIRTUALENV_CACHE_TIME=86400 # 1 day
 
 function is_elapsed() {
@@ -67,14 +67,20 @@ else
    cp -a .virtualenv ${VIRTUALENV_CACHE_DIR}
 fi
 
-./run_tests.sh ${OS_ENV_TARGET}
-retcode=$?
+retcode=0
+[[ -e ./run_tests ]] && {
+    ./run_tests.sh ${OS_ENV_TARGET}
+    retcode=$?
+}
 
-rm -rf ${LOG_DIR}/cover ${LOG_DIR}/diff_cover
+rm -rf ${LOG_DIR}/cover ${LOG_DIR}/diff-cover-report.html  ${LOG_DIR}/docs
+
 .virtualenv/bin/pip install diff_cover
 .virtualenv/bin/nosetests -s --with-coverage --cover-html --cover-html-dir=${LOG_DIR}/cover --cover-package mincer
-.virtualenv/bin/coverage xml
-.virtualenv/bin/diff-cover coverage.xml --html-report ${LOG_DIR}/diff-cover-report.html
+[[ -e .cover ]] && {
+    .virtualenv/bin/coverage xml
+    .virtualenv/bin/diff-cover coverage.xml --html-report ${LOG_DIR}/diff-cover-report.html
+}
 
 # Build docs
 .virtualenv/bin/python setup.py build_sphinx
