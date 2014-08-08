@@ -7,8 +7,6 @@ testtools>=0.9.27
 fixtures>=0.3.14
 mock>=1.0
 
-nose
-
 sphinx
 sphinxcontrib-blockdiag
 sphinxcontrib-seqdiag

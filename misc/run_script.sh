@@ -58,11 +58,11 @@ if [[ -d  ${VIRTUALENV_CACHE_DIR} ]] && ! is_elapsed ${VIRTUALENV_CACHE_DIR}; th
    .virtualenv/bin/pip install -e. -r test-requirements.txt -r requirements.txt
 
     # Binaries that we need to use or that get messy
-   .virtualenv/bin/pip install tox nose coverage --force --upgrade
+   .virtualenv/bin/pip install tox coverage --force --upgrade
 else
    echo "Regenerating the virtualenv cache"
    .virtualenv/bin/pip install -e. -r test-requirements.txt -r requirements.txt
-   .virtualenv/bin/pip install tox nose coverage --force --upgrade
+   .virtualenv/bin/pip install tox coverage --force --upgrade
    rm -rf ${VIRTUALENV_CACHE_DIR}
    cp -a .virtualenv ${VIRTUALENV_CACHE_DIR}
 fi
@@ -76,7 +76,7 @@ retcode=0
 rm -rf ${LOG_DIR}/cover ${LOG_DIR}/diff-cover-report.html  ${LOG_DIR}/docs
 
 .virtualenv/bin/pip install diff_cover
-.virtualenv/bin/nosetests -s --with-coverage --cover-html --cover-html-dir=${LOG_DIR}/cover --cover-package mincer
+.virtualenv/bin/python setup.py testr --coverage --testr-args='{posargs}' --coverage-package-name=${REPO/kitchen-}
 [[ -e .cover ]] && {
     .virtualenv/bin/coverage xml
     .virtualenv/bin/diff-cover coverage.xml --html-report ${LOG_DIR}/diff-cover-report.html
