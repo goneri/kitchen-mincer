@@ -6,17 +6,17 @@ Kitchen Workflow
 Glossary
 ~~~~~~~~~
 
-This document describe the workflow within the kitchen with regard of
-delivering product, it address some terminology definition at first
-and shows the steps to devliver a product.
+This document describes the workflow within the kitchen with regard of
+delivering products, it address some terminology definition at first
+and shows the steps to deliver a product.
 
 Products
 --------
 
 Product is what is shipped from eNovance. This usually mean :
 
-* A marmite that describe the deployment of the product.
-* The associated artifact attached to the marmite stored in a object
+* A marmite that describes the deployment of the product.
+* The associated artifacts attached to the marmite stored in an object
   store (i.e: eDeploy images, provision data, puppet/chef/ansible scripts, etc..)
 * The product version.
 

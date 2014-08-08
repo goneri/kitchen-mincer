@@ -19,10 +19,11 @@ Introduction
 Kitchen Mincer aims to answer the following needs:
 
 - Give a way and tools to continously validate application deployment.
-- Validate that my application still work even if I upgrade my IAAS.
+- Validate that my application still work even if I upgrade my OpenStack.
 
-For the moment, it is not possible to deploy and test a IAAS on
-baremetal.
+For the moment, it is not possible to deploy and test Openstack on
+baremetal but we consider to deploy OpenStack on top of another OpenStack
+for testing purposes.
 
 Glossary
 ========
@@ -30,52 +31,66 @@ Glossary
 .. glossary::
 
     Application:
-        * Heat file + Heat components
+        * Heat template
         * Collection of medias (e.g: distribution repository)
+        * Some tests
 
-    Marmite: a application and environments
-        * an application
-        * collection of medias (e.g: Application backup to restore)
-        * environnement (reference or in-line)
+    Marmite: an application and environments
+        * An application
+        * Environments (reference or in-line)
 
-    Environnement:
-        an account of an OpenStack cloud providing Heat API. A name
-        can be specified to describe the environemnt like
-        (testing/prod/staging etc..)
+    Environment:
+        * An account of an OpenStack providing Heat API. A name can be
+        specified to describe the environment like (testing, prod, staging, etc..)
+        * Collection of medias (e.g: Application backup to restore)
 
     Media:
-        some data needed to run the application, see `the medias`_ bellow:
+        Some data needed to run the application, see `the medias`_ bellow:
         * ISO image retrieved from a HTTP location
-        * an eDeploy image disk
-        * some files collected and aggregated (git, etc)
+        * An eDeploy image disk
+        * Some files collected and aggregated (git repo, etc...)
 
     Provider: a driver for the cloud infrastructure we want to use
-        * OpenStack+Heat (default)
-        * OpenStack+Docker+Heat
-        * late
+        * OpenStack with Heat (default)
+        * In the future: Deployment on baremetal machines
+        * Other...
 
     Identity:
-        a set of credentials for the provider
+        A set of credentials for the provider.
 
     Mincer:
-        The tool in charge of the initial deployment of the infrastructure
+        The tool in charge of the initial deployment of the infrastructure.
 
     Kitchen Island:
         A internal code name, restricted to be kept internally and not communicated outside.
 
-    Tester:
-        A driver designed to run a specific kind of tests.
+    Action:
+        An action is a specific kind of task, like starting the infrastructure, running a ping, etc... Through
+        the combination of several actions we can perform complex and customizable workflow.
 
-    Test:
-        A process based on a `Tester` and designed to validate the good shape of a running Application.
+    Scenario:
+        A scenario is composed of a sequence of actions so that we can combine different actions to perform
+        a complex deployment.
+        For instance a scenario could be:
+            - start infrastructure
+            - init application
+            - run tests
+            - upgrade application
+            - run tests
+
+    logdispatcher:
+        The log dispatcher is the object in charge of distributing the logs on different targets, it could be
+        an Object storage, or a local directory. Thanks to the driver mechanism we can easily add new backends.
 
 
 Marmite definition
 ==================
 
-The marmite describes the application, where it should be deployed and
-validated. The marmite version is the current git commit. In the
-future version may be a more elaborated schema which would combine the
+The Marmite describes the application, where it should be deployed and
+validated. The Marmite is versioned on a git repository and the version
+is the one corresponding to the last commit.
+
+In the future, the version may be a more elaborated schema which would combine the
 recent tag and current commit (i.e: the output of `git describe`) to
 allow different releases channel (i.e: stable/testing/experimental).
 
@@ -83,42 +98,58 @@ marmite YAML file
 -----------------
 
 * environments
-    * identity
-    * medias
-    * key_pairs
+    * <env name 1>
+        * identity
+        * medias
+        * key_pairs
+        * floating_ips
+        * logdispatchers
+    * <env name 2>
+        * identity
+        * ...
 * application
     * name
     * medias
-    * garden gnome: the list of the associated tests
-* testers
-    * a_test_sample
+    * scenario
 
 The medias
 ----------
 
-The word media is used to describe all resources out of the Marmite. For example:
+The word media is used to describe all resources out of the Marmite.
 
-* a special operating system image available through HTTP
-* a snapshot of a Ceph volume
-* a database backup to restore stored in Swift
-* a Ansible configuration directory from a git repository
+For example:
+    * A special operating system image available through HTTP
+    * A snapshot of a Ceph volume
+    * A database backup to restore stored in Swift
+    * An Ansible configuration directory from a git repository
 
-We fetch these external resources and push them in images. Those medias are published as
-image.
+We fetch these external resources and create the corresponding images (eg. qcow2/raw files). Those medias
+are then published as Glance images.
 
-They must be prepared and uploaded before the stack startup because Heat will need them.
+Glance must be provisioned before the stack startup because the associated Heat template
+will depends on them.
 
 These medias can be either:
+    * In the application itself, e.g: a Fedora repository or an eDeploy image
+    * In the environment, e.g: a backup to restore or some additional configuration
 
-* in the application itself, e.g: a Fedora repository or an eDeploy image
-* in the user configuration, e.g: a backup to restore or some additional configuration
+The actions
+-----------
+
+The word action is used to describe all tasks we can perform in the environment.
+
+For example:
+    * Running a local command like a ping against a server
+    * Starting the infrastructure
+    * Running serverspec tests
+    * etc...
 
 Storage
 -------
 
 For each deployment on a CI the logs of the deployment would be stored
 in a Swift storage server. Using a global admin account we store all
-deployments of a client.
+deployment results.
 
 The path for the deployment ::
 
@@ -130,44 +161,64 @@ about the current deployment.
 Syntax
 ~~~~~~
 
-
 .. autoclass:: mincer.media.Media
 
 Directory hierarchy
 -------------------
 
-At which stage in the development process, we keep the *environmenets*,
-*applications* and *tests* section in the same file (*marmite.yaml*).
+Here is an example of the directory hierarchy of a product:
 
-- marmite.yaml
-- heat.yaml
+- wordpress
+    - marmite.yaml
+    - heat.yaml
+    - build_image.sh
+    - apt_mirror_config.sh
+    - backup_wordpress.sql
+    - db_install.sh
+    - wp_install.sh
+
+In addition to the marmite and heat files there is some shell scripts:
+
+- build_image.sh is used to build the image needed by the Heat template.
+- The other shell scripts are needed by Heat in order to configure the virtual machines.
 
 Workflows
 =========
 
-Initial deployment
-------------------
+Deployment
+----------
 
-1. Step zero
+1. Initialization
     1. Initialize the Mincer (aka Mixer)
-    2. load the Marmite
-    3. load the Provider
-2. Prepare the provider if needed (e.g: Docker)
-3. Prepare media images (qcow2, raw)
-    1. load the MediaManager object
-    2. get the media list from the marmite object
-    3. fetch the media and produce the associated images
-    4. upload the images in Glance and retrieve the image IDs
-    5. Upload the keypairs
-4. Compute the heat arguments (get image_id from MediaManager)
-5. Call Heat with the arguments
-6. Wait for stack being ready
-7. Process the tests against the newly created stack (See: `Functional testing`_)
-    1. start an ephemeral stack in the same tenant
-    2. run the test from that ephemeral stack
-    3. collect the result
-    4. destroy the stack
-8. destroy the stack if needed
+    2. Load the marmite object
+    3. Load the provider object
+2. Prepare the provider if needed
+3. Prepare external resources
+    1. Get the media list from the marmite object
+    2. Produce the associated images
+    3. Upload the images in Glance and retrieve the image IDs
+    4. Upload the keypairs
+
+At this step we have the provider initialized and the IaaS provisioned so we
+can run a scenario.
+
+4. Load a scenario from the marmite object
+    1. For each action in the scenario
+        1. Run the action
+
+An action can be as simple as runing a ping or deploying a complex stack which
+do tasks.
+
+The current available actions are:
+    - start_infra:  run the stack for the infrastructure
+    - local_script: run a local command
+    - simple_check: ru a command (example: ping) from an ephemeral stack
+    - serverspec_check:  running serverspec tests
+
+5. Retrieve and store the logs through the use of the log dispatcher
+
+Each actions write its logs in stdout so that we can easily retrieve it.
+
 
 Functional testing
 ------------------
@@ -186,18 +237,17 @@ D. A benchmark depending on a large number of virtual machines
 That's the reason why they are based on *drivers*.
 
 *SimpleCheck*
-    This driver relys on command return code. It's similar to what is commonly
+    This driver relies on command return code. It's similar to what is commonly
     done in the monitoring world. For example: call ping 5 time against all the
     host.
 *ServerSpec*
     Call *serverspec* ( http://serverspec.org/ ) command.
 
-Rational regarding the use of an ephemeral stack to run the test
+Rational regarding the use of an ephemeral stack to run actions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This paragraph explains the reason why we decide to launch an ephemeral stack
-to run the tests.
-
+This paragraph explains the reasons why we added the ability to run ephemeral stacks
+for some actions that run the tests.
 
 If we run the tests directly from the machine that run the mincer:
 
@@ -244,7 +294,7 @@ instance (Solution B).
     blockdiag admin {
 
         group clusterA {
-	    label = "my Wordpress (product stack)"
+	    label = "WORDPRESS"
             shape = line
             style = dashed
 
@@ -256,7 +306,7 @@ instance (Solution B).
 	}
 
         group clusterB {
-            label = "tester"
+            label = "ACTION: TESTER STACK"
             color = red
             shape = line
             style = dashed
