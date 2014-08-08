@@ -62,7 +62,7 @@ if [[ -d  ${VIRTUALENV_CACHE_DIR} ]] && ! is_elapsed ${VIRTUALENV_CACHE_DIR}; th
 else
    echo "Regenerating the virtualenv cache"
    .virtualenv/bin/pip install -e. -r test-requirements.txt -r requirements.txt
-   .virtualenv/bin/pip install tox
+   .virtualenv/bin/pip install tox nose coverage --force --upgrade
    rm -rf ${VIRTUALENV_CACHE_DIR}
    cp -a .virtualenv ${VIRTUALENV_CACHE_DIR}
 fi
