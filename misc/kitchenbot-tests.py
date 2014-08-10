@@ -48,7 +48,6 @@ class Bottine(object):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-
         # Vote 0 before starting and notify that we are testing.
         self.gerrit.review(data['change']['project'],
                            "%s,%s" % (data['change']['number'],
@@ -83,7 +82,6 @@ class Bottine(object):
         if os.path.exists(os.path.join(output_dir,
                                        "diff-cover-report.html")):
             msg += "* diff-cover: %s/diff-cover-report.html\n" % url
-
 
         if os.path.exists(os.path.join(output_dir,
                                        "docs/index.html")):
