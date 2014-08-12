@@ -99,7 +99,7 @@ class Environment(object):
 
     def medias(self):
         ret = {}
-        for k, v in self.tree.get('medias', {}).iteritems():
+        for k, v in six.iteritems(self.tree.get('medias', {})):
             ret[k] = media.Media(k, v)
         return ret
 
@@ -109,7 +109,7 @@ class Environment(object):
     def floating_ips(self):
         return self.tree.get('floating_ips', [])
 
-    def logdispatchers_params(self):
+    def logdispatchers(self):
         return self.tree.get('logdispatchers', [])
 
 
@@ -122,12 +122,6 @@ class Application(object):
             return self.application_tree['name']
         except KeyError:
             raise NotFound("'name' not found")
-
-    def params(self):
-        try:
-            return self.application_tree['params']
-        except KeyError:
-            raise NotFound("'params' not found")
 
     def medias(self):
         ret = {}
@@ -161,7 +155,7 @@ class Action(object):
 
     def medias(self):
         ret = {}
-        for k, v in self.tree.get('medias', {}).iteritems():
+        for k, v in six.iteritems(self.tree.get('medias', {})):
             ret[k] = media.Media(k, v)
         return ret
 
