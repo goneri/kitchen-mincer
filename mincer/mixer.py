@@ -132,7 +132,11 @@ class Mixer(object):
         provider.medias = provider.upload(medias, refresh_medias)
         provider.register_key_pairs(
             environment.key_pairs(), test_pub_key)
-        provider.register_floating_ips(environment.floating_ips())
+        output_fip = provider.register_floating_ips(environment.floating_ips())
+
+        for fip_name in output_fip:
+            LOG.info("Floating ip '%s' : '%s'" %
+                     (fip_name, output_fip[fip_name]))
 
         for action in scenario:
             logs = action.launch()

@@ -135,7 +135,7 @@ class Environment(object):
         return self.tree.get('key_pairs', [])
 
     def floating_ips(self):
-        return self.tree.get('floating_ips', [])
+        return self.tree.get('floating_ips', {})
 
     def logdispatchers_params(self):
         return self.tree.get('logdispatchers', [])

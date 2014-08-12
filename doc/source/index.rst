@@ -118,6 +118,27 @@ marmite YAML file
     * medias
     * scenario
 
+The floating ips
+----------------
+
+The "floating_ips" section in the environment allows to specify some floating IPs which
+are used by the Heat template. These floating IPs could be static or dynamic.
+
+Example:
+
+ .. code-block:: yaml
+     :linenos:
+
+        floating_ips:
+          public_wordpress_ip: 172.24.4.1
+          public_mysql_ip: 172.24.4.2
+          my_apache_server: dynamic
+          puppet_master: dynamic
+
+If they are static then it should be pre-allocated in the environment. In the case of dynamic
+floating IPs, the mincer will try to find a free one in the allocated pool if not it will
+allocate a new one.
+
 The medias
 ----------
 
