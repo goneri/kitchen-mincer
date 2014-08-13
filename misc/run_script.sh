@@ -68,7 +68,7 @@ else
 fi
 
 retcode=0
-[[ -e ./run_tests ]] && {
+[[ -e ./run_tests.sh ]] && {
     ./run_tests.sh ${OS_ENV_TARGET}
     retcode=$?
 }
