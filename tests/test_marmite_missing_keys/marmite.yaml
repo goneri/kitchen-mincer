@@ -1,0 +1,49 @@
+description: a sample marmite with a missing “params” key in scenario
+
+environments:
+  devtest:
+    provider: heat-devstack-docker
+    provider_params:
+      image: heat-devstack-docker
+      flavor: m1.medium
+      keypair: Nopasswd
+      floating_ip: 46.231.128.152
+    identity:
+      os_username: bob_l_eponge
+      os_tenant_name: $OS_TENANT_NAME
+      os_password: password
+      os_auth_url: $OS_AUTH_URL
+    ip_pool:
+      - 10.0.0.4
+      - 10.0.0.5
+      - 10.0.0.6
+  os-ci-test6:
+    identity:
+      os_username: bob_l_eponge
+      os_tenant_name: $OS_TENANT_NAME
+      os_password: $OS_PASSWORD
+      os_auth_url: $OS_AUTH_URL
+    ip_pool:
+      - 46.231.128.152
+      - 46.231.128.153
+
+application:
+  name: wordpress
+
+  medias:
+    wp_files:
+      type: git
+      value: https://github.com/WordPress/WordPress
+      target: ironic
+      ref: 3.8.2
+    sql_db_dump:
+      type: script
+      value: |
+              #!/bin/sh
+              mysqldump -hdbprod -utoto -ptoto wordpress > wordpress_prod.sql
+      target: db
+
+  scenario:
+    -
+      description: prepare the marmite
+      driver: local_script

@@ -9,3 +9,4 @@ python-keystoneclient
 python-heatclient
 python-novaclient
 python-swiftclient
+voluptuous

@@ -15,6 +15,8 @@
 
 from mincer import marmite
 
+import logging
+
 import mock
 import testtools
 
@@ -23,7 +25,7 @@ class TestMarmite(testtools.TestCase):
 
     def setUp(self):
         super(TestMarmite, self).setUp()
-        self.marmite = marmite.Marmite("./tests/test_files")
+        self.marmite = marmite.Marmite("./tests/test_marmite")
         self.application = self.marmite.application()
 
     def test_fake_marmite_init(self):
@@ -31,7 +33,7 @@ class TestMarmite(testtools.TestCase):
         self.assertRaises(marmite.NotFound, marmite.Marmite, "/tmp")
 
     def test_description(self):
-        self.assertEqual("A wordpress in a container (web and DB)",
+        self.assertEqual("a sample marmite",
                          self.marmite.description())
 
     def test_environment_provider(self):
@@ -63,20 +65,17 @@ class TestMarmite(testtools.TestCase):
 
     def test_application(self):
         self.assertEqual("wordpress", self.application.name())
-        self.assertIsNotNone(self.application.params())
-        self.assertIsNotNone(self.application.medias())
+        self.assertIsNotNone(self.application.scenario())
 
-    def test_params(self):
-        params = self.application.params()
+    def test_marmite_bad_template(self):
+        super(TestMarmite, self).setUp()
+        logging.disable(logging.CRITICAL)
+        self.assertRaises(marmite.InvalidStructure,
+                          marmite.Marmite,
+                          "./tests/test_marmite_bad_template")
 
-        params_expected = {"type": "floating_ip",
-                           "name": "mysql_server", "idx": 0}
-        self.assertDictEqual(params_expected, params[0])
-
-        params_expected = {"type": "floating_ip",
-                           "name": "mysql_server", "idx": 0}
-        self.assertDictEqual(params_expected, params[0])
-
-        params_expected = {"type": "media", "name": "wp_files"}
-        self.assertDictEqual(params_expected, params[4])
-        self.assertIn("wp_files", self.application.medias())
+    def test_marmite_missing_keys(self):
+        super(TestMarmite, self).setUp()
+        self.assertRaises(marmite.InvalidStructure,
+                          marmite.Marmite,
+                          "./tests/test_marmite_missing_keys")

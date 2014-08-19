@@ -13,13 +13,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
 import os
 
 import jinja2
 import six
+import voluptuous
 import yaml
 
 from mincer import media
+
+LOG = logging.getLogger(__name__)
 
 
 class Marmite(object):
@@ -48,9 +52,14 @@ class Marmite(object):
             template = env.get_template("marmite.yaml")
         except jinja2.exceptions.TemplateNotFound:
             raise NotFound()
+        except jinja2.exceptions.TemplateSyntaxError as e:
+            LOG.error("Invalid template syntax in %s/marmite.yaml: %s" % (
+                marmite_dir, e))
+            raise InvalidStructure()
         marmite = template.render(extra_params)
-
         self.marmite_tree = yaml.load(marmite)
+        self._validate()
+
         self._application = Application(self.marmite_tree['application'])
         self.environments = {}
         for name in self.marmite_tree['environments']:
@@ -58,20 +67,36 @@ class Marmite(object):
                 name,
                 self.marmite_tree['environments'][name])
 
-    def description(self):
+    def _validate(self):
+        All = voluptuous.All
+        Required = voluptuous.Required
+        Length = voluptuous.Length
+
+        schema = voluptuous.Schema({
+            Required('description'): voluptuous.All(str, Length(min=5)),
+            Required('environments'): dict,
+            Required('application'): {
+                Required('name'): str,
+                Required('medias'): dict,
+                Required('scenario'): [{
+                    Required('driver'): str,
+                    Required('params'): All(),
+                    Required('description'): All(str, Length(min=5))}]}})
         try:
-            return self.marmite_tree['description']
-        except KeyError:
-            raise NotFound("'description' not found")
+            schema(self.marmite_tree)
+        except voluptuous.MultipleInvalid as e:
+            LOG.error("Failed to validate %s/marmite.yaml structure: %s" %
+                      (self.marmite_dir, e))
+            raise InvalidStructure()
+
+    def description(self):
+        return self.marmite_tree['description']
 
     def application(self):
         return self._application
 
     def environment(self, name):
-        try:
-            return self.environments[name]
-        except KeyError:
-            raise NotFound("environment '%s' not found" % name)
+        return self.environments[name]
 
 
 class Environment(object):
@@ -99,8 +124,11 @@ class Environment(object):
 
     def medias(self):
         ret = {}
-        for k, v in self.tree.get('medias', {}).iteritems():
-            ret[k] = media.Media(k, v)
+        try:
+            for k, v in self.tree['medias'].iteritems():
+                ret[k] = media.Media(k, v)
+        except KeyError:
+            pass
         return ret
 
     def key_pairs(self):
@@ -115,30 +143,22 @@ class Environment(object):
 
 class Application(object):
     def __init__(self, application_tree):
+
         self.application_tree = application_tree
 
     def name(self):
-        try:
-            return self.application_tree['name']
-        except KeyError:
-            raise NotFound("'name' not found")
-
-    def params(self):
-        try:
-            return self.application_tree['params']
-        except KeyError:
-            raise NotFound("'params' not found")
+        return self.application_tree['name']
 
     def medias(self):
         ret = {}
-        m = self.application_tree.get('medias', {})
+        m = self.application_tree['medias']
         for k, v in six.iteritems(m):
             ret[k] = media.Media(k, v)
         return ret
 
     def scenario(self):
         scenario = []
-        for action in self.application_tree.get('scenario', []):
+        for action in self.application_tree['scenario']:
             scenario.append(Action(action))
         return scenario
 
@@ -148,23 +168,15 @@ class Action(object):
         self.tree = tree
 
     def driver(self):
-        try:
-            return self.tree['driver']
-        except KeyError:
-            raise NotFound("test has no 'driver' key")
+        return self.tree['driver']
 
     def params(self):
-        try:
-            return self.tree['params']
-        except KeyError:
-            raise NotFound("test has no 'params' key")
-
-    def medias(self):
-        ret = {}
-        for k, v in self.tree.get('medias', {}).iteritems():
-            ret[k] = media.Media(k, v)
-        return ret
+        return self.tree['params']
 
 
 class NotFound(Exception):
     """Exception raised when an object is not found."""
+
+
+class InvalidStructure(Exception):
+    """Exception raised when a marmite is not valide."""
