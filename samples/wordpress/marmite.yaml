@@ -77,11 +77,6 @@ application:
     -
       name: run serverspec
       driver: serverspec
-      medias:
-        base_image:
-            type: block
-            disk_format: qcow2
-            path: samples/wordpress/base_image.qcow2
       params:
         targets:
           - webserver_instance

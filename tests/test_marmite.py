@@ -14,122 +14,69 @@
 # under the License.
 
 from mincer import marmite
-from mincer import media
 
 import mock
-import six
 import testtools
-
-_OS_AUTH_VAR = ("os_auth_url", "os_username", "os_password", "os_tenant_name")
-_PROVIDERS = ("heat", )
 
 
 class TestMarmite(testtools.TestCase):
-    """Test the Wordpress marmite.
-
-    This unit tests are all done against the wordpress marmite
-    which is currently the reference marmite.
-    """
 
     def setUp(self):
         super(TestMarmite, self).setUp()
-        self.marmite = marmite.Marmite("./samples/wordpress")
+        self.marmite = marmite.Marmite("./tests/test_files")
+        self.application = self.marmite.application()
 
-    def test_marmite_init_exception(self):
+    def test_fake_marmite_init(self):
         self.assertRaises(ValueError, marmite.Marmite, None)
         self.assertRaises(marmite.NotFound, marmite.Marmite, "/tmp")
 
     def test_description(self):
-        self.assertIsNotNone(self.marmite.description())
+        self.assertEqual("A wordpress in a container (web and DB)",
+                         self.marmite.description())
 
-    def test_description_exception(self):
-        del self.marmite.marmite_tree["description"]
-        self.assertRaises(marmite.NotFound, self.marmite.description)
+    def test_environment_provider(self):
+        self.assertIn("heat-devstack-docker",
+                      self.marmite.environment("devtest").provider())
+        provider_params = self.marmite.environment("devtest").provider_params()
+        self.assertIn("heat-devstack-docker", provider_params["image"])
+        self.assertIn("m1.medium", provider_params["flavor"])
+        self.assertIn("Nopasswd", provider_params["keypair"])
+        self.assertIn("46.231.128.152", provider_params["floating_ip"])
+        fake_env = marmite.Environment("fake_env", {})
+        self.assertIn("heat", fake_env.provider())
 
-    @mock.patch('mincer.marmite.os.environ', {"OS_TENANT_NAME": "tenant",
-                                              "OS_AUTH_URL": "auth_url",
-                                              "OS_USERNAME": "username",
-                                              "OS_PASSWORD": "password"})
-    def test_environment(self):
-        devtest_env = self.marmite.environment("devtest")
-        self.assertIsNotNone(devtest_env)
-        self.assertIsInstance(devtest_env,
-                              marmite.Environment)
-        self.assertTrue(devtest_env.provider() in _PROVIDERS)
-        self.assertIsNotNone(devtest_env.identity())
-        for auth_var in _OS_AUTH_VAR:
-            self.assertTrue(auth_var in devtest_env.identity())
+    def test_identity(self):
+        with mock.patch.dict('os.environ', {'OS_TENANT_NAME': 'tenant',
+                                            'OS_AUTH_URL': 'auth_url'}):
+            devtest_identity = self.marmite.environment("devtest").identity()
 
-        self.assertIsNotNone(devtest_env.medias())
-        for media_name, t_media in six.iteritems(devtest_env.medias()):
-            self.assertIsInstance(t_media, media.Media)
+            self.assertEqual("bob_l_eponge", devtest_identity["os_username"])
+            self.assertEqual("password", devtest_identity["os_password"])
+            self.assertEqual("tenant", devtest_identity["os_tenant_name"])
+            self.assertEqual("auth_url", devtest_identity["os_auth_url"])
 
-        self.assertIn("stack_os_ci-test7", devtest_env.key_pairs())
-        self.assertIn("public_wordpress_ip", devtest_env.floating_ips())
-        logdispatcher_0 = devtest_env.logdispatchers()[0]
-        self.assertTrue("name", logdispatcher_0)
-        self.assertTrue("driver", logdispatcher_0)
-
-    def test_environment_exception(self):
-        self.assertRaises(marmite.NotFound, self.marmite.environment, "kikoo")
-
-    @mock.patch('mincer.marmite.os.environ', {"OS_TENANT_NAME": "tenant",
-                                              "OS_AUTH_URL": "auth_url",
-                                              "OS_USERNAME": "username",
-                                              "OS_PASSWORD": "password"})
-    def test_identity_with_env_variables(self):
-        devtest_identity = self.marmite.environment("devtest").identity()
-        self.assertEqual("username", devtest_identity["os_username"])
-        self.assertEqual("password", devtest_identity["os_password"])
-        self.assertEqual("tenant", devtest_identity["os_tenant_name"])
-        self.assertEqual("auth_url", devtest_identity["os_auth_url"])
-
-    @mock.patch('mincer.marmite.os.environ', {})
+    @mock.patch.dict('os.environ', {})
     def test_identity_with_unknown_env_variables(self):
-        devtest = self.marmite.environment("devtest")
-        self.assertRaises(ValueError, devtest.identity)
-
-    def test_identity_with_vavlues(self):
-        devtest = self.marmite.environment("devtest")
-        identity = devtest.tree["identity"]
-        identity["os_auth_url"] = "auth_url"
-        identity["os_username"] = "username"
-        identity["os_password"] = "password"
-        identity["os_tenant_name"] = "tenant"
-        devtest_identity = devtest.identity()
-        self.assertEqual("username", devtest_identity["os_username"])
-        self.assertEqual("password", devtest_identity["os_password"])
-        self.assertEqual("tenant", devtest_identity["os_tenant_name"])
-        self.assertEqual("auth_url", devtest_identity["os_auth_url"])
+        raw = {"identity": {"os_password": "$BOB_WAS_HERE"}}
+        fake_env = marmite.Environment("fake_env", raw)
+        self.assertRaises(ValueError, fake_env.identity)
 
     def test_application(self):
-        self.assertEqual("wordpress", self.marmite.application().name())
-        self.assertIsNotNone(self.marmite.application().medias())
-        scenario = self.marmite.application().scenario()
-        self.assertIsNotNone(scenario)
-        for action in scenario:
-            self.assertIsInstance(action, marmite.Action)
+        self.assertEqual("wordpress", self.application.name())
+        self.assertIsNotNone(self.application.params())
+        self.assertIsNotNone(self.application.medias())
 
-    def test_application_exception(self):
-        del self.marmite.marmite_tree['application']["name"]
-        self.assertRaises(marmite.NotFound, self.marmite.application().name)
+    def test_params(self):
+        params = self.application.params()
 
-    def test_action(self):
-        scenario = self.marmite.application().scenario()
-        self.assertIsNotNone(scenario)
-        for action in scenario:
-            self.assertIsInstance(action, marmite.Action)
-            self.assertIsNotNone(action.driver())
-            medias = action.medias()
-            if medias != {}:
-                for name in medias:
-                    self.assertIsInstance(medias[name], media.Media)
+        params_expected = {"type": "floating_ip",
+                           "name": "mysql_server", "idx": 0}
+        self.assertDictEqual(params_expected, params[0])
 
-    def test_action_exception(self):
-        scenario = self.marmite.application().scenario()
-        self.assertIsNotNone(scenario)
-        for action in scenario:
-            del action.tree["driver"]
-            self.assertRaises(marmite.NotFound, action.driver)
-            del action.tree["params"]
-            self.assertRaises(marmite.NotFound, action.params)
+        params_expected = {"type": "floating_ip",
+                           "name": "mysql_server", "idx": 0}
+        self.assertDictEqual(params_expected, params[0])
+
+        params_expected = {"type": "media", "name": "wp_files"}
+        self.assertDictEqual(params_expected, params[4])
+        self.assertIn("wp_files", self.application.medias())

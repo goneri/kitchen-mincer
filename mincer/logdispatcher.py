@@ -33,7 +33,7 @@ class Logdispatcher(object):
 
     def __init__(self, environment, provider):
         self.logdispatchers = []
-        for params in environment.logdispatchers():
+        for params in environment.logdispatchers_params():
             kwargs = dict(params=params, provider=provider)
 
             ld = driver.DriverManager(
