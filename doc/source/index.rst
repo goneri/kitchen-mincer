@@ -31,26 +31,31 @@ Glossary
 .. glossary::
 
     Application:
+
         * Heat template
         * Collection of medias (e.g: distribution repository)
         * Some tests
 
     Marmite: an application and environments
+
         * An application
         * Environments (reference or in-line)
 
     Environment:
+
         * An account of an OpenStack providing Heat API. A name can be
-        specified to describe the environment like (testing, prod, staging, etc..)
+          specified to describe the environment like (testing, prod, staging, etc..)
         * Collection of medias (e.g: Application backup to restore)
 
     Media:
+
         Some data needed to run the application, see `the medias`_ bellow:
         * ISO image retrieved from a HTTP location
         * An eDeploy image disk
         * Some files collected and aggregated (git repo, etc...)
 
     Provider: a driver for the cloud infrastructure we want to use
+
         * OpenStack with Heat (default)
         * In the future: Deployment on baremetal machines
         * Other...
@@ -72,6 +77,7 @@ Glossary
         A scenario is composed of a sequence of actions so that we can combine different actions to perform
         a complex deployment.
         For instance a scenario could be:
+
             - start infrastructure
             - init application
             - run tests
