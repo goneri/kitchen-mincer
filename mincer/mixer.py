@@ -20,6 +20,7 @@ from Crypto.PublicKey import RSA
 import six
 from stevedore import driver
 
+import mincer.credentials
 import mincer.logdispatcher
 
 LOG = logging.getLogger(__name__)
@@ -46,6 +47,8 @@ class Mixer(object):
         """
         self.args = args
         self.marmite = marmite
+        self.credentials = mincer.credentials.Credentials(
+            args.credentials_file)
 
     @staticmethod
     def report_error(manager, entrypoint, exception):
@@ -171,7 +174,7 @@ class Mixer(object):
                                     refresh_medias, test_priv_key)
             scenario.append(action)
 
-        provider.connect(environment.identity())
+        provider.connect(self.credentials.get())
         provider.name = self.marmite.application().name()
         provider.medias = provider.upload(medias, refresh_medias)
         provider.register_key_pairs(

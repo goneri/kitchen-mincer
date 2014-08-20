@@ -5,12 +5,6 @@ environments:
   devtest:
 # Implicite, heat is the default provider.
 #    provider: heat
-    identity:
-#NOTE(Gonéri): Why the os_ prefix?
-      os_auth_url: $OS_AUTH_URL
-      os_username: $OS_USERNAME
-      os_password: $OS_PASSWORD
-      os_tenant_name: $OS_TENANT_NAME
     medias:
       dump_mysql:
         type: dynamic

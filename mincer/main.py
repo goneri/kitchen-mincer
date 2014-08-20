@@ -65,6 +65,9 @@ def get_args(args=None):
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", help="Target to run")
+    parser.add_argument("--credentials-file", help="Adjust the location of "
+                        "the credential file, default is "
+                        "~/.config/mincer/credentials.yaml")
     parser.add_argument("--debug", action="store_true",
                         help="Debug mode")
     parser.add_argument("--extra_params", action=AppendExtraParams,

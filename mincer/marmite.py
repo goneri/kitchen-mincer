@@ -14,7 +14,6 @@
 # under the License.
 
 import logging
-import os
 
 import jinja2
 import six
@@ -157,26 +156,6 @@ class Environment(object):
 
         """
         return self.tree.get('provider_params', {})
-
-    def identity(self):
-        """return the credentials for the provider
-
-        variable `$foo` are expended with environment variable called `foo`.
-
-        :returns: the crednetials
-        :rtype: dict
-
-        """
-        credentials = {}
-        identities = self.tree['identity']
-        for credential, value in identities.items():
-            if value.startswith("$"):
-                credentials[credential] = os.environ.get(value[1:])
-                if credentials[credential] is None:
-                    raise ValueError("Env variable '%s' not set" % value)
-            else:
-                credentials[credential] = value
-        return credentials
 
     def medias(self):
         """Return the medias of the customer.

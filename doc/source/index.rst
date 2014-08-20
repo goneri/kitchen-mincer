@@ -61,7 +61,7 @@ Glossary
         * In the future: Deployment on baremetal machines
         * Other...
 
-    Identity:
+    Credentials:
         A set of credentials for the provider.
 
     Mincer:
@@ -89,6 +89,18 @@ Glossary
         The log dispatcher is the object in charge of distributing the logs on different targets, it could be
         an Object storage, or a local directory. Thanks to the driver mechanism we can easily add new backends.
 
+Credentials
+===========
+
+Credentials can be stored in `~/.config/mincer/credentials.yaml`. If the file is missing,
+the standard OpenStack environment variables will be loaded:
+
+    * $OS_AUTH_URL
+    * $OS_USERNAME
+    * $OS_PASSWORD
+    * $OS_TENANT_NAME
+
+You can specify another location for your credentials with the `--credentials-file` parameters.
 
 Marmite definition
 ==================
@@ -106,13 +118,11 @@ marmite YAML file
 
 * environments
     * <env name 1>
-        * identity
         * medias
         * key_pairs
         * floating_ips
         * logdispatchers
     * <env name 2>
-        * identity
         * ...
 * application
     * name
