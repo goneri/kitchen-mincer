@@ -109,10 +109,15 @@ class TestSimpleCheck(testtools.TestCase):
                                      {},
                                      [],
                                      None)
-        sp = my_action._prepare_stack_params(
-            [{'name': 'hal', 'primary_ip_address': '1.2.3.4'}],
-            {'hal': 'httping $IP'})
-        self.assertEqual(sp, [{'cmd': 'httping $IP', 'machine_ip': '1.2.3.4'}])
+        sp = my_action._prepare_check_commands(
+            [{'name': 'hal', 'primary_ip_address': '1.2.3.4'},
+             {'name': 'roy', 'primary_ip_address': '1.2.3.5'},
+             {'name': 'uranus', 'primary_ip_address': '1.2.3.6'}],
+            {'hal': 'httping $IP', '_ALL_': 'ping -c 5 $IP'})
+        self.assertEqual(sp, ['httping 1.2.3.4',
+                              'ping -c 5 1.2.3.4',
+                              'ping -c 5 1.2.3.5',
+                              'ping -c 5 1.2.3.6'])
 
     def test__get_temp_stack_file(self):
         my_action = simple_check.SimpleCheck([], None, {}, [], None)

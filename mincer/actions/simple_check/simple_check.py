@@ -91,21 +91,28 @@ class HeatConfig(object):
 
 
 class SimpleCheck(action.PluginActionBase):
-    def _feed_stack(self, cmd, machine_ip, heat_config):
-        command = string.Template(cmd).substitute({"IP": machine_ip})
-        heat_config.add_test(command)
 
-    def _prepare_stack_params(self, machines, params):
-        stack_params = []
-        for machine in self.provider.get_machines():
+    """An action designed to validate an application with simple command."""
+
+    def _prepare_check_commands(self, machines, params):
+        """Add the list of check commands to run
+
+        :param machines: the machines found in the application stack
+        :type machines: list of dict()
+        :param params: the structure used to configure the action
+        :type params: dict
+
+        """
+        cmds = []
+        for machine in machines:
             for target in params:
                 if target == '_ALL_' or target == machine["name"]:
                     machine_ip = machine["primary_ip_address"]
-                    cmd = params[target]
-                    stack_params.append({
-                        'cmd': cmd,
-                        'machine_ip': machine_ip})
-        return(stack_params)
+                    cmd_tpl = params[target]
+                    cmd = string.Template(cmd_tpl).substitute(
+                        {"IP": machine_ip})
+                    cmds.append(cmd)
+        return cmds
 
     def _get_temp_stack_file(self, heat_config):
         f = tempfile.NamedTemporaryFile(delete=False)
@@ -118,13 +125,10 @@ class SimpleCheck(action.PluginActionBase):
 
         heat_config = HeatConfig()
 
-        params = self.params
-
-        machines = self.provider.get_machines()
-        for stack_param in self._prepare_stack_params(machines, params):
-            self._feed_stack(stack_param['cmd'],
-                             stack_param['machine_ip'],
-                             heat_config)
+        for cmd in self._prepare_check_commands(
+                self.provider.get_machines(),
+                self.params):
+            heat_config.add_test(cmd)
 
         # TODO(Gonéri): Probably not needed anymore
         medias = self.medias
