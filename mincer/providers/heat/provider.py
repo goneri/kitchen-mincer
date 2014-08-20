@@ -181,23 +181,125 @@ class Heat(object):
 
         self.key_pairs = parameters
 
-    def register_floating_ips(self, floating_ips):
-        """Prepare the floating IP in the tenant
+    def _reserve_static_floating_ips(self, static_floating_ips,
+                                     remote_floating_ips):
+        """Reserve static floating IPs.
 
-        Ensure that the provided floating ips are available. Push them
-        on the Heat stack parameters.
+        This function ensure that the static floating IPs are available in the
+        floating IP pool of the environment and returns the corresponding
+        template parameters.
+
+        :param static_floating_ips: the static floating IPs retrieved from
+        the marmite
+        :type static_floating_ips: dict
+        :param remote_floating_ips: the floating IPs retrieved from the
+        environment
+        :type remote_floating_ips: dict
+        :return: the reserved floating IPs
         """
-        for name in floating_ips:
-            ip = floating_ips[name]
-            found = None
-            # TODO(yassine), not correct for two floating ips
-            for entry in self._novaclient.floating_ips.list():
-                if ip != entry.ip:
-                    continue
-                self.floating_ips['floating_ip_%s' % name] = str(entry.ip)
-                found = True
-            if not found:
-                raise UnknownFloatingIP("floating ip '%s' not found" % ip)
+        output_floating_ips = {}
+        # first, we reserved the statics floating IPs
+        # once reserved they must be in output_floating_ips
+        for name in static_floating_ips:
+            static_ip = static_floating_ips[name]
+
+            if static_ip not in remote_floating_ips:
+                raise FloatingIPError("floating ip '%s' not allocated"
+                                      % static_ip)
+            if remote_floating_ips[static_ip].instance_id is not None:
+                instance_use_fip = remote_floating_ips[static_ip].instance_id
+                raise FloatingIPError("'%s' already used by instance '%s'"
+                                      % (static_ip, instance_use_fip))
+            if static_ip in output_floating_ips.values():
+                # retrieve the floating IP name of the one which
+                # is already reserved
+                already_reserved = [k for k, v in
+                                    six.iteritems(output_floating_ips)
+                                    if v == static_ip][0]
+                raise FloatingIPError("'%s' already reserved for '%s'" %
+                                      (static_ip, already_reserved))
+
+            # here we can safely reserve the floating IP and provide it
+            # to the Heat template parameters
+            self.floating_ips['floating_ip_%s' % name] = str(static_ip)
+            output_floating_ips[name] = str(static_ip)
+
+        return output_floating_ips
+
+    def _reserve_dynamic_floating_ips(self, already_reserved_ip,
+                                      dynamic_floating_ips,
+                                      remote_floating_ips):
+        """Reserve dynamic floating IPs.
+
+        This function tries to reuse free floating IPs from the pool of the
+        environment if there is no available floating IPs it will allocate
+        a new one. Finally, it returns the corresponding template parameters.
+
+        :param already_reserved_ip: the already reserved floating IPs
+        :type already_reserved_ip: dict
+        :param dynamic_floating_ips: the dynamic floating IPs retrieved from
+        the marmite
+        :type dynamic_floating_ips: dict
+        :param remote_floating_ips: the floating IPs retrieved from the
+        environment
+        :type remote_floating_ips: dict
+        :return: the reserved floating ips
+        :param dynamic_floating_ips:
+        :param remote_floating_ips:
+        :return: the reserved floating IPs
+        """
+        output_floating_ips = dict(already_reserved_ip)
+        # in a first time we check if we can reuse a free floating IP already
+        # allocated in the environment, if not we create a new one.
+        for name in dynamic_floating_ips:
+            for r_fip in remote_floating_ips:
+                # If the already allocated floating IP is not reserved
+                if r_fip not in output_floating_ips.values():
+                    # Use it instead of allocating a new one
+                    self.floating_ips['floating_ip_%s' % name] = str(r_fip)
+                    output_floating_ips[name] = str(r_fip)
+                    break
+            # If there is no free floating IP in the environment
+            if not output_floating_ips.get(name):
+                # Then create a new one
+                new_fip = self._novaclient.floating_ips.create()
+                self.floating_ips['floating_ip_%s' % name] = str(new_fip.ip)
+                output_floating_ips[name] = str(new_fip.ip)
+
+        return output_floating_ips
+
+    def register_floating_ips(self, marmite_floating_ips):
+        """Prepare the floating IPs in the tenant
+
+        Ensure that the static floating ips are available and creates the
+        dynamic ones. Push them on the Heat stack parameters.
+
+        :param marmite_floating_ips: the floating specified in the marmite
+        :type marmite_floating_ips: dict
+        :return: all used floating ips
+        :type: dict
+        """
+        remote_floating_ips = {}
+        for entry in self._novaclient.floating_ips.list():
+            remote_floating_ips[entry.ip] = entry
+
+        # reserve static floating IPs
+        static_floating_ips = dict((k, v) for k, v in
+                                   six.iteritems(marmite_floating_ips)
+                                   if v != 'dynamic')
+        static_reserved_floating_ips = self._reserve_static_floating_ips(
+            static_floating_ips, remote_floating_ips)
+
+        # reserve dynamic floating IPs
+        dynamic_floating_ips = dict((k, v) for k, v in
+                                    six.iteritems(marmite_floating_ips)
+                                    if v == 'dynamic')
+        dynamic_reserved_floating_ips = self._reserve_dynamic_floating_ips(
+            static_reserved_floating_ips, dynamic_floating_ips,
+            remote_floating_ips)
+
+        return dict(static_reserved_floating_ips,
+                    **dynamic_reserved_floating_ips)
 
     def launch_application(self):
         parameters = {}
@@ -357,8 +459,8 @@ class AlreadyExisting(Exception):
     """Exception raised when there is a conflict with a stack."""
 
 
-class UnknownFloatingIP(Exception):
-    """Exception raised when the floating IP is unknown."""
+class FloatingIPError(Exception):
+    """Exception raised when an error occurs for a given floating IP."""
 
 
 class UploadError(Exception):

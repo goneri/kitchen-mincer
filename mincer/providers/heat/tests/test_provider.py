@@ -73,11 +73,21 @@ class fake_novaclient(object):
 
     class fake_floating_ips(object):
         def __init__(self, **kwargs):
-            self._floating_ip = mock.Mock()
-            self._floating_ip.ip = "127.0.0.1"
+            self._floating_ip_1 = mock.Mock()
+            self._floating_ip_1.ip = "127.0.0.1"
+            self._floating_ip_1.instance_id = None
+            self._floating_ip_2 = mock.Mock()
+            self._floating_ip_2.ip = "127.0.0.2"
+            self._floating_ip_2.instance_id = None
 
         def list(self):
-            return [self._floating_ip]
+            return [self._floating_ip_1, self._floating_ip_2]
+
+        def create(self):
+            floating_ip = mock.Mock()
+            floating_ip.ip = "127.0.0.3"
+            floating_ip.instance_id = None
+            return floating_ip
 
     class fake_servers(object):
         def __init__(self, **kwargs):
@@ -263,17 +273,61 @@ class TestProvider(testtools.TestCase):
     def test_register_floating_ips(self):
         my_provider = provider.Heat(args=fake_args())
         my_provider._novaclient = fake_novaclient()
-        my_provider.register_floating_ips(
+        test_res = my_provider.register_floating_ips(
             {"test_floating_ip": "127.0.0.1"})
         expected_parameters = {"floating_ip_test_floating_ip": "127.0.0.1"}
         self.assertDictEqual(my_provider.floating_ips, expected_parameters)
+        self.assertDictEqual(test_res, {"test_floating_ip": "127.0.0.1"})
 
     def test_register_floating_ips_unknown_floating_iP(self):
         my_provider = provider.Heat(args=fake_args())
         my_provider._novaclient = fake_novaclient()
-        self.assertRaises(provider.UnknownFloatingIP,
+        self.assertRaises(provider.FloatingIPError,
                           my_provider.register_floating_ips,
-                          {'pub_ip': '::1'})
+                          {"pub_1": "1.2.3.4"})
+
+    def test_register_static_floating_ips_already_reserved(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._novaclient = fake_novaclient()
+        self.assertRaises(provider.FloatingIPError,
+                          my_provider.register_floating_ips,
+                          {"test_floating_ip": "127.0.0.1",
+                           "test_floating_ip2": "127.0.0.1"})
+
+    def test_register_static_floating_ips_already_used(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._novaclient = fake_novaclient()
+        my_provider._novaclient.floating_ips.list()[0].instance_id = "id"
+        self.assertRaises(provider.FloatingIPError,
+                          my_provider.register_floating_ips,
+                          {"test_floating_ip": "127.0.0.1"})
+
+    def test_register_dynamic_floating_ips_already_allocated(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._novaclient = fake_novaclient()
+        test_res = my_provider.register_floating_ips(
+            {"test_floating_ip": "dynamic"})
+        expected_parameters_1 = {"floating_ip_test_floating_ip": "127.0.0.1"}
+        expected_parameters_2 = {"floating_ip_test_floating_ip": "127.0.0.2"}
+        self.assertTrue(my_provider.floating_ips == expected_parameters_1 or
+                        my_provider.floating_ips == expected_parameters_2)
+        self.assertTrue(test_res == {"test_floating_ip": "127.0.0.1"} or
+                        test_res == {"test_floating_ip": "127.0.0.2"})
+
+    def test_register_dynamic_floating_ips_creation(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._novaclient = fake_novaclient()
+
+        test_res = my_provider.register_floating_ips(
+            {"float_1": "127.0.0.1", "float_2": "127.0.0.2",
+             "test_floating_ip": "dynamic"})
+        self.assertDictEqual(my_provider.floating_ips,
+                             {"floating_ip_float_1": "127.0.0.1",
+                              "floating_ip_float_2": "127.0.0.2",
+                              "floating_ip_test_floating_ip": "127.0.0.3"})
+        self.assertDictEqual(test_res, {"test_floating_ip": "127.0.0.3",
+                                        "float_1": "127.0.0.1",
+                                        "float_2": "127.0.0.2"})
 
     def test_get_machines(self):
         my_provider = provider.Heat(args=fake_args())
