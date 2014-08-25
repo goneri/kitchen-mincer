@@ -131,7 +131,7 @@ class SimpleCheck(action.PluginActionBase):
                     cmd = string.Template(cmd_tpl).substitute(
                         {"IP": machine_ip})
                     cmds.append(cmd)
-        return cmds
+        return sorted(cmds)
 
     def _get_temp_stack_file(self, heat_config):
         """Return the heat_config as a temporary file
