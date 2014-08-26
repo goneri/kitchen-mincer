@@ -10,7 +10,7 @@ environments:
         type: dynamic
         sources:
           -
-            type: script
+            driver: script
             value: |
                 #!/bin/sh
                 cp $BASE_DIR/samples/wordpress/backup_wordpress.sql .
@@ -38,7 +38,7 @@ application:
         type: dynamic
         sources:
           -
-            type: git
+            driver: git
             value: https://github.com/WordPress/WordPress
             target: wordpress
             ref: 3.8.2

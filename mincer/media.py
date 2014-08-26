@@ -64,13 +64,13 @@ class Media(object):
             type: dynamic
             sources:
               -
-                type: script
+                driver: script
                 value: |
                     #!/bin/sh
                     cp $BASE_DIR/samples/wordpress/backup_wordpress.sql .
                 target: mysql
               -
-                type: git
+                driver: git
                 value: https://github.com/WordPress/WordPress
                 target: wordpress
                 ref: 3.8.2
@@ -171,14 +171,14 @@ class Media(object):
             os.makedirs(target_dir)
             LOG.debug("target_dir: '%s'" % target_dir)
 
-            if source['type'] == 'git':
+            if source['driver'] == 'git':
                 subprocess.call(["git", "clone", "--depth", "1",
                                  source['value'], target_dir],
                                 cwd=self.data_dir)
-            elif source['type'] == 'local':
+            elif source['driver'] == 'local':
                 subprocess.call("cp -r %s/* %s" % (source['path'], target_dir),
                                 shell=True)
-            elif source['type'] == 'script':
+            elif source['driver'] == 'script':
                 os.environ['BASE_DIR'] = os.getcwd()
                 f = tempfile.NamedTemporaryFile(delete=False)
                 f.write(source['value'])
