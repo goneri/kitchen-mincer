@@ -122,9 +122,37 @@ class TestSimpleCheck(testtools.TestCase):
     def test__get_temp_stack_file(self):
         my_action = simple_check.SimpleCheck([], None, {}, [], None)
         heat_config = simple_check.HeatConfig()
+        heat_config.add_test("echo 33")
         fname = my_action._get_temp_stack_file(heat_config)
-        data = yaml.load(open(fname, 'r'))
-        self.assertTrue(data['description'])
+        got = yaml.load(open(fname, 'r'))
+        expect = {'description': 'Zoubida',
+                  'heat_template_version': '2013-05-23',
+                  'outputs': {'simple_test_0':
+                              {'description': 'echo 33',
+                               'value': {'get_attr': ['0_d',
+                                                      'deploy_stdout']}}},
+                  'parameters': {
+                      'volume_id_base_image': {'description':
+                                               'The VM root system',
+                                               'type': 'string'}},
+                  'resources': {'0_c':
+                                {'properties': {'config':
+                                                '#!/bin/sh\necho 33\n',
+                                                'group': 'script'},
+                                 'type': 'OS::Heat::SoftwareConfig'},
+                                '0_d': {'properties':
+                                        {'config': {'get_resource': '0_c'},
+                                         'server': {'get_resource':
+                                                    'tester_instance'}},
+                                        'type':
+                                        'OS::Heat::SoftwareDeployment'},
+                                'tester_instance': {'properties': {
+                                    'flavor': 'm1.small',
+                                    'image': {'get_param':
+                                              'volume_id_base_image'},
+                                    'user_data_format': 'SOFTWARE_CONFIG'},
+                                    'type': 'OS::Nova::Server'}}}
+        self.assertEqual(got, expect)
 
 
 class TestStartInfra(testtools.TestCase):
