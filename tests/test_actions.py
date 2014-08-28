@@ -45,7 +45,7 @@ class fake_provider(object):
             {'name': 't1000', 'primary_ip_address': '2.3.4.5'}])
 
     def create_stack(self, a, b, c):
-        return({'stack_id': 'George'})
+        return({'stack_id': 'George', 'logs': {}})
 
     def delete_stack(self, a):
         pass
@@ -101,7 +101,7 @@ class TestSimpleCheck(testtools.TestCase):
                                      {'t1000': 'ping', 'hal': 'httping'},
                                      [],
                                      None)
-        self.assertEqual(my_action.launch(), None)
+        self.assertEqual(my_action.launch(), {})
 
     def test__prepare_stack_params(self):
         my_action = simple_check.SimpleCheck([],

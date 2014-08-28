@@ -167,6 +167,7 @@ class SimpleCheck(action.PluginActionBase):
         )
         os.unlink(fname)
         self.provider.delete_stack(tmp_stack_id['stack_id'])
+        return tmp_stack_id["logs"]
 
 
 class TargetNotFound(Exception):
