@@ -82,16 +82,15 @@ class Mixer(object):
             invoke_kwds=kwargs).driver
 
     # TODO(Gonéri): should be moved in the Marmite object
-    def _load_action(self, action, provider, refresh_medias, private_key):
+    def _load_action(self, args, provider, private_key):
 
-        kwargs = dict(provider=provider, refresh_medias=refresh_medias,
-                      # TODO(Gonéri), drop the medias argument
-                      params=action.params(), medias={},
+        kwargs = dict(args=args,
+                      provider=provider,
                       private_key=private_key)
 
         return driver.DriverManager(
             namespace=MINCER_ACTIONS_NS,
-            name=action.driver(),
+            name=args['driver'],
             invoke_on_load=True,
             on_load_failure_callback=self.report_error,
             invoke_kwds=kwargs).driver
@@ -170,8 +169,7 @@ class Mixer(object):
         provider = self._load_provider(environment)
         scenario = []
         for step in self.marmite.application().scenario():
-            action = self._load_action(step, provider,
-                                    refresh_medias, test_priv_key)
+            action = self._load_action(step, provider, test_priv_key)
             scenario.append(action)
 
         provider.connect(self.credentials.get())

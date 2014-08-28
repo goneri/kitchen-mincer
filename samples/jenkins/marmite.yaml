@@ -44,19 +44,17 @@ application:
         path: samples/jenkins/base_image.qcow2
 
   scenario:
-    -
-      description: prepare the marmite
-      driver: local_script
-      params:
-        work_dir: ./samples/spinal-stack/
-        command: ls
-    -
-      description: prepare environment
-      driver: start_infra
-      params:
-    -
-      description: test_simple
-      driver: simple_check
-      params:
-        _ALL_:
-          ping -c5 $IP
+  -
+    description: prepare the marmite
+    driver: local_script
+    work_dir: ./samples/spinal-stack/
+    command: ls
+  -
+    description: prepare environment
+    driver: start_infra
+    params:
+  -
+    description: test_simple
+    driver: simple_check
+    commands:
+      - ping -c5 $jenkins_instance

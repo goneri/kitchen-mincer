@@ -42,8 +42,8 @@ class fake_provider(object):
 
     def get_machines(self):
         return([
-            {'name': 'hal', 'primary_ip_address': '1.2.3.4'},
-            {'name': 't1000', 'primary_ip_address': '2.3.4.5'}])
+            {'resource_name': 'hal', 'primary_ip_address': '1.2.3.4'},
+            {'resource_name': 't1000', 'primary_ip_address': '2.3.4.5'}])
 
     def create_stack(self, a, b, c):
         return(provider.Stack('George', {}))
@@ -62,31 +62,21 @@ class fake_provider(object):
 
 
 class TestBase(testtools.TestCase):
-    def test_init(self):
-        """Ensure we preserve the empty list of medias."""
-        t = []
-        for action in action_list:
-            r = action([], fake_provider(), [], [], None)
-            t.extend(r.medias)
-        self.assertEqual(t, [])
-
     def test_base(self):
-        my_action = mincer.action.PluginActionBase([],
-                                     None,
-                                     {},
-                                     [],
-                                     None)
+        my_action = mincer.action.PluginActionBase(
+            {},
+            None,
+            None)
         self.assertRaises(NotImplementedError, my_action.launch)
 
 
 class TestLocalScript(testtools.TestCase):
     @mock.patch('subprocess.call', mock.Mock(return_value=True))
     def test_launch(self):
-        my_action = local_script.LocalScript([],
-                                     None,
-                                     {'command': 'toto', 'work_dir': '/tmp'},
-                                     [],
-                                     None)
+        my_action = local_script.LocalScript(
+            {'command': 'toto', 'work_dir': '/tmp'},
+            None,
+            None)
         self.assertTrue(my_action.launch())
 
 
@@ -97,31 +87,26 @@ class TestSimpleCheck(testtools.TestCase):
         self.useFixture(fixtures.NestedTempfile())
 
     def test_launch(self):
-        my_action = simple_check.SimpleCheck([],
-                                     fake_provider(),
-                                     {'t1000': 'ping', 'hal': 'httping'},
-                                     [],
-                                     None)
+        my_action = simple_check.SimpleCheck(
+            {'commands': ['httping $t1000 }}']},
+            fake_provider(),
+            None)
         self.assertEqual(my_action.launch(), {})
 
-    def test__prepare_stack_params(self):
-        my_action = simple_check.SimpleCheck([],
-                                     fake_provider(),
+    def test__prepare_check_commands(self):
+        my_action = simple_check.SimpleCheck(
                                      {},
-                                     [],
+                                     fake_provider(),
                                      None)
         sp = my_action._prepare_check_commands(
-            [{'name': 'hal', 'primary_ip_address': '1.2.3.4'},
-             {'name': 'roy', 'primary_ip_address': '1.2.3.5'},
-             {'name': 'uranus', 'primary_ip_address': '1.2.3.6'}],
-            {'hal': 'httping $IP', '_ALL_': 'ping -c 5 $IP'})
-        self.assertEqual(sp, ['httping 1.2.3.4',
-                              'ping -c 5 1.2.3.4',
-                              'ping -c 5 1.2.3.5',
-                              'ping -c 5 1.2.3.6'])
+            [{'resource_name': 'hal', 'primary_ip_address': '1.2.3.4'},
+             {'resource_name': 'roy', 'primary_ip_address': '1.2.3.5'},
+             {'resource_name': 'uranus', 'primary_ip_address': '1.2.3.6'}],
+            {'commands': ['httping $hal']})
+        self.assertEqual(['httping 1.2.3.4'], sp)
 
     def test__get_temp_stack_file(self):
-        my_action = simple_check.SimpleCheck([], None, {}, [], None)
+        my_action = simple_check.SimpleCheck({}, None, None)
         heat_config = simple_check.HeatConfig()
         heat_config.add_test("echo 33")
         fname = my_action._get_temp_stack_file(heat_config)
@@ -158,28 +143,25 @@ class TestSimpleCheck(testtools.TestCase):
 
 class TestStartInfra(testtools.TestCase):
     def test_launch(self):
-        my_action = start_infra.StartInfra([],
-                                      fake_provider(),
+        my_action = start_infra.StartInfra(
                                       {},
-                                      [],
+                                      fake_provider(),
                                       None)
         self.assertEqual(my_action.launch(), None)
 
 
 class TestServerspec(testtools.TestCase):
     def test_launch(self):
-        my_action = serverspec_check.Serverspec([],
-                                    fake_provider(),
+        my_action = serverspec_check.Serverspec(
                                     {'targets': []},
-                                    [],
+                                    fake_provider(),
                                     None)
         self.assertIsInstance(my_action.launch(), dict)
 
     def test__get_targets_ips(self):
-        my_action = serverspec_check.Serverspec([],
-                                    fake_provider(),
+        my_action = serverspec_check.Serverspec(
                                     {'targets': {'t1000': 'a', 'hal': 'b'}},
-                                    [],
+                                    fake_provider(),
                                     None)
         targets_ips = my_action._get_targets_ips()
         self.assertEqual(targets_ips, {'target': '2.3.4.5'})

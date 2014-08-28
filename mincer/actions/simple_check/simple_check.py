@@ -114,7 +114,7 @@ class SimpleCheck(action.PluginActionBase):
 
     """An action designed to validate an application with simple command."""
 
-    def _prepare_check_commands(self, machines, params):
+    def _prepare_check_commands(self, machines_list, args):
         """Add the list of check commands to run
 
         :param machines: the machines found in the application stack
@@ -123,16 +123,16 @@ class SimpleCheck(action.PluginActionBase):
         :type params: dict
 
         """
-        cmds = []
-        for machine in machines:
-            for target in params:
-                if target == '_ALL_' or target == machine["name"]:
-                    machine_ip = machine["primary_ip_address"]
-                    cmd_tpl = params[target]
-                    cmd = string.Template(cmd_tpl).substitute(
-                        {"IP": machine_ip})
-                    cmds.append(cmd)
-        return sorted(cmds)
+        commands = []
+        machines = {}
+        for entry in machines_list:
+            machines[entry['resource_name']] = entry['primary_ip_address']
+
+        for cmd_tpl in args['commands']:
+            command = string.Template(cmd_tpl).substitute(
+                machines)
+            commands.append(command)
+        return commands
 
     def _get_temp_stack_file(self, heat_config):
         """Return the heat_config as a temporary file
@@ -154,17 +154,14 @@ class SimpleCheck(action.PluginActionBase):
 
         for cmd in self._prepare_check_commands(
                 self.provider.get_machines(),
-                self.params):
+                self.args):
             heat_config.add_test(cmd)
-
-        # TODO(Gonéri): Probably not needed anymore
-        medias = self.medias
 
         fname = self._get_temp_stack_file(heat_config)
         tmp_stack = self.provider.create_stack(
             'simple-test-%s' % uuid.uuid1(),
             fname,
-            medias
+            {}
         )
         os.unlink(fname)
         self.provider.delete_stack(tmp_stack.get_id())

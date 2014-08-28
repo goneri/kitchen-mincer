@@ -39,10 +39,10 @@ class Serverspec(action.PluginActionBase):
         """Returns the ip address associated of the targets."""
 
         targets_ips = {}
-        targets = self.params["targets"]
+        targets = self.args["targets"]
         for machine in self.provider.get_machines():
             for target in targets:
-                if target in machine["name"]:
+                if target in machine["resource_name"]:
                     targets_ips["target"] = machine["primary_ip_address"]
         return targets_ips
 

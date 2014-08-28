@@ -73,6 +73,7 @@ class Marmite(object):
         All = voluptuous.All
         Required = voluptuous.Required
         Length = voluptuous.Length
+        Extra = voluptuous.Extra
 
         schema = voluptuous.Schema({
             Required('description'): voluptuous.All(str, Length(min=5)),
@@ -82,8 +83,8 @@ class Marmite(object):
                 Required('medias'): dict,
                 Required('scenario'): [{
                     Required('driver'): str,
-                    Required('params'): All(),
-                    Required('description'): All(str, Length(min=5))}]}})
+                    Required('description'): All(str, Length(min=5)),
+                    Extra: object}]}})
         try:
             schema(self.marmite_tree)
         except voluptuous.MultipleInvalid as e:
@@ -242,47 +243,13 @@ class Application(object):
         """Return the scenario of the application.
 
         :returns: the actions of the scenario
-        :rtype: list of Action objects
+        :rtype: list of action dict
 
         """
         scenario = []
         for action in self.application_tree['scenario']:
-            scenario.append(Action(action))
+            scenario.append(action)
         return scenario
-
-
-class Action(object):
-
-    """Class that describe a scenario action."""
-
-    def __init__(self, tree):
-        """The action constructor.
-
-        :param tree: the data structure that describe the action
-        :type tree: dict
-        :returns: None
-        :rtype: None
-
-        """
-        self.tree = tree
-
-    def driver(self):
-        """Return the driver used by the action.
-
-        :returns: the driver name
-        :rtype: str
-
-        """
-        return self.tree['driver']
-
-    def params(self):
-        """Return the parameters of the action.
-
-        :returns: the `params` key
-        :rtype: str
-
-        """
-        return self.tree['params']
 
 
 class NotFound(Exception):

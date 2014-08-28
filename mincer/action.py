@@ -25,25 +25,19 @@ class PluginActionBase(object):
 
     six.add_metaclass(abc.ABCMeta)
 
-    def __init__(self, refresh_medias, provider, params, medias, private_key):
+    def __init__(self, args, provider, private_key):
         """Action constructor.
 
-        :param refresh_medias: the medias to reupload
-        :type refresh_medias: list
-        :param provider: the provider to use
-        :type provider: mincer.providers.heat.provider.Heat
-        :param params: the parameters needed by serverspec
-        :type params: list
-        :param medias: list of Media objects associated to the driver
-        :type medias: list
+        :param args: the action data structure
+        :type args: dict
+        :param providers: the Cloud provider
+        :type provider: a provider instance
         :param private_key: the private key used to access the machine
         :type private_key: An Crypto.PublicKey.RSA key object
 
         """
-        self._refresh_medias = refresh_medias
+        self.args = args
         self.provider = provider
-        self.params = params
-        self.medias = medias
         self._private_key = private_key
 
     @abc.abstractmethod

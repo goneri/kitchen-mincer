@@ -35,6 +35,6 @@ class LocalScript(action.PluginActionBase):
 
         """
         return subprocess.call(
-            self.params['command'],
-            cwd=self.params['work_dir'],
+            self.args['command'],
+            cwd=self.args['work_dir'],
             shell=True)

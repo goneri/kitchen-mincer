@@ -46,4 +46,5 @@ application:
   scenario:
     -
       description: prepare the marmite
-      driver: local_script
+# the typo in “driverR” is wanter
+      driveR: local_script
