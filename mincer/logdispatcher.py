@@ -87,5 +87,6 @@ class Logdispatcher(object):
         :rtype: None
 
         """
+        LOG.info("Storing log %s" % name)
         for ld in self.logdispatchers:
             ld.store(name, content)

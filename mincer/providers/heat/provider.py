@@ -387,7 +387,7 @@ class Heat(object):
         :returns: a dictionary with a key "stack_id" and a key "logs"
         :rtype: dict
         """
-
+        t0 = time.time()
         tpl_files, template = template_utils.get_template_contents(
             template_path
         )
@@ -426,9 +426,10 @@ class Heat(object):
         else:
             raise StackTimeoutException("status: %s" % stack.status)
 
-        LOG.info("Stack final status: %s", stack.status)
-
-        logs = {}
+        info = ('stack %s processed in %f, final status: %s' %
+                (name, time.time() - t0, stack.status))
+        LOG.info(info)
+        logs = {'general': six.StringIO(info)}
         for output in stack.outputs:
             logs[output['output_key']] = six.StringIO(output['output_value'])
         return {"stack_id": stack_id, "logs": logs}
