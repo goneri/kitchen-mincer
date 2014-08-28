@@ -18,6 +18,7 @@ import logging
 import os
 import string
 import tempfile
+import uuid
 
 import yaml
 
@@ -161,7 +162,7 @@ class SimpleCheck(action.PluginActionBase):
 
         fname = self._get_temp_stack_file(heat_config)
         tmp_stack_id = self.provider.create_stack(
-            'simple-test-stack' + self.provider.application_stack_id,
+            'simple-test-%s' % uuid.uuid1(),
             fname,
             medias
         )
