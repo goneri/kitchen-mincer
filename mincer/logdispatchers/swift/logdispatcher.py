@@ -23,6 +23,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Swift(object):
+
     """Store log in a local directory.
 
     The YAML configuration structure is:
@@ -63,6 +64,12 @@ class Swift(object):
     """
 
     def __init__(self, params, provider):
+        """Swift logdispatcher constructor
+
+        :param params: logdispatcher parameter
+        :param provider: dict
+
+        """
         self.params = params
 
         self._container = params.get('container', 'log')
@@ -84,6 +91,16 @@ class Swift(object):
             raise e
 
     def _get_full_path(self, name=''):
+        """Return the full path to a log file
+
+        The patch is computed thinks to the path_template key,
+        the default value is log/$name.
+
+        :param name: the name of the file
+        :returns: the path to the log file
+        :rtype: string
+
+        """
         file_path_template = string.Template(self._path_template)
         return file_path_template.substitute(name=name)
 
