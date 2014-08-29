@@ -26,6 +26,7 @@ import mincer.actions.local_script as local_script
 import mincer.actions.serverspec_check as serverspec_check
 import mincer.actions.simple_check as simple_check
 import mincer.actions.start_infra as start_infra
+import mincer.providers.heat. provider as provider
 
 action_list = [
     local_script.LocalScript,
@@ -45,7 +46,7 @@ class fake_provider(object):
             {'name': 't1000', 'primary_ip_address': '2.3.4.5'}])
 
     def create_stack(self, a, b, c):
-        return({'stack_id': 'George', 'logs': {}})
+        return(provider.Stack('George', {}))
 
     def delete_stack(self, a):
         pass
@@ -172,7 +173,7 @@ class TestServerspec(testtools.TestCase):
                                     {'targets': []},
                                     [],
                                     None)
-        self.assertEqual(my_action.launch(), None)
+        self.assertIsInstance(my_action.launch(), dict)
 
     def test__get_targets_ips(self):
         my_action = serverspec_check.Serverspec([],

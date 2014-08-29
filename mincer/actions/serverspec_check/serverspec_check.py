@@ -57,11 +57,11 @@ class Serverspec(action.PluginActionBase):
         LOG.debug("parameters: %s" % str(parameters))
 
         LOG.info("Running Serverspec stack test")
-        tmp_stack_id = self.provider.create_stack(
+        tmp_stack = self.provider.create_stack(
             'serverspec%s' % self.provider.application_stack_id,
             self._get_server_spec_template_path(),
             parameters
         )
 
-        self.provider.retrieve_log(tmp_stack_id)
-        self.provider.delete_stack(tmp_stack_id)
+        self.provider.delete_stack(tmp_stack.get_id())
+        return tmp_stack.get_logs()

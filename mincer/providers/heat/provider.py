@@ -53,6 +53,7 @@ class Heat(object):
         self.medias = {}
         self.key_pairs = {}
         self.floating_ips = {}
+        self._application_stack = None
 
     def connect(self, identity):
         """Connect Openstack clients.
@@ -321,12 +322,12 @@ class Heat(object):
         parameters.update(self.key_pairs)
         parameters.update(self.floating_ips)
         parameters['flavor'] = 'm1.small'
-        stack_result = self.create_stack(
+        self._application_stack = self.create_stack(
                 self.name + str(uuid.uuid4()),
                 self.args.marmite_directory + "/heat.yaml",
                 parameters)
-        self.application_stack_id = stack_result["stack_id"]
-        return stack_result["logs"]
+
+        return self._application_stack.get_logs()
 
     def get_stack_parameters(self, tpl_files, template, *args):
         """Prepare the parameters, as expected by the stack
@@ -432,7 +433,7 @@ class Heat(object):
         logs = {'general': six.StringIO(info)}
         for output in stack.outputs:
             logs[output['output_key']] = six.StringIO(output['output_value'])
-        return {"stack_id": stack_id, "logs": logs}
+        return Stack(stack_id, logs)
 
     def delete_stack(self, stack_id):
         """Delete a stack
@@ -445,7 +446,7 @@ class Heat(object):
 
     def cleanup_application(self):
         """Clean up the tenant."""
-        self.delete_stack(self.application_stack_id)
+        self.delete_stack(self._application_stack.get_id())
 
     def get_machines(self):
         """Collect machine informations from a running stack.
@@ -455,7 +456,8 @@ class Heat(object):
         :rtype: dict
         """
         machines = []
-        for resource in self._heat.resources.list(self.application_stack_id):
+        for resource in self._heat.resources.list(
+                self._application_stack.get_id()):
             if resource.resource_type != "OS::Nova::Server":
                 continue
             server = self._novaclient.servers.get(
@@ -474,6 +476,19 @@ class Heat(object):
                 'primary_ip_address': primary_ip_address
             })
         return machines
+
+
+class Stack(object):
+
+    def __init__(self, stack_id, logs):
+        self.id = stack_id
+        self.logs = logs
+
+    def get_id(self):
+        return self.id
+
+    def get_logs(self):
+        return self.logs
 
 
 class AlreadyExisting(Exception):

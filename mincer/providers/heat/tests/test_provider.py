@@ -232,9 +232,7 @@ class TestProvider(testtools.TestCase):
         template_path = fa.marmite_directory + "/heat.yaml"
         stack_result = my_provider.create_stack("test_stack",
                                                 template_path, {})
-        self.assertIsInstance(stack_result, dict)
-        self.assertTrue("logs" in stack_result)
-        self.assertTrue("stack_id" in stack_result)
+        self.assertIsInstance(stack_result, provider.Stack)
 
     @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
     @mock.patch('heatclient.v1.client.Client', fake_heatclient)
@@ -333,7 +331,7 @@ class TestProvider(testtools.TestCase):
         my_provider = provider.Heat(args=fake_args())
         my_provider._novaclient = fake_novaclient()
         my_provider._heat = fake_heatclient()
-        my_provider.application_stack_id = None
+        my_provider._application_stack = provider.Stack("george", {})
         result = [
             {
                 'id': 'lapin',

@@ -161,14 +161,14 @@ class SimpleCheck(action.PluginActionBase):
         medias = self.medias
 
         fname = self._get_temp_stack_file(heat_config)
-        tmp_stack_id = self.provider.create_stack(
+        tmp_stack = self.provider.create_stack(
             'simple-test-%s' % uuid.uuid1(),
             fname,
             medias
         )
         os.unlink(fname)
-        self.provider.delete_stack(tmp_stack_id['stack_id'])
-        return tmp_stack_id["logs"]
+        self.provider.delete_stack(tmp_stack.get_id())
+        return tmp_stack.get_logs()
 
 
 class TargetNotFound(Exception):
