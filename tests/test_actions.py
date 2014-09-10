@@ -16,10 +16,8 @@
 
 import unittest
 
-import fixtures
 import mock
 import testtools
-import yaml
 
 import mincer.action
 import mincer.actions.local_script as local_script
@@ -60,6 +58,12 @@ class fake_provider(object):
     def retrieve_log(self, a):
         pass
 
+    def init_ssh_transport(self):
+        pass
+
+    def run(self, command, host=None):
+        pass
+
 
 class TestBase(testtools.TestCase):
     def test_base(self):
@@ -77,68 +81,7 @@ class TestLocalScript(testtools.TestCase):
             {'command': 'toto', 'work_dir': '/tmp'},
             None,
             None)
-        self.assertTrue(my_action.launch())
-
-
-class TestSimpleCheck(testtools.TestCase):
-
-    def setUp(self):
-        super(TestSimpleCheck, self).setUp()
-        self.useFixture(fixtures.NestedTempfile())
-
-    def test_launch(self):
-        my_action = simple_check.SimpleCheck(
-            {'commands': ['httping $t1000 }}']},
-            fake_provider(),
-            None)
-        self.assertEqual(my_action.launch(), {})
-
-    def test__prepare_check_commands(self):
-        my_action = simple_check.SimpleCheck(
-                                     {},
-                                     fake_provider(),
-                                     None)
-        sp = my_action._prepare_check_commands(
-            [{'resource_name': 'hal', 'primary_ip_address': '1.2.3.4'},
-             {'resource_name': 'roy', 'primary_ip_address': '1.2.3.5'},
-             {'resource_name': 'uranus', 'primary_ip_address': '1.2.3.6'}],
-            {'commands': ['httping $hal']})
-        self.assertEqual(['httping 1.2.3.4'], sp)
-
-    def test__get_temp_stack_file(self):
-        my_action = simple_check.SimpleCheck({}, None, None)
-        heat_config = simple_check.HeatConfig()
-        heat_config.add_test("echo 33")
-        fname = my_action._get_temp_stack_file(heat_config)
-        got = yaml.load(open(fname, 'r'))
-        expect = {'description': 'Zoubida',
-                  'heat_template_version': '2013-05-23',
-                  'outputs': {'simple_test_0':
-                              {'description': 'echo 33',
-                               'value': {'get_attr': ['0_d',
-                                                      'deploy_stdout']}}},
-                  'parameters': {
-                      'volume_id_base_image': {'description':
-                                               'The VM root system',
-                                               'type': 'string'}},
-                  'resources': {'0_c':
-                                {'properties': {'config':
-                                                '#!/bin/sh\necho 33\n',
-                                                'group': 'script'},
-                                 'type': 'OS::Heat::SoftwareConfig'},
-                                '0_d': {'properties':
-                                        {'config': {'get_resource': '0_c'},
-                                         'server': {'get_resource':
-                                                    'tester_instance'}},
-                                        'type':
-                                        'OS::Heat::SoftwareDeployment'},
-                                'tester_instance': {'properties': {
-                                    'flavor': 'm1.small',
-                                    'image': {'get_param':
-                                              'volume_id_base_image'},
-                                    'user_data_format': 'SOFTWARE_CONFIG'},
-                                    'type': 'OS::Nova::Server'}}}
-        self.assertEqual(got, expect)
+        self.assertEqual(my_action.launch(), None)
 
 
 class TestStartInfra(testtools.TestCase):
@@ -166,6 +109,15 @@ class TestServerspec(testtools.TestCase):
         targets_ips = my_action._get_targets_ips()
         self.assertEqual(targets_ips, {'target': '2.3.4.5'})
 
+
+class TestSimpleCheck(testtools.TestCase):
+
+    def test_simple_check(self):
+        my_action = simple_check.SimpleCheck(
+            {'hosts': ['my_instance'], 'commands': ['uname']},
+            fake_provider(),
+            None)
+        self.assertEqual(my_action.launch(), None)
 
 if __name__ == '__main__':
     unittest.main()

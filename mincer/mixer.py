@@ -109,6 +109,8 @@ class Mixer(object):
         environment = self.marmite.environments[env_name]
         self._load_provider(environment)
 
+    # TODO(Gonéri): I think we should move that in a mincer.utils class
+    # or something similar.
     def _generate_key_pairs(self):
         """Generate ssh key pairs in OpenSSH format.
 
@@ -167,17 +169,18 @@ class Mixer(object):
         test_priv_key, test_pub_key = self._generate_key_pairs()
 
         provider = self._load_provider(environment)
+
+        provider.connect(self.credentials.get())
+        # TODO(Gonéri): the media upload should we done using an action
+        provider.medias = provider.upload(medias, refresh_medias)
+        provider.register_pub_key(test_pub_key)
+        provider.ssh_client.set_priv_key(test_priv_key)
+        output_fip = provider.register_floating_ips(environment.floating_ips())
+
         scenario = []
         for step in self.marmite.application().scenario():
             action = self._load_action(step, provider, test_priv_key)
             scenario.append(action)
-
-        provider.connect(self.credentials.get())
-        provider.name = self.marmite.application().name()
-        provider.medias = provider.upload(medias, refresh_medias)
-        provider.register_key_pairs(
-            environment.key_pairs(), test_pub_key)
-        output_fip = provider.register_floating_ips(environment.floating_ips())
 
         for fip_name in output_fip:
             LOG.info("Floating ip '%s' : '%s'" %
@@ -188,4 +191,4 @@ class Mixer(object):
             self._store_log(logs, environment, provider)
 
         if not self.args.preserve:
-            provider.cleanup_application()
+            provider.cleanup()

@@ -15,6 +15,8 @@
 # under the License.
 
 import logging
+import string
+import tempfile
 import time
 import uuid
 
@@ -27,6 +29,8 @@ import novaclient.client as novaclient
 import six
 import swiftclient
 
+import mincer.utils.ssh
+
 LOG = logging.getLogger(__name__)
 
 RETRY_MAX = 1000
@@ -34,7 +38,7 @@ RETRY_MAX = 1000
 
 class Heat(object):
 
-    """The Heat provider which run stacks on an OpenStack."""
+    """The Heat provide which run stacks on an OpenStack."""
 
     def __init__(self, params={}, args={}):
         """constructor of the Heat provider
@@ -54,6 +58,61 @@ class Heat(object):
         self.key_pairs = {}
         self.floating_ips = {}
         self._application_stack = None
+        self._tester_stack = None
+        self.ssh_client = mincer.utils.ssh.SSH()
+        self._check_sessions = []
+
+        tmp = str(uuid.uuid4())
+
+        self.name = "mincer-%s" % tmp[:8]
+
+        # TODO(Gonéri): to move in a static resource file
+        self._gateway_heat_template = """description: Zoubida
+heat_template_version: '2013-05-23'
+outputs:
+  tester_instance_public_ip:
+    description: Floating IP address of tester_instance
+    value:
+      get_attr: [tester_instance_floating_ip, floating_ip_address]
+parameters:
+  app_key_name: {description: Name of a key pair, type: string}
+  private_network: {description: UUID of the internal network, type: string}
+  public_network: {description: UUID of the public network, type: string}
+  volume_id_base_image: {description: The VM root system, type: string}
+resources:
+  server_security_group:
+    properties:
+      description: Add security group rules for server
+      name: security-group
+      rules:
+      - {port_range_max: '22',
+         port_range_min: '22',
+         protocol: tcp, remote_ip_prefix: 0.0.0.0/0}
+      - {protocol: icmp, remote_ip_prefix: 0.0.0.0/0}
+    type: OS::Neutron::SecurityGroup
+  tester_instance:
+    metadata:
+      os-collect-config: {polling_interval: 1}
+    properties:
+      flavor: m1.small
+      image: {get_param: volume_id_base_image}
+      key_name: {get_param: app_key_name}
+      networks:
+      - port: {get_resource: tester_instance_port}
+      user_data_format: SOFTWARE_CONFIG
+    type: OS::Nova::Server
+  tester_instance_floating_ip:
+    properties:
+      floating_network_id: {get_param: public_network}
+      port_id: {get_resource: tester_instance_port}
+    type: OS::Neutron::FloatingIP
+  tester_instance_port:
+    properties:
+      network_id: {get_param: private_network}
+      security_groups:
+      - {get_resource: server_security_group}
+    type: OS::Neutron::Port
+"""
 
     def connect(self, identity):
         """Connect Openstack clients.
@@ -61,16 +120,17 @@ class Heat(object):
         :param identity: the OS identity of the environment
         :type identity: dict
         """
+        LOG.info("Connecting to %s" % identity['os_auth_url'])
         self._keystone = keystone_client.Client(
             auth_url=identity['os_auth_url'],
             username=identity['os_username'],
             password=identity['os_password'],
             tenant_name=identity['os_tenant_name'])
         self._novaclient = novaclient.Client(2,
-                                        identity['os_username'],
-                                        identity['os_password'],
-                                        auth_url=identity['os_auth_url'],
-                                        project_id=identity['os_tenant_name'])
+                    identity['os_username'],
+                    identity['os_password'],
+                    auth_url=identity['os_auth_url'],
+                    project_id=identity['os_tenant_name'])
 
         self.heat_endpoint = self._keystone.service_catalog.url_for(
             service_type='orchestration')
@@ -111,9 +171,8 @@ class Heat(object):
         # Make an association of names and IDs of existent Glance images.
         names_ids_images = {}
         for image in self._glance.images.list():
-            if image.status is not 'active':
-                continue
-            names_ids_images[image.name] = image.id
+            if image.status == 'active':
+                names_ids_images[image.name] = image.id
 
         medias_to_upload = {}
         medias_to_not_upload = {}
@@ -177,21 +236,22 @@ class Heat(object):
             LOG.debug("status: %s - %s", image.name, image.status)
         return parameters
 
-    def register_key_pairs(self, marmite_key_pair, test_public_key):
-        """Register the key pair.
+    def register_pub_key(self, test_public_key):
+        """Register the public key in the provider
 
-        :param marmite_key_pair: the key pair
-        :type  marmite_key_pair: dict
-        :param test_public_key: the public key pair for test purpose
-        :type  test_key_pair: str
+        Create a temporary OpenStack keypair and push the test_public_key. This
+        key should be deployed on the node of the application.
+
+        :param test_public_key: the public key
+        :type test_public_key: str
         """
-        parameters = {'test_public_key': test_public_key}
-        for name in marmite_key_pair:
-            try:
-                self._novaclient.keypairs.create(name, marmite_key_pair[name])
-            except novaclient.exceptions.Conflict:
-                LOG.debug("Key %s already created", name)
-            parameters['app_key_name'] = name
+
+        parameters = {}
+        try:
+            self._novaclient.keypairs.create(self.name, test_public_key)
+        except novaclient.exceptions.Conflict:
+            LOG.debug("Key %s already created", self.name)
+        parameters['app_key_name'] = self.name
 
         self.key_pairs = parameters
 
@@ -315,6 +375,55 @@ class Heat(object):
         return dict(static_reserved_floating_ips,
                     **dynamic_reserved_floating_ips)
 
+    def run(self, cmd_tpl, host=None):
+        machines = self.get_machines()
+
+        cmd = string.Template(cmd_tpl).substitute(
+            dict((k, v['primary_ip_address'])
+                 for k, v in six.iteritems(machines))
+        )
+
+        try:
+            host_ip = machines[host]['primary_ip_address']
+        except KeyError:
+            host_ip = None
+
+        session = self.ssh_client.open_session(host_ip)
+
+        session.set_combine_stderr(True)
+        session.get_pty()
+        session.setblocking(0)
+
+        session.exec_command(cmd)
+
+        output = ''
+        while not session.exit_status_ready():
+            if session.recv_ready():
+                data = session.recv(1024)
+                output += data
+
+                if session.recv_stderr_ready():
+                    LOG.info(session.recv_stderr(1024))
+        retcode = session.recv_exit_status()
+
+        LOG.info((
+            "command {cmd} output: {output}"
+        ).format(
+            cmd=cmd,
+            output=output
+        ))
+        session.close()
+        if retcode != 0:
+            LOG.error((
+                "Command {cmd} "
+                "returned an unexpected code {retcode}"
+            ).format(
+                cmd=cmd,
+                retcode=retcode
+            ))
+            raise ActionFailure()
+        return (retcode, output)
+
     def launch_application(self):
         parameters = {}
         try:
@@ -324,12 +433,44 @@ class Heat(object):
         parameters.update(self.key_pairs)
         parameters.update(self.floating_ips)
         parameters['flavor'] = 'm1.small'
-        self._application_stack = self.create_stack(
-                self.name + str(uuid.uuid4()),
-                self.args.marmite_directory + "/heat.yaml",
+
+        for network in self._novaclient.networks.list():
+            parameters['%s_network' % network.label] = network.id
+
+        LOG.info(
+            "The following keys are available from your "
+            "heat template: " + ", ".join(parameters.keys()))
+
+        # Create the gateway stack
+        with tempfile.NamedTemporaryFile() as stack_file:
+            stack_file.write(bytearray(self._gateway_heat_template, 'UTF-8'))
+            stack_file.seek(0)
+
+            self._tester_stack = self.create_stack(
+                self.name + "_gway",
+                stack_file.name,
                 parameters)
 
-        return self._application_stack.get_logs()
+        # Create the app
+        self._application_stack = self.create_stack(
+            self.name + "_app",
+            self.args.marmite_directory + "/heat.yaml",
+            parameters)
+
+        return self._tester_stack.get_logs()
+
+    def init_ssh_transport(self):
+
+        t = self._tester_stack.get_logs()
+        gateway_ip = t['tester_instance_public_ip'].getvalue()
+
+        self.ssh_client.start_transport(gateway_ip)
+        session = self.ssh_client.open_session()
+        session.exec_command('uname -a')
+
+        for host in self.get_machines():
+            print("-----%s" % host)
+            self.run('uname -a', host=host)
 
     def get_stack_parameters(self, tpl_files, template, *args):
         """Prepare the parameters, as expected by the stack
@@ -378,6 +519,27 @@ class Heat(object):
 
         return stack_params
 
+    # TODO(Gonéri): Should be in the Stack class
+    def _wait_for_status_changes(self, stack_id, expected_status):
+        oldevents = []
+        for _ in six.moves.range(1, RETRY_MAX):
+            stack = self._heat.stacks.get(stack_id)
+            newevents = self._heat.events.list(stack_id)
+            diffevents = list(set(newevents) - set(oldevents))
+            for i in diffevents:
+                LOG.info("%s - %s", i.resource_name, i.event_time)
+                LOG.info("status: %s (%s)" % (stack.status, expected_status))
+            if stack.status in expected_status:
+                break
+            elif stack.status == 'FAILED':
+                LOG.error("Error while creating Stack: %s",
+                          stack.stack_status_reason)
+                raise StackCreationFailure()
+            time.sleep(10)
+        else:
+            raise StackTimeoutException("status: %s" % stack.status)
+        return stack
+
     def create_stack(self, name, template_path, params):
         """Run the stack and provides the parameters to Heat.
 
@@ -390,6 +552,7 @@ class Heat(object):
         :returns: a dictionary with a key "stack_id" and a key "logs"
         :rtype: dict
         """
+        # TODO(Gonéri): name param is not used anymore
         t0 = time.time()
         tpl_files, template = template_utils.get_template_contents(
             template_path
@@ -411,23 +574,10 @@ class Heat(object):
             LOG.error("Stack '%s' failed because of a conflict", name)
             raise AlreadyExisting()
 
-        oldevents = []
         stack_id = resp['stack']['id']
-        for _ in six.moves.range(1, RETRY_MAX):
-            stack = self._heat.stacks.get(stack_id)
-            newevents = self._heat.events.list(stack_id)
-            diffevents = list(set(newevents) - set(oldevents))
-            for i in diffevents:
-                LOG.info("%s - %s", i.resource_name, i.event_time)
-            if stack.status in ('COMPLETE', 'CREATE_COMPLETE'):
-                break
-            elif stack.status == 'FAILED':
-                LOG.error("Error while creating Stack: %s",
-                          stack.stack_status_reason)
-                raise StackCreationFailure()
-            time.sleep(10)
-        else:
-            raise StackTimeoutException("status: %s" % stack.status)
+
+        stack = self._wait_for_status_changes(stack_id,
+                                              ['COMPLETE', 'CREATE_COMPLETE'])
 
         info = ('stack %s processed in %f, final status: %s' %
                 (name, time.time() - t0, stack.status))
@@ -437,6 +587,7 @@ class Heat(object):
             logs[output['output_key']] = six.StringIO(output['output_value'])
         return Stack(stack_id, logs)
 
+    # TODO(Gonéri): Should be in the Stack class
     def delete_stack(self, stack_id):
         """Delete a stack
 
@@ -444,11 +595,14 @@ class Heat(object):
         :type stack_id: str
 
         """
+        # TODO(Gonéri) wait for the stack for being deleted
         self._heat.stacks.delete(stack_id)
 
-    def cleanup_application(self):
+    def cleanup(self):
         """Clean up the tenant."""
+        self.delete_stack(self._tester_stack.get_id())
         self.delete_stack(self._application_stack.get_id())
+        self._novaclient.keypairs.delete(self.name)
 
     def get_machines(self):
         """Collect machine informations from a running stack.
@@ -457,7 +611,7 @@ class Heat(object):
          the running stack
         :rtype: dict
         """
-        machines = []
+        machines = {}
         for resource in self._heat.resources.list(
                 self._application_stack.get_id()):
             if resource.resource_type != "OS::Nova::Server":
@@ -471,12 +625,12 @@ class Heat(object):
                 len(iface.fixed_ips) > 0 and \
                     'ip_address' in iface.fixed_ips[0]:
                     primary_ip_address = iface.fixed_ips[0]['ip_address']
-            machines.append({
+            machines[resource.resource_name] = {
                 'name': server.name,
                 'resource_name': resource.resource_name,
                 'id': resource.physical_resource_id,
                 'primary_ip_address': primary_ip_address
-            })
+            }
         return machines
 
 
@@ -519,3 +673,7 @@ class InvalidStackParameter(Exception):
 
 class ImageException(IndexError):
     """Raised when an error occurs while uploading an image."""
+
+
+class ActionFailure(Exception):
+    """Raised when an action has failed."""

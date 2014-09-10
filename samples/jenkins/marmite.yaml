@@ -1,13 +1,10 @@
-description: A Jenkins
+description: A Jenkins restart scenario
 
 # an account on an OpenStack cloud providing Heat API.
 environments:
   devtest:
 # Implicite, heat is the default provider.
 #    provider: heat
-    key_pairs:
-      stack_os_ci-test7: |
-        ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCyiXfE1zHKdj6odbysr917Cn88ov0VQaPJtLKJyMNuRYAeMOFQHd50X8JO4dfZbmSo3YdJlVfz9FLRxE64mqj9bkN8hPFbkTG2F1AWXGPON5cmm4uiLPfQkWhX/LnClrhzZpNtMJYs5AEFeDs0POijcRugZsQA+wvLi0lSlhOfkqtjAJKpPUwy1wrJFDdvqdQBjpNQh/LB8c15XfQV2JT/3NX26dQe8zvHhL6NvfhBnAikodYkBr7UjSl36CBk0cPebZMZEBBiHdo76xORVkpmqDvkhFByXXeAsvRa2YWS4wxpiNJFswlRhjubGau7LrT113WMcPvgYXHYHf2IYJWD goneri.lebouder@enovance.com
     logdispatchers:
       -
         name: pylogger
@@ -21,16 +18,6 @@ environments:
         driver: swift
         container: log
         path_template: 'my/log/$name'
-      -
-        name: other-swift
-        driver: swift
-        container: robert
-        path_template: 'somewhere/$name'
-        identity:
-          user: admin
-          key: password
-          authurl: http://os-ci-test7.ring.enovance.com:5000/v2.0
-          tenant_name: demo
 
 application:
   # Name of the application, Stack will be called according to this name
@@ -47,11 +34,11 @@ application:
         path: samples/jenkins/base_image.qcow2
 
   scenario:
-  -
-    description: prepare the marmite
-    driver: local_script
-    work_dir: ./samples/spinal-stack/
-    command: ls
+#  -
+#    description: generate the images
+#    driver: local_script
+#    work_dir: 'samples/jenkins/'
+#    command: ./build_image.sh
   -
     description: prepare environment
     driver: start_infra
@@ -61,3 +48,4 @@ application:
     driver: simple_check
     commands:
       - ping -c5 $jenkins_instance
+      - curl -I $jenkins_instance:8080

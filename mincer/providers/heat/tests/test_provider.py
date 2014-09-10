@@ -19,11 +19,14 @@ import unittest
 
 import fixtures
 import mock
+import novaclient.client as novaclient
 import six
 import testtools
 
-
 import mincer.providers.heat. provider as provider
+
+provider.LOG = mock.Mock()
+
 
 fake_identity = {
     'os_auth_url': 'http://example.com',
@@ -64,13 +67,6 @@ class fake_keystone(object):
 
 class fake_novaclient(object):
 
-    class fake_keypairs(object):
-        def __init__(self, **kwargs):
-            return
-
-        def create(self, name, key):
-            return True
-
     class fake_floating_ips(object):
         def __init__(self, **kwargs):
             self._floating_ip_1 = mock.Mock()
@@ -102,10 +98,23 @@ class fake_novaclient(object):
             server.interface_list.return_value = [iface]
             return server
 
+    class fake_networks(object):
+        def __init__(self):
+            self._network_1 = mock.Mock()
+            self._network_1.id = "1"
+            self._network_1.label = "public"
+            self._network_2 = mock.Mock()
+            self._network_2.id = "2"
+            self._network_2.label = "internal"
+
+        def list(self):
+            return [self._network_1, self._network_2]
+
     def __init__(self, **kwargs):
-        self.keypairs = self.fake_keypairs()
         self.floating_ips = self.fake_floating_ips()
         self.servers = self.fake_servers()
+        self.networks = self.fake_networks()
+        self.keypairs = mock.Mock()
 
 
 class fake_heatclient(object):
@@ -253,20 +262,12 @@ class TestProvider(testtools.TestCase):
     def test_application(self):
         my_provider = provider.Heat(args=fake_args())
         self.assertEqual(my_provider.connect(fake_identity), None)
+        my_provider._novaclient = fake_novaclient()
         my_provider.name = "test_stack"
         actual = my_provider.launch_application()
         self.assertIsInstance(actual, dict)
         self.assertTrue("stdout" in actual)
         self.assertEqual(actual["stdout"].getvalue(), "my output")
-
-    def test_register_key_pairs(self):
-        my_provider = provider.Heat(args=fake_args())
-        my_provider._novaclient = fake_novaclient()
-        my_provider.register_key_pairs({'robert': 'a_ssh_pub_key'},
-                                       "test_key")
-        t = my_provider.key_pairs
-        self.assertEqual(t['app_key_name'], 'robert')
-        self.assertEqual(t['test_public_key'], 'test_key')
 
     def test_register_floating_ips(self):
         my_provider = provider.Heat(args=fake_args())
@@ -332,15 +333,14 @@ class TestProvider(testtools.TestCase):
         my_provider._novaclient = fake_novaclient()
         my_provider._heat = fake_heatclient()
         my_provider._application_stack = provider.Stack("george", {})
-        result = [
-            {
+        reference = {
+            'nerf': {
                 'id': 'lapin',
                 'name': 'robert-lapin',
                 'primary_ip_address': '127.0.0.1',
                 'resource_name': 'nerf'
-            }
-        ]
-        self.assertEqual(my_provider.get_machines(), result)
+            }}
+        self.assertEqual(reference, my_provider.get_machines())
 
     @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
     @mock.patch('glanceclient.Client', fake_client_with_create_image_0)
@@ -430,6 +430,47 @@ class TestProvider(testtools.TestCase):
         self.assertRaises(provider.ImageException,
                           my_provider.upload, medias, ["name_1"])
 
+    def test_regiter_pub_key_ok(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._novaclient = fake_novaclient()
+        my_provider.register_pub_key('bob')
+        self.assertEqual(
+            my_provider.key_pairs,
+            {'app_key_name': my_provider.name})
+
+    def test_regiter_pub_key_dup(self):
+        def keypairs_create_failure(name, key):
+            raise novaclient.exceptions.Conflict("a", "b")
+
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._novaclient = fake_novaclient()
+        my_provider._novaclient.keypairs.create = keypairs_create_failure
+        my_provider.register_pub_key('bob')
+        self.assertEqual(
+            my_provider.key_pairs,
+            {'app_key_name': my_provider.name})
+
+    def test_run(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._novaclient = fake_novaclient()
+        my_provider.get_machines = mock.Mock(return_value={})
+        my_provider.ssh_client = mock.Mock()
+
+        self.assertRaises(provider.ActionFailure, my_provider.run, "toto")
+
+    def test_init_ssh_transport(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider.run = mock.Mock(return_value=True)
+        my_provider.ssh_client = mock.Mock()
+        my_provider.get_machines = mock.Mock(return_value={'toto': {}})
+        tester_stack = mock.Mock()
+        log_public_ip = mock.Mock()
+        log_public_ip.getvalue.return_value = '1.2.3.4'
+        tester_stack.get_logs.return_value = {
+            'tester_instance_public_ip': log_public_ip}
+        my_provider._tester_stack = tester_stack
+        self.assertEqual(my_provider.init_ssh_transport(), None)
+        my_provider.run.assert_called_with('uname -a', host='toto')
 
 if __name__ == '__main__':
     unittest.main()

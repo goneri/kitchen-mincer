@@ -8,9 +8,6 @@ parameters:
     type: string
     description : Name of a key pair to enable SSH access to instances.
     default: default
-  test_public_key:
-    type: string
-    description : Public key to enable SSH access to instances for tests purposes.
   flavor:
     type: string
     description: Flavor to use for the WordPress server.
