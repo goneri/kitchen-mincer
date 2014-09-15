@@ -355,8 +355,8 @@ class TestProvider(testtools.TestCase):
         medias = {"name_1": "", "name_2": "", "name_3": ""}
         to_up, to_not_up = my_provider._filter_medias(medias, ["name_2"])
 
-        res_to_up = {"name_2": None}
-        res_to_not_up = {"name_1": 0, 'name_3': 2}
+        res_to_up = {"name_2": None, "name_3": None}
+        res_to_not_up = {"name_1": 0}
         self.assertDictEqual(to_up, res_to_up)
         self.assertDictEqual(to_not_up, res_to_not_up)
 

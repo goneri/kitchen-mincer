@@ -111,6 +111,8 @@ class Heat(object):
         # Make an association of names and IDs of existent Glance images.
         names_ids_images = {}
         for image in self._glance.images.list():
+            if image.status is not 'active':
+                continue
             names_ids_images[image.name] = image.id
 
         medias_to_upload = {}
