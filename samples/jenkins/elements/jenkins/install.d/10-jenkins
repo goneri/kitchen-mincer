@@ -3,9 +3,7 @@
 set -e
 set -o xtrace
 
-wget http://jenkins.mirror.isppower.de/debian/jenkins_1.568_all.deb
-dpkg -i jenkins_1.568_all.deb||true
-apt-get install -f -y
+yum --assumeyes install java jenkins
 
 # jenkins installs into /var/lib/jenkins which is rather restrictive.
 mv /var/lib/jenkins /mnt/

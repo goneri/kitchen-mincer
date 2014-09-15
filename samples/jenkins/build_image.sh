@@ -3,9 +3,6 @@
 set -eu
 set -o pipefail
 
-export DIB_DEBIAN_USE_DEBOOTSTRAP_CACHE=1
-export DIB_DISTRIBUTION_MIRROR=http://ftp2.fr.debian.org/debian
-export DIB_RELEASE=wheezy
 export JENKINS_PLUGINS=git
 
 [ -d repos ] || mkdir repos
@@ -15,12 +12,12 @@ export JENKINS_PLUGINS=git
 
 export ELEMENTS_PATH=$PWD/elements:$PWD/repos/diskimage-builder/elements:$PWD/repos/heat-templates/hot/software-config/elements:$PWD/repos/tripleo-image-elements/elements
 
-if [ ! -f jenkins_debian.qcow2 ]; then
-    ./repos/diskimage-builder/bin/disk-image-create -o jenkins_debian \
-        debian-systemd \
+if [ ! -f jenkins_image.qcow2 ]; then
+    ./repos/diskimage-builder/bin/disk-image-create -o jenkins_image \
+        fedora \
+        jenkins \
         heat-cfntools \
         jenkins-jjb \
-        kitchen-mincer \
         os-apply-config \
         os-collect-config \
         vm \
@@ -30,9 +27,8 @@ if [ ! -f jenkins_debian.qcow2 ]; then
 fi
 if [ ! -f base_image.qcow2 ]; then
     ./repos/diskimage-builder/bin/disk-image-create -o base_image \
-        debian-systemd \
+        fedora \
         heat-cfntools \
-        kitchen-mincer \
         os-apply-config \
         os-collect-config \
         vm \

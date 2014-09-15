@@ -40,7 +40,7 @@ application:
     jenkins_image:
         type: local
         disk_format: qcow2
-        path: samples/jenkins/jenkins_debian.qcow2
+        path: samples/jenkins/jenkins_image.qcow2
     base_image:
         type: local
         disk_format: qcow2
