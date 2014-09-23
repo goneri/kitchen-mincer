@@ -44,6 +44,35 @@ application:
     driver: start_infra
     params:
   -
+    description: push the root ssh key
+    driver: run_command
+    user: ec2-user
+    hosts:
+      - jenkins_instance
+    commands:
+      - sudo mkdir -p /root/.ssh
+      - sudo bash -c 'echo ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCyiXfE1zHKdj6odbysr917Cn88ov0VQaPJtLKJyMNuRYAeMOFQHd50X8JO4dfZbmSo3YdJlVfz9FLRxE64mqj9bkN8hPFbkTG2F1AWXGPON5cmm4uiLPfQkWhX/LnClrhzZpNtMJYs5AEFeDs0POijcRugZsQA+wvLi0lSlhOfkqtjAJKpPUwy1wrJFDdvqdQBjpNQh/LB8c15XfQV2JT/3NX26dQe8zvHhL6NvfhBnAikodYkBr7UjSl36CBk0cPebZMZEBBiHdo76xORVkpmqDvkhFByXXeAsvRa2YWS4wxpiNJFswlRhjubGau7LrT113WMcPvgYXHYHf2IYJWD goneri.lebouder@enovance.com > /root/.ssh/authorized_keys'
+      - sudo chown root:root -R /root/.ssh
+      - sudo chmod 600 /root/.ssh/authorized_keys
+  -
+    description: use Google DNS
+    driver: run_command
+    user: ec2-user
+    hosts:
+      - jenkins_instance
+    commands:
+      - sudo bash -c 'echo nameserver 8.8.4.4 > /etc/resolv.conf'
+  -
+    description: restart jenkins
+    driver: run_command
+    retry: 4
+    connect_timeout: 180
+    user: ec2-user
+    hosts:
+      - jenkins_instance
+    commands:
+      - sudo service jenkins restart
+  -
     description: test_simple
     driver: simple_check
     commands:

@@ -21,6 +21,7 @@ import testtools
 
 import mincer.action
 import mincer.actions.local_script as local_script
+import mincer.actions.run_command as run_command
 import mincer.actions.serverspec_check as serverspec_check
 import mincer.actions.simple_check as simple_check
 import mincer.actions.start_infra as start_infra
@@ -114,6 +115,16 @@ class TestSimpleCheck(testtools.TestCase):
 
     def test_simple_check(self):
         my_action = simple_check.SimpleCheck(
+            {'hosts': ['my_instance'], 'commands': ['uname']},
+            fake_provider(),
+            None)
+        self.assertEqual(my_action.launch(), None)
+
+
+class TestRunCommand(testtools.TestCase):
+
+    def test_run_command(self):
+        my_action = run_command.RunCommand(
             {'hosts': ['my_instance'], 'commands': ['uname']},
             fake_provider(),
             None)
