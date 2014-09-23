@@ -44,6 +44,12 @@ application:
     driver: start_infra
     params:
   -
+    description: watch ping
+    driver: background_check
+    params:
+      - ping -c 1 $jenkins_instance
+      - ping -c 1 127.0.0.1
+  -
     description: push the root ssh key
     driver: run_command
     user: ec2-user

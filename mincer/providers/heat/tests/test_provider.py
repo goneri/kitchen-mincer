@@ -472,5 +472,57 @@ class TestProvider(testtools.TestCase):
         self.assertEqual(my_provider.init_ssh_transport(), None)
         my_provider.run.assert_called_with('uname -a', host='toto')
 
+    def test_register_check(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._novaclient = fake_novaclient()
+        my_provider.get_machines = mock.Mock(return_value={})
+        my_provider.ssh_client = mock.Mock()
+        self.assertEqual(my_provider.register_check("echo roy", 5), None)
+
+    def test_watch_running_checks_no_session(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._check_sessions = [{}]
+        self.assertEqual(my_provider.watch_running_checks(), None)
+
+    def test_watch_running_checks_dead_session(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider.ssh_client = mock.Mock()
+        my_fake_session = mock.Mock()
+        my_fake_session.recv_ready.return_value = False
+        my_fake_session.recv_stderr_ready.return_value = True
+        my_fake_session.recv_stderr.return_value = "ko"
+        my_fake_session.exit_status_ready.return_value = True
+        my_fake_session.recv_exit_status.return_value = 1
+        my_provider._check_sessions = [{'session': my_fake_session,
+                                        'cmd': 'cmd'}]
+        self.assertRaises(provider.ActionFailure,
+                          my_provider.watch_running_checks)
+        self.assertTrue(provider.LOG.debug.called)
+        self.assertTrue(provider.LOG.error.called)
+
+    def test_watch_running_checks_success_session(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider.ssh_client = mock.Mock()
+        my_fake_session = mock.Mock()
+        my_fake_session.recv_ready.return_value = True
+        my_fake_session.recv.return_value = "ok"
+        my_fake_session.exit_status_ready.return_value = True
+        my_fake_session.recv_exit_status.return_value = 0
+        my_provider._check_sessions = [{'session': my_fake_session,
+                                        'cmd': 'cmd'}]
+        self.assertRaises(provider.ActionFailure,
+                          my_provider.watch_running_checks)
+        self.assertTrue(provider.LOG.debug.called)
+
+    def test_watch_running_checks_running_session(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider.ssh_client = mock.Mock()
+        my_fake_session = mock.Mock()
+        my_fake_session.exit_status_ready.return_value = False
+        my_provider._check_sessions = [{'session': my_fake_session,
+                                        'cmd': 'cmd'}]
+        self.assertEqual(my_provider.watch_running_checks(), None)
+        self.assertTrue(provider.LOG.info.called)
+
 if __name__ == '__main__':
     unittest.main()

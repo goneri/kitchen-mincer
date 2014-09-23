@@ -20,6 +20,7 @@ import mock
 import testtools
 
 import mincer.action
+import mincer.actions.background_check as background_check
 import mincer.actions.local_script as local_script
 import mincer.actions.run_command as run_command
 import mincer.actions.serverspec_check as serverspec_check
@@ -129,6 +130,18 @@ class TestRunCommand(testtools.TestCase):
             fake_provider(),
             None)
         self.assertEqual(my_action.launch(), None)
+
+
+class TestBackgroundCheck(testtools.TestCase):
+
+    def test_background_check(self):
+        provider = mock.Mock()
+        my_action = background_check.BackgroundCheck(
+            {'params': ['echo a']},
+            provider,
+            None)
+        my_action.launch()
+        provider.register_check.assert_called_with('echo a')
 
 if __name__ == '__main__':
     unittest.main()

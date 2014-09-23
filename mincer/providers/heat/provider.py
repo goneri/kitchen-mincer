@@ -424,6 +424,51 @@ resources:
             raise ActionFailure()
         return (retcode, output)
 
+    def register_check(self, cmd_tpl, interval=5):
+        machines = self.get_machines()
+        cmd = string.Template(cmd_tpl).substitute(
+            dict((k, v['primary_ip_address'])
+                 for k, v in six.iteritems(machines))
+        )
+
+        session = self.ssh_client.open_session()
+        session.set_combine_stderr(True)
+        session.get_pty()
+        session.setblocking(0)
+
+        session.exec_command(
+            "bash -c 'set -eu ; while true; do %s;" % (cmd) +
+            "sleep %d; done'" % (interval))
+        self._check_sessions.append({
+            'session': session,
+            'cmd': cmd
+        })
+
+    def watch_running_checks(self):
+        for check_session in self._check_sessions:
+            if 'session' not in check_session:
+                continue
+
+            LOG.info(
+                "Checking status of background "
+                "command '%s' " % check_session['cmd'])
+            if check_session['session'].recv_ready():
+                LOG.debug(check_session['session'].recv(1024))
+
+            if check_session['session'].recv_stderr_ready():
+                LOG.debug(check_session['session'].recv_stderr(1024))
+
+            if check_session['session'].exit_status_ready():
+                LOG.error((
+                    "command ({cmd}) "
+                    "died with return code {retcode}"
+                ).format(
+                    cmd=check_session['cmd'],
+                    retcode=check_session['session'].recv_exit_status()))
+                raise ActionFailure()
+            else:
+                LOG.info("Command is still running")
+
     def launch_application(self):
         parameters = {}
         try:
@@ -469,7 +514,6 @@ resources:
         session.exec_command('uname -a')
 
         for host in self.get_machines():
-            print("-----%s" % host)
             self.run('uname -a', host=host)
 
     def get_stack_parameters(self, tpl_files, template, *args):

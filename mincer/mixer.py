@@ -190,6 +190,7 @@ class Mixer(object):
             LOG.info("Running: %s" % action.description)
             logs = action.launch()
             self._store_log(logs, environment, provider)
+            provider.watch_running_checks()
 
         if not self.args.preserve:
             provider.cleanup()
