@@ -12,3 +12,4 @@ ChangeLog
 *.pyc
 cover/
 .unit-test
+.coverage
