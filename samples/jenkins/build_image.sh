@@ -24,6 +24,8 @@ if [ ! -f jenkins_image.qcow2 ]; then
         stackuser \
         heat-config \
         heat-config-script
+else
+    echo "Jenkins image already exists"
 fi
 if [ ! -f base_image.qcow2 ]; then
     ./repos/diskimage-builder/bin/disk-image-create -o base_image \
@@ -35,4 +37,6 @@ if [ ! -f base_image.qcow2 ]; then
         stackuser \
         heat-config \
         heat-config-script
+else
+    echo "Base image already exists"
 fi
