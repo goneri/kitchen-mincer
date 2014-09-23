@@ -39,6 +39,7 @@ class PluginActionBase(object):
         self.args = args
         self.provider = provider
         self._private_key = private_key
+        self.description = self.args.get('description', "No description")
 
     @abc.abstractmethod
     def launch(self):

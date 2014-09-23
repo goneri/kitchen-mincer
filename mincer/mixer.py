@@ -187,6 +187,7 @@ class Mixer(object):
                      (fip_name, output_fip[fip_name]))
 
         for action in scenario:
+            LOG.info("Running: %s" % action.description)
             logs = action.launch()
             self._store_log(logs, environment, provider)
 
