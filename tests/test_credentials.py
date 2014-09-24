@@ -23,6 +23,12 @@ import voluptuous
 
 import mincer.credentials
 
+reference = {
+    'os_auth_url': 'a',
+    'os_username': 'b',
+    'os_password': 'c',
+    'os_tenant_name': 'd'}
+
 
 class TestCredentials(testtools.TestCase):
     def setUp(self):
@@ -50,11 +56,7 @@ class TestCredentials(testtools.TestCase):
         self.assertRaises(voluptuous.MultipleInvalid,
                           self.c._validate_credentials,
                           'rob')
-        valide = {'os_auth_url': 'a',
-                  'os_username': 'b',
-                  'os_password': 'c',
-                  'os_tenant_name': 'd'}
-        self.assertEqual(self.c._validate_credentials(valide),
+        self.assertEqual(self.c._validate_credentials(reference),
                          None)
 
     def test__expend_credentials(self):
@@ -71,6 +73,26 @@ class TestCredentials(testtools.TestCase):
         self.assertRaises(IOError,
                           self.c.__init__,
                           '/nowhere')
+
+    @mock.patch('os.path.exists')
+    def test__init__load_default_file(self, mocked_path_exists):
+        def my_get_from_file(a):
+            return(reference)
+
+        mocked_path_exists.return_value = True
+        self.c._get_from_file = my_get_from_file
+        self.c.__init__(None)
+        self.assertEqual(self.c.credentials, reference)
+
+    @mock.patch('os.path.exists')
+    def test__init__load_environ(self, mocked_path_exists):
+        def my_get_environ():
+            return(reference)
+
+        mocked_path_exists.return_value = False
+        self.c._get_from_environ = my_get_environ
+        self.c.__init__(None)
+        self.assertEqual(self.c.credentials, reference)
 
     def test__init__from_file(self):
         file_loc = tempfile.mkdtemp() + "/file.yaml"
