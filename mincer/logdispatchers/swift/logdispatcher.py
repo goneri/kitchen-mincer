@@ -49,7 +49,7 @@ class Swift(object):
     * name: a name used to identify the dispatcher.
     * driver: must by directory to use this module.
     * path_template: a directory on the filesystem. The default is `log/$name`.
-      The `$name` variable will be expended with the name of the file.
+      The `$name` variable will be expanded with the name of the file.
     * suffix: the suffix of the file name of the log file (default: .log)
 
     **Server authentification**: the default is to try to access the Swift

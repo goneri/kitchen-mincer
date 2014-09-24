@@ -49,7 +49,7 @@ class Credentials(object):
         else:
             raw = self._get_from_environ()
 
-        credentials = self._expend_credentials(raw)
+        credentials = self._expand_credentials(raw)
         self._validate_credentials(credentials)
         self.credentials = credentials
 
@@ -67,8 +67,8 @@ class Credentials(object):
         """Load credentials from the environment variables
 
         This method return a dictionnary initialized to load the variable
-        from the environment. Variable content will be expended by
-        _expend_credentials.
+        from the environment. Variable content will be expanded by
+        _expand_credentials.
 
         :returns: the environment
         :rtype: dict
@@ -79,10 +79,10 @@ class Credentials(object):
                 'os_password': '$OS_PASSWORD',
                 'os_tenant_name': '$OS_TENANT_NAME'}
 
-    def _expend_credentials(self, raw_credentials):
+    def _expand_credentials(self, raw_credentials):
         """return the credentials for the provider.
 
-        variable `$foo` are expended with environment variable called `foo`.
+        variable `$foo` are expanded with environment variable called `foo`.
 
         :param raw_credentials: the credentials dict
         :type raw_credentials: dict

@@ -59,14 +59,14 @@ class TestCredentials(testtools.TestCase):
         self.assertEqual(self.c._validate_credentials(reference),
                          None)
 
-    def test__expend_credentials(self):
+    def test__expand_credentials(self):
         with mock.patch.dict('os.environ', {'OS_AUTH_URL': 'aa'}):
-            t = self.c._expend_credentials({'aze': '$OS_AUTH_URL'})
+            t = self.c._expand_credentials({'aze': '$OS_AUTH_URL'})
             self.assertEqual(t, {'aze': 'aa'})
 
-    def test__expend_credentials_missing_env_key(self):
+    def test__expand_credentials_missing_env_key(self):
         self.assertRaises(ValueError,
-                          self.c._expend_credentials,
+                          self.c._expand_credentials,
                           {'aze': '$OS_FOO'})
 
     def test__init__missing_file(self):
