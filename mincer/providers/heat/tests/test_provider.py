@@ -211,12 +211,6 @@ def fake_client_with_create_image_2(*args, **kwargs):
     return fake_glanceclient(2)
 
 
-class mock_callable(object):
-    def __call__(self, **kwargs):
-        class_to_load = kwargs["class"]
-        return class_to_load(kwargs["params"])
-
-
 class fake_swift(object):
     @staticmethod
     def Connection(preauthurl=None, preauthtoken=None):
