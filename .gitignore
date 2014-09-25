@@ -13,3 +13,4 @@ ChangeLog
 cover/
 .unit-test
 .coverage*
+doc/source/api/
