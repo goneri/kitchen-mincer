@@ -32,10 +32,11 @@ class SSH(object):
         self._set_priv_key(priv_key)
 
     def _set_priv_key(self, priv_key):
-        if priv_key is None:
-            return
-        keyfile = six.StringIO(priv_key.replace('\\n', "\n"))
-        self._priv_key = paramiko.RSAKey.from_private_key(keyfile)
+        try:
+            stream = six.StringIO(priv_key.decode('UTF-8'))
+        except AttributeError:  # Py27
+            stream = six.StringIO(priv_key)
+        self._priv_key = paramiko.RSAKey.from_private_key(stream)
 
     def get_user_config(self, hostname):
         ssh_config = paramiko.SSHConfig()

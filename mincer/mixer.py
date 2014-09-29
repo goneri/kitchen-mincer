@@ -14,9 +14,7 @@
 # under the License.
 
 import logging
-import string
 
-from Crypto.PublicKey import RSA
 import six
 from stevedore import driver
 
@@ -82,11 +80,10 @@ class Mixer(object):
             invoke_kwds=kwargs).driver
 
     # TODO(Gonéri): should be moved in the Marmite object
-    def _load_action(self, args, provider, private_key):
+    def _load_action(self, args, provider):
 
         kwargs = dict(args=args,
-                      provider=provider,
-                      private_key=private_key)
+                      provider=provider)
 
         return driver.DriverManager(
             namespace=MINCER_ACTIONS_NS,
@@ -108,26 +105,6 @@ class Mixer(object):
         """
         environment = self.marmite.environments[env_name]
         self._load_provider(environment)
-
-    # TODO(Gonéri): I think we should move that in a mincer.utils class
-    # or something similar.
-    def _generate_key_pairs(self):
-        """Generate ssh key pairs in OpenSSH format.
-
-        :returns: a tuple of string for the key pairs in
-        the format (private_key, public_key)
-        :rtype: tuple
-
-        """
-        private_key = RSA.generate(2048)
-        public_key = private_key.publickey()
-
-        # Heat replaces carriage return by spaces then it's escaped
-        r_private_key = string.replace(private_key.exportKey(), "\n", "\\n")
-        r_public_key = string.replace(public_key.exportKey("OpenSSH"), "\n",
-                                      "\\n")
-
-        return r_private_key, r_public_key
 
     def _store_log(self, logs, environment, provider):
         """Record the logs
@@ -166,25 +143,16 @@ class Mixer(object):
         for media_name in medias:
             LOG.info("media%s>", media_name)
 
-        test_priv_key, test_pub_key = self._generate_key_pairs()
-
         provider = self._load_provider(environment)
 
         provider.connect(self.credentials.get())
         # TODO(Gonéri): the media upload should we done using an action
         provider.medias = provider.upload(medias, refresh_medias)
-        provider.register_pub_key(test_pub_key)
-        provider.ssh_client._set_priv_key(test_priv_key)
-        output_fip = provider.register_floating_ips(environment.floating_ips())
 
         scenario = []
         for step in self.marmite.application().scenario():
-            action = self._load_action(step, provider, test_priv_key)
+            action = self._load_action(step, provider)
             scenario.append(action)
-
-        for fip_name in output_fip:
-            LOG.info("Floating ip '%s' : '%s'" %
-                     (fip_name, output_fip[fip_name]))
 
         for action in scenario:
             LOG.info("Running: %s" % action.description)

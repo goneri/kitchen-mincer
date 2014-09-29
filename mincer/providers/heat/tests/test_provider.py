@@ -15,7 +15,6 @@
 # under the License.
 
 import tempfile
-import unittest
 
 import fixtures
 import mock
@@ -231,6 +230,7 @@ class TestProvider(testtools.TestCase):
     def test_create(self):
         fa = fake_args()
         my_provider = provider.Heat(args=fake_args())
+        my_provider.register_pub_key = mock.Mock()
         self.assertEqual(my_provider.connect(fake_identity), None)
         template_path = fa.marmite_directory + "/heat.yaml"
         stack_result = my_provider.create_stack("test_stack",
@@ -244,6 +244,7 @@ class TestProvider(testtools.TestCase):
         args = fake_args()
         args.extra_params = {}
         my_provider = provider.Heat(args=args)
+        my_provider.register_pub_key = mock.Mock()
         self.assertEqual(my_provider.connect(fake_identity), None)
         template_path = fa.marmite_directory + "/heat.yaml"
         self.assertRaises(
@@ -255,6 +256,7 @@ class TestProvider(testtools.TestCase):
     @mock.patch('heatclient.v1.client.Client', fake_heatclient)
     def test_application(self):
         my_provider = provider.Heat(args=fake_args())
+        my_provider.register_pub_key = mock.Mock()
         self.assertEqual(my_provider.connect(fake_identity), None)
         my_provider._novaclient = fake_novaclient()
         my_provider.name = "test_stack"
@@ -340,6 +342,7 @@ class TestProvider(testtools.TestCase):
     @mock.patch('glanceclient.Client', fake_client_with_create_image_0)
     def test_filter_medias(self):
         my_provider = provider.Heat(args=fake_args())
+        my_provider.register_pub_key = mock.Mock()
         my_provider.connect({
             'os_auth_url': 'http://nowhere',
             'os_username': 'admin',
@@ -358,6 +361,7 @@ class TestProvider(testtools.TestCase):
     @mock.patch('swiftclient.client', fake_swift)
     def test_put_object(self):
         my_provider = provider.Heat(args=fake_args())
+        my_provider.register_pub_key = mock.Mock()
         my_provider.connect({
             'os_auth_url': 'http://nowhere',
             'os_username': 'admin',
@@ -370,6 +374,7 @@ class TestProvider(testtools.TestCase):
     @mock.patch('glanceclient.Client', fake_client_with_create_image_0)
     def test_upload_with_copy_from(self):
         my_provider = provider.Heat(args=fake_args())
+        my_provider.register_pub_key = mock.Mock()
         my_provider.connect({
             'os_auth_url': 'http://nowhere',
             'os_username': 'admin',
@@ -389,6 +394,7 @@ class TestProvider(testtools.TestCase):
     @mock.patch('%s.open' % six.moves.builtins.__name__)
     def test_upload_with_local_image(self, mock_open):
         my_provider = provider.Heat(args=fake_args())
+        my_provider.register_pub_key = mock.Mock()
         my_provider.connect({
             'os_auth_url': 'http://nowhere',
             'os_username': 'admin',
@@ -411,6 +417,7 @@ class TestProvider(testtools.TestCase):
     @mock.patch('glanceclient.Client', fake_client_with_create_image_2)
     def test_upload_exception(self):
         my_provider = provider.Heat(args=fake_args())
+        my_provider.register_pub_key = mock.Mock()
         my_provider.connect({
             'os_auth_url': 'http://nowhere',
             'os_username': 'admin',
@@ -518,5 +525,33 @@ class TestProvider(testtools.TestCase):
         self.assertEqual(my_provider.watch_running_checks(), None)
         self.assertTrue(provider.LOG.info.called)
 
-if __name__ == '__main__':
-    unittest.main()
+    @mock.patch('time.sleep', mock.Mock())
+    def test__wait_for_status_changes(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._heat = mock.Mock()
+
+        mock_stack = mock.Mock()
+        mock_stack.status = 'IN_PROGRESS'
+        my_provider._heat.stacks.get.return_value = mock_stack
+        my_provider._heat.events.list.return_value = []
+        expected_status = ['CREATE_COMPLETE']
+        self.assertRaises(provider.StackTimeoutException,
+                          my_provider._wait_for_status_changes,
+                          1,
+                          expected_status)
+
+        mock_stack.status = 'CREATE_COMPLETE'
+        my_provider._heat.stacks.get.return_value = mock_stack
+        my_provider._heat.events.list.return_value = []
+        expected_status = ['CREATE_COMPLETE']
+        stack = my_provider._wait_for_status_changes(1, expected_status)
+        self.assertTrue(stack)
+
+        mock_stack.status = 'FAILED'
+        my_provider._heat.stacks.get.return_value = mock_stack
+        my_provider._heat.events.list.return_value = []
+        expected_status = ['CREATE_COMPLETE']
+        self.assertRaises(provider.StackCreationFailure,
+                          my_provider._wait_for_status_changes,
+                          1,
+                          expected_status)

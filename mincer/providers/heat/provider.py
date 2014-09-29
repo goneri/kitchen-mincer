@@ -20,6 +20,7 @@ import tempfile
 import time
 import uuid
 
+from Crypto.PublicKey import RSA
 import glanceclient
 import heatclient.client as heatclient
 from heatclient.common import template_utils
@@ -59,8 +60,9 @@ class Heat(object):
         self.floating_ips = {}
         self._application_stack = None
         self._tester_stack = None
-        self.ssh_client = mincer.utils.ssh.SSH()
+        self.priv_key, self.pub_key = self._generate_key_pairs()
         self._check_sessions = []
+        self.ssh_client = mincer.utils.ssh.SSH(self.priv_key)
 
         tmp = str(uuid.uuid4())
 
@@ -114,6 +116,23 @@ resources:
     type: OS::Neutron::Port
 """
 
+    def _generate_key_pairs(self):
+        """Generate ssh key pairs in OpenSSH format.
+
+        :returns: a tuple of string for the key pairs in
+        the format (private_key, public_key)
+        :rtype: tuple
+
+        """
+        private_key = RSA.generate(2048)
+        public_key = private_key.publickey()
+
+        # Heat replaces carriage return by spaces then it's escaped
+        r_private_key = private_key.exportKey()
+        r_public_key = public_key.exportKey("OpenSSH")
+
+        return r_private_key, r_public_key
+
     def connect(self, identity):
         """Connect Openstack clients.
 
@@ -150,11 +169,11 @@ resources:
             1,
             self.glance_endpoint,
             token=self._keystone.auth_token)
-
         self.swift = swiftclient.client.Connection(
             preauthurl=self.swift_endpoint,
             preauthtoken=self._keystone.auth_token,
         )
+        self.register_pub_key(self.pub_key)
 
     def _filter_medias(self, medias, refresh_medias):
         """Returns a tuple of two dicts.
@@ -622,7 +641,6 @@ resources:
 
         stack = self._wait_for_status_changes(stack_id,
                                               ['COMPLETE', 'CREATE_COMPLETE'])
-
         info = ('stack %s processed in %f, final status: %s' %
                 (name, time.time() - t0, stack.status))
         LOG.info(info)

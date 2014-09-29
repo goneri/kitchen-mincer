@@ -39,6 +39,7 @@ class fake_provider(object):
 
     def __init__(self):
         self.application_stack_id = "Rambo"
+        self.priv_key = "my priv key"
 
     def get_machines(self):
         return([
@@ -71,7 +72,6 @@ class TestBase(testtools.TestCase):
     def test_base(self):
         my_action = mincer.action.PluginActionBase(
             {},
-            None,
             None)
         self.assertRaises(NotImplementedError, my_action.launch)
 
@@ -81,7 +81,6 @@ class TestLocalScript(testtools.TestCase):
     def test_launch(self):
         my_action = local_script.LocalScript(
             {'command': 'toto', 'work_dir': '/tmp'},
-            None,
             None)
         self.assertEqual(my_action.launch(), None)
 
@@ -90,8 +89,7 @@ class TestStartInfra(testtools.TestCase):
     def test_launch(self):
         my_action = start_infra.StartInfra(
                                       {},
-                                      fake_provider(),
-                                      None)
+                                      fake_provider())
         self.assertEqual(my_action.launch(), None)
 
 
@@ -99,15 +97,13 @@ class TestServerspec(testtools.TestCase):
     def test_launch(self):
         my_action = serverspec_check.Serverspec(
                                     {'targets': []},
-                                    fake_provider(),
-                                    None)
+                                    fake_provider())
         self.assertIsInstance(my_action.launch(), dict)
 
     def test__get_targets_ips(self):
         my_action = serverspec_check.Serverspec(
                                     {'targets': {'t1000': 'a', 'hal': 'b'}},
-                                    fake_provider(),
-                                    None)
+                                    fake_provider())
         targets_ips = my_action._get_targets_ips()
         self.assertEqual(targets_ips, {'target': '2.3.4.5'})
 
@@ -117,8 +113,7 @@ class TestSimpleCheck(testtools.TestCase):
     def test_simple_check(self):
         my_action = simple_check.SimpleCheck(
             {'hosts': ['my_instance'], 'commands': ['uname']},
-            fake_provider(),
-            None)
+            fake_provider())
         self.assertEqual(my_action.launch(), None)
 
 
@@ -127,8 +122,7 @@ class TestRunCommand(testtools.TestCase):
     def test_run_command(self):
         my_action = run_command.RunCommand(
             {'hosts': ['my_instance'], 'commands': ['uname']},
-            fake_provider(),
-            None)
+            fake_provider())
         self.assertEqual(my_action.launch(), None)
 
 
@@ -138,8 +132,7 @@ class TestBackgroundCheck(testtools.TestCase):
         provider = mock.Mock()
         my_action = background_check.BackgroundCheck(
             {'params': ['echo a']},
-            provider,
-            None)
+            provider)
         my_action.launch()
         provider.register_check.assert_called_with('echo a')
 

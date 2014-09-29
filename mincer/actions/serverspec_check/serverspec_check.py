@@ -51,7 +51,7 @@ class Serverspec(action.PluginActionBase):
 
         LOG.info("Run Serverspec tests...")
 
-        parameters = {"test_private_key": self._private_key}
+        parameters = {"test_private_key": self.provider.priv_key}
         parameters.update(self._get_targets_ips())
 
         LOG.debug("parameters: %s" % str(parameters))

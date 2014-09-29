@@ -25,20 +25,17 @@ class PluginActionBase(object):
 
     six.add_metaclass(abc.ABCMeta)
 
-    def __init__(self, args, provider, private_key):
+    def __init__(self, args, provider):
         """Action constructor.
 
         :param args: the action data structure
         :type args: dict
         :param providers: the Cloud provider
         :type provider: a provider instance
-        :param private_key: the private key used to access the machine
-        :type private_key: An Crypto.PublicKey.RSA key object
 
         """
         self.args = args
         self.provider = provider
-        self._private_key = private_key
         self.description = self.args.get('description', "No description")
 
     @abc.abstractmethod
