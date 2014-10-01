@@ -174,7 +174,7 @@ class Mixer(object):
         # TODO(Gonéri): the media upload should we done using an action
         provider.medias = provider.upload(medias, refresh_medias)
         provider.register_pub_key(test_pub_key)
-        provider.ssh_client.set_priv_key(test_priv_key)
+        provider.ssh_client._set_priv_key(test_priv_key)
         output_fip = provider.register_floating_ips(environment.floating_ips())
 
         scenario = []

@@ -16,6 +16,7 @@
 
 import logging
 import os
+import socket
 import time
 
 import paramiko
@@ -51,7 +52,7 @@ class SSH(object):
         client._policy = paramiko.WarningPolicy()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        cfg = {'hostname': gateway_ip, 'username': 'ec2-user'}
+        cfg = {'hostname': gateway_ip, 'username': 'ec2-user', 'timeout': 10}
 
         LOG.info("Gateway IP: '%s'" % cfg['hostname'])
         user_config = self.get_user_config(cfg['hostname'])
@@ -69,8 +70,13 @@ class SSH(object):
                         user_config['proxycommand'])
                 client.connect(**cfg)
                 self._ssh_client = client
-            except paramiko.ssh_exception.SSHException:
-                time.sleep(5)
+                break
+            except socket.error as e:
+                LOG.exception(e)
+            except paramiko.ssh_exception.SSHException as e:
+                LOG.exception(e)
+            time.sleep(5)
+            LOG.info("retrying")
         LOG.info("SSH transport is ready")
 
     def open_session(self, host_ip=None):
@@ -83,8 +89,11 @@ class SSH(object):
                         'direct-tcpip',
                         (host_ip, 22),
                         (self._gateway_ip, 0))
-                except paramiko.ssh_exception.ChannelException:
+                except paramiko.ssh_exception.ChannelException as e:
+                    LOG.exception(e)
                     time.sleep(5)
+                    LOG.info("Retrying")
+
             t = paramiko.Transport(channel)
             t.start_client()
 

@@ -79,7 +79,8 @@ class TestSSH(testtools.TestCase):
         self.ssh._ssh_client.connect.assert_called_with(
             hostname='127.0.0.1',
             pkey=self.ssh._priv_key,
-            username='ec2-user')
+            username='ec2-user',
+            timeout=10)
 
         # Now with user_config
         self.ssh._ssh_client = None
