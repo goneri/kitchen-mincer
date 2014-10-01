@@ -245,11 +245,13 @@ resources:
                                  disk_format=media.disk_format,
                                  data=media_data)
 
-            while image.status != 'active':
+            while True:
+                image = self._glance.images.get(image.id)
+                if image.status == 'active':
+                    break
                 if image.status == 'killed':
                     raise ImageException("Error while waiting for image")
                 time.sleep(5)
-                image = self._glance.images.get(image.id)
                 LOG.info("waiting for %s", media.name)
             parameters['volume_id_%s' % image.name] = image.id
             LOG.debug("status: %s - %s", image.name, image.status)
