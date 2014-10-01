@@ -28,7 +28,6 @@ class SimpleCheck(action.PluginActionBase):
 
     def launch(self):
         """Call the action."""
-
         for cmd in self.args['commands']:
             self.provider.run(cmd)
 

@@ -22,9 +22,11 @@ LOG = logging.getLogger(__name__)
 
 
 class StartInfra(action.PluginActionBase):
+
+    """Start the application infrastructure."""
+
     def launch(self):
         """Launch the deployment."""
-
         LOG.info("Starting deployment..")
         self.provider.launch_application()
         self.provider.init_ssh_transport()

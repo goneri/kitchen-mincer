@@ -176,7 +176,7 @@ resources:
         self.register_pub_key(self.pub_key)
 
     def _filter_medias(self, medias, refresh_medias):
-        """Returns a tuple of two dicts.
+        """Return a tuple of two dicts.
 
         The first dict corresponds to the medias which need to be uploaded
         and the second corresponds to the medias which does not.
@@ -186,7 +186,6 @@ resources:
         :param refresh_medias: list of medias names to refresh
         :type refresh_medias: list
         """
-
         # Make an association of names and IDs of existent Glance images.
         names_ids_images = {}
         for image in self._glance.images.list():
@@ -216,7 +215,6 @@ resources:
         :param refresh_medias: list of medias names to refresh
         :type refresh_medias: list
         """
-
         parameters = {}
 
         medias_to_up, medias_to_not_up = self._filter_medias(medias,
@@ -266,7 +264,6 @@ resources:
         :param test_public_key: the public key
         :type test_public_key: str
         """
-
         parameters = {}
         try:
             self._novaclient.keypairs.create(self.name, test_public_key)
@@ -397,6 +394,20 @@ resources:
                     **dynamic_reserved_floating_ips)
 
     def run(self, cmd_tpl, host=None):
+        """Call a command on a host
+
+        You can use this method to call a command on a remote host. $foo
+        pattern will be replaced by the IP address of the host.
+
+        e.g:
+            ping -c 1 $jenkins_instance
+
+        :param cmd_tpl: the command template
+        :type cmd_tpl: str
+        :param host: the name of the target host
+        :type host: str
+        :return: a tuple with the returned code and the output
+        """
         machines = self.get_machines()
 
         cmd = string.Template(cmd_tpl).substitute(
@@ -446,6 +457,7 @@ resources:
         return (retcode, output)
 
     def register_check(self, cmd_tpl, interval=5):
+        """Register a background check in the provider."""
         machines = self.get_machines()
         cmd = string.Template(cmd_tpl).substitute(
             dict((k, v['primary_ip_address'])
@@ -466,6 +478,7 @@ resources:
         })
 
     def watch_running_checks(self):
+        """Watch the status of the running background checks."""
         for check_session in self._check_sessions:
             if 'session' not in check_session:
                 continue
@@ -491,6 +504,11 @@ resources:
                 LOG.info("Command is still running")
 
     def launch_application(self):
+        """Start the application infrastructure
+
+        Start the application and gateway stacks and initialize the SSH
+        transport.
+        """
         parameters = {}
         try:
             parameters.update(self.args.extra_params)
@@ -526,7 +544,7 @@ resources:
         return self._tester_stack.get_logs()
 
     def init_ssh_transport(self):
-
+        """Initialize the SSH transport through the gateway stack."""
         t = self._tester_stack.get_logs()
         gateway_ip = t['tester_instance_public_ip'].getvalue()
 
@@ -540,16 +558,16 @@ resources:
     def get_stack_parameters(self, tpl_files, template, *args):
         """Prepare the parameters, as expected by the stack
 
-           :param tpl_files: the files as returned by
-            template_utils.get_template_contents
-           :type tpl_files: dict
-           :param template: the template as returned by
-            template_utils.get_template_contents
-           :type template: string
-           :param args: the parameters
-           :type args: list
-           :return: a dictionary
-           :rtype: dict
+        :param tpl_files: the files as returned by
+         template_utils.get_template_contents
+        :type tpl_files: dict
+        :param template: the template as returned by
+         template_utils.get_template_contents
+        :type template: string
+        :param args: the parameters
+        :type args: list
+        :return: a dictionary
+        :rtype: dict
         """
         validate_ret = self._heat.stacks.validate(
             template=template,
@@ -700,44 +718,57 @@ resources:
 
 class Stack(object):
 
+    """A abstraction layer on top of the stack."""
+
     def __init__(self, stack_id, logs):
+        """Stack object constructor."""
         self.id = stack_id
         self.logs = logs
 
     def get_id(self):
+        """Return the stack id."""
         return self.id
 
     def get_logs(self):
+        """Return the stack log."""
         return self.logs
 
 
 class AlreadyExisting(Exception):
+
     """Exception raised when there is a conflict with a stack."""
 
 
 class FloatingIPError(Exception):
+
     """Exception raised when an error occurs for a given floating IP."""
 
 
 class UploadError(Exception):
+
     """Exception raised when the mincer failed to upload a media."""
 
 
 class StackCreationFailure(Exception):
+
     """Exception raised if the stack failed to start properly."""
 
 
 class StackTimeoutException(Exception):
+
     """Exception raised if the stack is not created in time."""
 
 
 class InvalidStackParameter(Exception):
+
     """The parameters do not match what the stack expect."""
 
 
 class ImageException(IndexError):
+
     """Raised when an error occurs while uploading an image."""
 
 
 class ActionFailure(Exception):
+
     """Raised when an action has failed."""

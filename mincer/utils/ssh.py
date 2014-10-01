@@ -26,12 +26,17 @@ LOG = logging.getLogger(__name__)
 
 
 class SSH(object):
+
+    """paramiko abstraction class."""
+
     def __init__(self, priv_key=None):
+        """SSH class constructor."""
         self._ssh_client = None
         self._gateway_ip = None
         self._set_priv_key(priv_key)
 
     def _set_priv_key(self, priv_key):
+        """Register the SSH private key."""
         try:
             stream = six.StringIO(priv_key.decode('UTF-8'))
         except AttributeError:  # Py27
@@ -39,6 +44,7 @@ class SSH(object):
         self._priv_key = paramiko.RSAKey.from_private_key(stream)
 
     def get_user_config(self, hostname):
+        """Load the user ssh configuration file."""
         ssh_config = paramiko.SSHConfig()
         user_config_file = os.path.expanduser("~/.ssh/config")
         if os.path.exists(user_config_file):
@@ -47,6 +53,7 @@ class SSH(object):
         return ssh_config.lookup(hostname)
 
     def start_transport(self, gateway_ip):
+        """Start the ssh tunnel between the mincer and the gateway."""
         self._gateway_ip = gateway_ip
         logging.getLogger("paramiko").setLevel(logging.CRITICAL)
         client = paramiko.SSHClient()
@@ -81,6 +88,11 @@ class SSH(object):
         LOG.info("SSH transport is ready")
 
     def open_session(self, host_ip=None):
+        """Open a session from the existing SSH transport.
+
+        The SSH transport has to be created first with start_transport()
+
+        """
         if host_ip is not None:
             transport = self._ssh_client.get_transport()
             channel = None

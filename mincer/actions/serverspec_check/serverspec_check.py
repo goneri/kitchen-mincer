@@ -23,21 +23,21 @@ LOG = logging.getLogger(__name__)
 
 
 class Serverspec(action.PluginActionBase):
+
     """Deploy Serverspec stack and run rake command.
 
     The Serverspec driver deploy a stack which run the rake command
     from within the stack.
     """
-    def _get_server_spec_template_path(self):
-        """Returns the path of the serverspec Heat template."""
 
+    def _get_server_spec_template_path(self):
+        """Return the path of the serverspec Heat template."""
         module_abs_path = os.path.abspath(__file__)
         module_dir_abs_path = os.path.dirname(module_abs_path)
         return "%s/static/serverspec.yaml" % module_dir_abs_path
 
     def _get_targets_ips(self):
-        """Returns the ip address associated of the targets."""
-
+        """Return the ip address associated of the targets."""
         targets_ips = {}
         targets = self.args["targets"]
         for machine in self.provider.get_machines():
@@ -48,7 +48,6 @@ class Serverspec(action.PluginActionBase):
 
     def launch(self):
         """Launch the Serverspec test."""
-
         LOG.info("Run Serverspec tests...")
 
         parameters = {"test_private_key": self.provider.priv_key}
