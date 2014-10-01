@@ -3,7 +3,11 @@ six>=1.4.1
 pbr>=0.5.21,<1.0
 PyYAML
 paramiko
-pycrypto>=2.6.1
+# temporary disabled the time we migrate to python Cryptography
+# https://pypi.python.org/pypi/cryptography
+# For the moment, we pull manually 2.7a.1 from tox.ini to get the
+# Py34 support.
+#pycrypto>=2.7a.1
 stevedore
 python-glanceclient
 python-keystoneclient
