@@ -28,7 +28,7 @@ provider.LOG = mock.Mock()
 
 
 fake_identity = {
-    'os_auth_url': 'http://example.com',
+    'os_auth_url': 'http://example.domain',
     'os_username': 'admin',
     'os_password': 'password',
     'os_tenant_name': 'demo'
@@ -49,217 +49,70 @@ description: >
 """)
 
 
-class fake_service_catalog(object):
-
-    def url_for(self, service_type='fake_service', endpoint_type='roberto'):
-
-        return "http://somewhere/%s" % service_type
-
-
-class fake_keystone(object):
-
-    def __init__(self, **kwargs):
-
-        self.service_catalog = fake_service_catalog()
-        self.auth_token = "garantie_100%_truly_random"
-
-
-class fake_novaclient(object):
-
-    class fake_floating_ips(object):
-        def __init__(self, **kwargs):
-            self._floating_ip_1 = mock.Mock()
-            self._floating_ip_1.ip = "127.0.0.1"
-            self._floating_ip_1.instance_id = None
-            self._floating_ip_2 = mock.Mock()
-            self._floating_ip_2.ip = "127.0.0.2"
-            self._floating_ip_2.instance_id = None
-
-        def list(self):
-            return [self._floating_ip_1, self._floating_ip_2]
-
-        def create(self):
-            floating_ip = mock.Mock()
-            floating_ip.ip = "127.0.0.3"
-            floating_ip.instance_id = None
-            return floating_ip
-
-    class fake_servers(object):
-        def __init__(self, **kwargs):
-            return
-
-        def get(self, server_id):
-
-            iface = mock.Mock()
-            iface.fixed_ips = [{'ip_address': '127.0.0.1'}]
-            server = mock.Mock()
-            server.name = 'robert-%s' % server_id
-            server.interface_list.return_value = [iface]
-            return server
-
-    class fake_networks(object):
-        def __init__(self):
-            self._network_1 = mock.Mock()
-            self._network_1.id = "1"
-            self._network_1.label = "public"
-            self._network_2 = mock.Mock()
-            self._network_2.id = "2"
-            self._network_2.label = "internal"
-
-        def list(self):
-            return [self._network_1, self._network_2]
-
-    def __init__(self, **kwargs):
-        self.floating_ips = self.fake_floating_ips()
-        self.servers = self.fake_servers()
-        self.networks = self.fake_networks()
-        self.keypairs = mock.Mock()
-
-
-class fake_heatclient(object):
-    class fake_resources(object):
-        def __init__(self, **kwargs):
-            return
-
-        def list(self, stack_id):
-            mock1 = mock.Mock()
-            mock1.resource_type = 'OS::Nothing::Here'
-            mock2 = mock.Mock()
-            mock2.resource_type = 'OS::Nova::Server'
-            mock2.resource_name = 'nerf'
-            mock2.physical_resource_id = 'lapin'
-            return [mock1, mock2]
-
-    class fake_stacks(object):
-        def __init__(self, **kwargs):
-            return
-
-        def create(self, **kwargs):
-            return {"stack": {"id": "12345"}}
-
-        def get(self, stack_id):
-            mockStack = mock.Mock()
-            mockStack.outputs = [{
-                'description': "foobar",
-                'output_key': "stdout",
-                'output_value': "my output"}]
-            mockStack.status = 'CREATE_COMPLETE'
-            return mockStack
-
-        def validate(self, template='a', files='b'):
-            return({'Parameters':
-                    {'flavor':
-                     {'Default': 'toto'},
-                     'roberto': {}}})
-
-    class fake_events(object):
-        def __init__(self, *args, **kwargs):
-            return
-
-        def list(self, *args, **kwargs):
-            return []
-
-    def __init__(self, **kwargs):
-        self.resources = self.fake_resources()
-        self.stacks = self.fake_stacks()
-        self.events = self.fake_events()
-
-
-class fake_glanceclient(object):
-
-    class fake_images(object):
-        def __init__(self, create_image_id, **kwargs):
-            self.create_image_id = create_image_id
-            self.fake_image_1 = mock.Mock()
-            self.fake_image_1.name = "name_1"
-            self.fake_image_1.id = 0
-            self.fake_image_1.status = 'active'
-            self.fake_image_2 = mock.Mock()
-            self.fake_image_2.name = "name_2"
-            self.fake_image_2.id = 1
-            self.fake_image_2.status = 'active'
-            self.fake_image_3 = mock.Mock()
-            self.fake_image_3.name = "name_3"
-            self.fake_image_3.id = 2
-            self.fake_image_3.status = 'killed'
-            self.fake_images = [self.fake_image_1, self.fake_image_2,
-                                self.fake_image_3]
-
-        def list(self):
-            return self.fake_images
-
-        def create(self, *args, **kwargs):
-            return self.fake_images[self.create_image_id]
-
-        def get(self, image_id):
-            return self.fake_images[image_id]
-
-    def __init__(self, create_image_id):
-        self.images = self.fake_images(create_image_id)
-
-
-def fake_client_with_create_image_0(*args, **kwargs):
-    return fake_glanceclient(0)
-
-
-def fake_client_with_create_image_1(*args, **kwargs):
-    return fake_glanceclient(1)
-
-
-def fake_client_with_create_image_2(*args, **kwargs):
-    return fake_glanceclient(2)
-
-
-class fake_swift(object):
-    @staticmethod
-    def Connection(preauthurl=None, preauthtoken=None):
-        class fake_swift_conn(object):
-            def put_object(self, container, name, obj):
-                pass
-        return fake_swift_conn()
-
-
 class TestProvider(testtools.TestCase):
-    def setUp(self):
 
+    def setUp(self):
         super(TestProvider, self).setUp()
         self.useFixture(fixtures.NestedTempfile())
+        self.provider = provider.Heat(args=fake_args())
 
-    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
-    @mock.patch('heatclient.v1.client.Client', fake_heatclient)
-    def test_create(self):
+    @mock.patch('keystoneclient.v2_0.Client', mock.Mock())
+    @mock.patch('novaclient.client.Client', mock.Mock())
+    @mock.patch('glanceclient.Client', mock.Mock())
+    @mock.patch('heatclient.v1.client.Client')
+    def test_create(self, heatclient):
+        heatclient.stacks.create.return_value = {'stack': {'id': 1}}
         fa = fake_args()
-        my_provider = provider.Heat(args=fake_args())
-        my_provider.register_pub_key = mock.Mock()
-        self.assertEqual(my_provider.connect(fake_identity), None)
+        self.provider.pub_key = "this is a pub key"
+        self.provider.get_stack_parameters = mock.Mock()
+        self.provider.register_pub_key = mock.Mock()
+        self.assertEqual(self.provider.connect(fake_identity), None)
         template_path = fa.marmite_directory + "/heat.yaml"
-        stack_result = my_provider.create_stack("test_stack",
-                                                template_path, {})
+        mystack = mock.Mock()
+        mystack.status = 'CREATE_COMPLETE'
+        mystack.outputs = [{'output_key': 'foo', 'output_value': 'bar'}]
+        self.provider._wait_for_status_changes = \
+            mock.Mock(return_value=mystack)
+        stack_result = self.provider.create_stack(
+            "test_stack",
+            template_path, {})
         self.assertIsInstance(stack_result, provider.Stack)
+        self.provider.get_stack_parameters.assert_called_with(
+            {},
+            {u'heat_template_version': u'2013-05-23',
+             u'description': u'Yet another useless Heat template.\n'},
+            {'roberto': 'sanchez'}, {}, {})
+        self.provider.register_pub_key.assert_called_with("this is a pub key")
 
-    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
-    @mock.patch('heatclient.v1.client.Client', fake_heatclient)
     def test_create_with_missing_params(self):
-        fa = fake_args()
         args = fake_args()
         args.extra_params = {}
         my_provider = provider.Heat(args=args)
-        my_provider.register_pub_key = mock.Mock()
-        self.assertEqual(my_provider.connect(fake_identity), None)
-        template_path = fa.marmite_directory + "/heat.yaml"
+        my_provider._heat = mock.Mock()
+        my_provider._heat.stacks.validate.return_value = {
+            'Parameters': {'george': {'Default': 'a'}, 'helmout': {}}}
+        template_path = args.marmite_directory + "/heat.yaml"
         self.assertRaises(
             provider.InvalidStackParameter,
             my_provider.create_stack,
             "test_stack", template_path, {})
 
-    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
-    @mock.patch('heatclient.v1.client.Client', fake_heatclient)
     def test_application(self):
         my_provider = provider.Heat(args=fake_args())
-        my_provider.register_pub_key = mock.Mock()
-        self.assertEqual(my_provider.connect(fake_identity), None)
-        my_provider._novaclient = fake_novaclient()
+        my_provider._novaclient = mock.Mock()
+        my_provider._heat = mock.Mock()
+        my_provider._heat.stacks.create.return_value = {'stack': {'id': 1}}
+        mock_network = mock.Mock()
+        mock_network.label = "Mocked network"
+        mock_network.id = 1
+        my_provider._novaclient.networks.list.return_value = [mock_network]
         my_provider.name = "test_stack"
+        my_provider.get_stack_parameters = mock.Mock()
+        mystack = mock.Mock()
+        mystack.outputs = [{'output_key': 'stdout',
+                            'output_value': 'my output'}]
+        my_provider._wait_for_status_changes = \
+            mock.Mock(return_value=mystack)
         actual = my_provider.launch_application()
         self.assertIsInstance(actual, dict)
         self.assertTrue("stdout" in actual)
@@ -267,23 +120,27 @@ class TestProvider(testtools.TestCase):
 
     def test_register_floating_ips(self):
         my_provider = provider.Heat(args=fake_args())
-        my_provider._novaclient = fake_novaclient()
+        my_provider._novaclient = mock.Mock()
+        mock_floating_ip = mock.Mock()
+        mock_floating_ip.ip = '127.0.0.1'
+        mock_floating_ip.instance_id = None
+        my_provider._novaclient.floating_ips.list.return_value = [
+            mock_floating_ip]
+
         test_res = my_provider.register_floating_ips(
             {"test_floating_ip": "127.0.0.1"})
         expected_parameters = {"floating_ip_test_floating_ip": "127.0.0.1"}
         self.assertDictEqual(my_provider.floating_ips, expected_parameters)
         self.assertDictEqual(test_res, {"test_floating_ip": "127.0.0.1"})
 
-    def test_register_floating_ips_unknown_floating_iP(self):
-        my_provider = provider.Heat(args=fake_args())
-        my_provider._novaclient = fake_novaclient()
         self.assertRaises(provider.FloatingIPError,
                           my_provider.register_floating_ips,
                           {"pub_1": "1.2.3.4"})
 
     def test_register_static_floating_ips_already_reserved(self):
         my_provider = provider.Heat(args=fake_args())
-        my_provider._novaclient = fake_novaclient()
+        my_provider._novaclient = mock.Mock()
+        my_provider._novaclient.floating_ips.list.return_value = []
         self.assertRaises(provider.FloatingIPError,
                           my_provider.register_floating_ips,
                           {"test_floating_ip": "127.0.0.1",
@@ -291,15 +148,26 @@ class TestProvider(testtools.TestCase):
 
     def test_register_static_floating_ips_already_used(self):
         my_provider = provider.Heat(args=fake_args())
-        my_provider._novaclient = fake_novaclient()
-        my_provider._novaclient.floating_ips.list()[0].instance_id = "id"
+        my_provider._novaclient = mock.Mock()
+        mock_floating_ip = mock.Mock()
+        mock_floating_ip.instance_id = "id"
+        my_provider._novaclient.floating_ips.list.return_value = [
+            mock_floating_ip]
         self.assertRaises(provider.FloatingIPError,
                           my_provider.register_floating_ips,
                           {"test_floating_ip": "127.0.0.1"})
 
     def test_register_dynamic_floating_ips_already_allocated(self):
         my_provider = provider.Heat(args=fake_args())
-        my_provider._novaclient = fake_novaclient()
+        my_provider._novaclient = mock.Mock()
+        floating_ip_1 = mock.Mock()
+        floating_ip_1.ip = "127.0.0.1"
+        floating_ip_1.instance_id = None
+        floating_ip_2 = mock.Mock()
+        floating_ip_2.ip = "127.0.0.2"
+        floating_ip_2.instance_id = None
+        my_provider._novaclient.floating_ips.list.return_value = [
+            floating_ip_1, floating_ip_2]
         test_res = my_provider.register_floating_ips(
             {"test_floating_ip": "dynamic"})
         expected_parameters_1 = {"floating_ip_test_floating_ip": "127.0.0.1"}
@@ -311,7 +179,15 @@ class TestProvider(testtools.TestCase):
 
     def test_register_dynamic_floating_ips_creation(self):
         my_provider = provider.Heat(args=fake_args())
-        my_provider._novaclient = fake_novaclient()
+        my_provider._novaclient = mock.Mock()
+        mock_floating_ips = []
+        for i in range(1, 4):
+            mock_floating_ip = mock.Mock()
+            mock_floating_ip.ip = ('127.0.0.%d' % i)
+            mock_floating_ip.instance_id = None
+            mock_floating_ips.append(mock_floating_ip)
+        my_provider._novaclient.floating_ips.list.return_value \
+            = mock_floating_ips
 
         test_res = my_provider.register_floating_ips(
             {"float_1": "127.0.0.1", "float_2": "127.0.0.2",
@@ -326,8 +202,24 @@ class TestProvider(testtools.TestCase):
 
     def test_get_machines(self):
         my_provider = provider.Heat(args=fake_args())
-        my_provider._novaclient = fake_novaclient()
-        my_provider._heat = fake_heatclient()
+        my_provider._novaclient = mock.Mock()
+        mock_iface = mock.Mock()
+        mock_iface.fixed_ips = [{'ip_address': '127.0.0.1'}]
+        mock_server = mock.Mock()
+        mock_server.name = 'robert-lapin'
+        mock_server.interface_list.return_value = [mock_iface]
+        my_provider._novaclient.servers.get.return_value = mock_server
+        my_provider._heat = mock.Mock()
+
+        mock_resource_1 = mock.Mock()
+        mock_resource_1.resource_type = 'OS::Nothing::Here'
+        mock_resource_2 = mock.Mock()
+        mock_resource_2.resource_type = 'OS::Nova::Server'
+        mock_resource_2.resource_name = 'nerf'
+        mock_resource_2.physical_resource_id = 'lapin'
+        my_provider._heat.resources.list.return_value = [
+            mock_resource_1, mock_resource_2]
+
         my_provider._application_stack = provider.Stack("george", {})
         reference = {
             'nerf': {
@@ -338,102 +230,53 @@ class TestProvider(testtools.TestCase):
             }}
         self.assertEqual(reference, my_provider.get_machines())
 
-    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
-    @mock.patch('glanceclient.Client', fake_client_with_create_image_0)
     def test_filter_medias(self):
         my_provider = provider.Heat(args=fake_args())
-        my_provider.register_pub_key = mock.Mock()
-        my_provider.connect({
-            'os_auth_url': 'http://nowhere',
-            'os_username': 'admin',
-            'os_password': 'password',
-            'os_tenant_name': 'demo'
-        })
+        my_provider._glance = mock.Mock()
+        mock_image_1 = mock.Mock()
+        mock_image_1.name = "name_1"
+        mock_image_1.id = 1
+        mock_image_1.status = 'active'
+        mock_image_2 = mock.Mock()
+        mock_image_2.name = "name_2"
+        mock_image_2.id = 2
+        mock_image_2.status = 'active'
+        mock_image_3 = mock.Mock()
+        mock_image_3.name = "name_3"
+        mock_image_3.id = 3
+        mock_image_3.status = 'killed'
+        my_provider._glance.images.list.return_value = [
+            mock_image_1, mock_image_2, mock_image_3
+        ]
+        print("Roberto")
         medias = {"name_1": "", "name_2": "", "name_3": ""}
         to_up, to_not_up = my_provider._filter_medias(medias, ["name_2"])
+        self.assertDictEqual(to_up, {"name_2": None, "name_3": None})
+        self.assertDictEqual(to_not_up, {"name_1": 1})
 
-        res_to_up = {"name_2": None, "name_3": None}
-        res_to_not_up = {"name_1": 0}
-        self.assertDictEqual(to_up, res_to_up)
-        self.assertDictEqual(to_not_up, res_to_not_up)
+        # A local image
+        mock_local_media = mock.Mock()
+        mock_local_media.name = "name_1"
+        mock_local_media.copy_from = False
+        mock_local_media.generate.return_value = None
+        medias = {"name_1": mock_local_media}
+        my_provider._glance.images.get.return_value = mock_image_1
 
-    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
-    @mock.patch('swiftclient.client', fake_swift)
-    def test_put_object(self):
-        my_provider = provider.Heat(args=fake_args())
-        my_provider.register_pub_key = mock.Mock()
-        my_provider.connect({
-            'os_auth_url': 'http://nowhere',
-            'os_username': 'admin',
-            'os_password': 'password',
-            'os_tenant_name': 'demo'
-        })
-        my_provider.swift.put_object('log', 'robert', 'gaspart')
-
-    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
-    @mock.patch('glanceclient.Client', fake_client_with_create_image_0)
-    def test_upload_with_copy_from(self):
-        my_provider = provider.Heat(args=fake_args())
-        my_provider.register_pub_key = mock.Mock()
-        my_provider.connect({
-            'os_auth_url': 'http://nowhere',
-            'os_username': 'admin',
-            'os_password': 'password',
-            'os_tenant_name': 'demo'
-        })
-        fm = mock.Mock()
-        fm.generate.return_value = None
-
-        medias = {"name_1": fm, "name_2": fm}
-        actual_parameters = my_provider.upload(medias, ["name_1"])
-        expected_parameters = {'volume_id_name_1': 0, 'volume_id_name_2': 1}
+        with mock.patch('%s.open' % six.moves.builtins.__name__):
+            actual_parameters = my_provider.upload(medias, ["name_1"])
+        expected_parameters = {'volume_id_name_1': 1}
         self.assertDictEqual(actual_parameters, expected_parameters)
 
-    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
-    @mock.patch('glanceclient.Client', fake_client_with_create_image_1)
-    @mock.patch('%s.open' % six.moves.builtins.__name__)
-    def test_upload_with_local_image(self, mock_open):
-        my_provider = provider.Heat(args=fake_args())
-        my_provider.register_pub_key = mock.Mock()
-        my_provider.connect({
-            'os_auth_url': 'http://nowhere',
-            'os_username': 'admin',
-            'os_password': 'password',
-            'os_tenant_name': 'demo'
-        })
+        my_provider._glance.images.get.return_value = mock_image_3
 
-        fake_image = mock.Mock()
-        fake_image.name = "name_1"
-        fake_image.id = 0
-        fake_image.copy_from = False
-        fake_image.generate.return_value = None
-
-        medias = {"name_1": "", "name_2": fake_image}
-        actual_parameters = my_provider.upload(medias, ["name_2"])
-        expected_parameters = {'volume_id_name_1': 0, 'volume_id_name_2': 1}
-        self.assertDictEqual(actual_parameters, expected_parameters)
-
-    @mock.patch('keystoneclient.v2_0.Client', fake_keystone)
-    @mock.patch('glanceclient.Client', fake_client_with_create_image_2)
-    def test_upload_exception(self):
-        my_provider = provider.Heat(args=fake_args())
-        my_provider.register_pub_key = mock.Mock()
-        my_provider.connect({
-            'os_auth_url': 'http://nowhere',
-            'os_username': 'admin',
-            'os_password': 'password',
-            'os_tenant_name': 'demo'
-        })
-        fm = mock.Mock()
-        fm.generate.return_value = None
-
-        medias = {"name_1": fm, "name_2": ""}
+        medias = {"name_1": mock_image_1}
         self.assertRaises(provider.ImageException,
                           my_provider.upload, medias, ["name_1"])
+        self.assertDictEqual(actual_parameters, expected_parameters)
 
     def test_regiter_pub_key_ok(self):
         my_provider = provider.Heat(args=fake_args())
-        my_provider._novaclient = fake_novaclient()
+        my_provider._novaclient = mock.Mock()
         my_provider.register_pub_key('bob')
         self.assertEqual(
             my_provider.key_pairs,
@@ -444,7 +287,7 @@ class TestProvider(testtools.TestCase):
             raise novaclient.exceptions.Conflict("a", "b")
 
         my_provider = provider.Heat(args=fake_args())
-        my_provider._novaclient = fake_novaclient()
+        my_provider._novaclient = mock.Mock()
         my_provider._novaclient.keypairs.create = keypairs_create_failure
         my_provider.register_pub_key('bob')
         self.assertEqual(
@@ -453,7 +296,6 @@ class TestProvider(testtools.TestCase):
 
     def test_run(self):
         my_provider = provider.Heat(args=fake_args())
-        my_provider._novaclient = fake_novaclient()
         my_provider.get_machines = mock.Mock(return_value={})
         my_provider.ssh_client = mock.Mock()
 
@@ -475,7 +317,7 @@ class TestProvider(testtools.TestCase):
 
     def test_register_check(self):
         my_provider = provider.Heat(args=fake_args())
-        my_provider._novaclient = fake_novaclient()
+        my_provider._novaclient = mock.Mock()
         my_provider.get_machines = mock.Mock(return_value={})
         my_provider.ssh_client = mock.Mock()
         self.assertEqual(my_provider.register_check("echo roy", 5), None)
