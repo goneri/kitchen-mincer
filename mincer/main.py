@@ -75,7 +75,7 @@ def get_args(args=None):
     parser.add_argument("--test", action="store_true",
                         help="Enter the test mode")
     parser.add_argument('--refresh-medias', nargs='+',
-                        help="medias to refresh")
+                        help="medias to refresh", default=[])
     parser.add_argument("--preserve", action="store_true",
                         help="Do not clean the stack at end of the process")
     parser.add_argument("marmite_directory", help="Main marmite directory.")
@@ -119,7 +119,7 @@ def main():
     if args.test:
         m.test(args.target)
     elif args.target:
-        m.bootstrap(args.target, args.refresh_medias or [])
+        m.bootstrap(args.target, args.refresh_medias)
 
 if __name__ == '__main__':
     main()
