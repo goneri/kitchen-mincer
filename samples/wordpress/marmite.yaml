@@ -33,35 +33,39 @@ application:
   # By convention, the heat file will be located here:
   # <root>/applications/<name e.g: wordpress>/heat.yaml
 
-  medias:
-    wordpress_files:
-        type: dynamic
-        sources:
-          -
-            driver: git
-            value: https://github.com/WordPress/WordPress
-            target: wordpress
-            ref: 3.8.2
-    ubuntu-13.10-server-amd64.iso:
-        type: block
-        disk_format: iso
-        copy_from: http://cl.releases.ubuntu.com/13.10/ubuntu-13.10-server-amd64.iso
-        checksum: 4d1a8b720cdd14b76ed9410c63a00d0e
-    base_image:
-# Image generated with the following command:
-# disk-image-create vm ubuntu heat-config os-collect-config os-refresh-config \
-#   os-apply-config heat-config-cfn-init heat-config-puppet heat-config-script \
-#   stackuser -o ubuntu-software-config.qcow2
-# and the following patch https://review.openstack.org/#/c/91733/
-        type: block
-        disk_format: qcow2
-        path: samples/wordpress/base_image.qcow2
 
   scenario:
     -
       description: prepare environment
       driver: start_infra
       params:
+    -
+      description: prepare environment
+      driver: start_infra
+      params:
+      medias:
+        wordpress_files:
+            type: dynamic
+            sources:
+              -
+                driver: git
+                value: https://github.com/WordPress/WordPress
+                target: wordpress
+                ref: 3.8.2
+        ubuntu-13.10-server-amd64.iso:
+            type: block
+            disk_format: iso
+            copy_from: http://cl.releases.ubuntu.com/13.10/ubuntu-13.10-server-amd64.iso
+            checksum: 4d1a8b720cdd14b76ed9410c63a00d0e
+        base_image:
+    # Image generated with the following command:
+    # disk-image-create vm ubuntu heat-config os-collect-config os-refresh-config \
+    #   os-apply-config heat-config-cfn-init heat-config-puppet heat-config-script \
+    #   stackuser -o ubuntu-software-config.qcow2
+    # and the following patch https://review.openstack.org/#/c/91733/
+            type: block
+            disk_format: qcow2
+            path: samples/wordpress/base_image.qcow2
     -
       description: ensure we can ping the machines
       driver: simple_check

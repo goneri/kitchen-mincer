@@ -22,23 +22,24 @@ environments:
 application:
   # Name of the application, Stack will be called according to this name
   name: jenkins
-
-  medias:
-    jenkins_image:
-        type: local
-        disk_format: qcow2
-        path: samples/jenkins/jenkins_image.qcow2
-    base_image:
-        type: local
-        disk_format: qcow2
-        path: samples/jenkins/base_image.qcow2
-
   scenario:
-#  -
-#    description: generate the images
-#    driver: local_script
-#    work_dir: 'samples/jenkins/'
-#    command: ./build_image.sh
+  -
+    description: generate the images
+    driver: local_script
+    work_dir: 'samples/jenkins/'
+    command: sudo -n ./build_image.sh
+  -
+    description: media upload
+    driver: upload_images
+    medias:
+      jenkins_image:
+          type: local
+          disk_format: qcow2
+          path: samples/jenkins/jenkins_image.qcow2
+      base_image:
+          type: local
+          disk_format: qcow2
+          path: samples/jenkins/base_image.qcow2
   -
     description: prepare environment
     driver: start_infra

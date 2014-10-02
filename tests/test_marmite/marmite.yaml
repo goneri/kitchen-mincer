@@ -29,18 +29,7 @@ environments:
 
 application:
   name: wordpress
-  medias:
-    wp_files:
-      type: git
-      value: https://github.com/WordPress/WordPress
-      target: ironic
-      ref: 3.8.2
-    sql_db_dump:
-      type: script
-      value: |
-              #!/bin/sh
-              mysqldump -hdbprod -utoto -ptoto wordpress > wordpress_prod.sql
-      target: db
+
 
   scenario:
     -
@@ -49,3 +38,18 @@ application:
       params:
         work_dir: ./samples/spinal-stack/
         command: ls
+    -
+     description: upload the medias
+     driver: upload_images
+     medias:
+      wp_files:
+        type: git
+        value: https://github.com/WordPress/WordPress
+        target: ironic
+        ref: 3.8.2
+      sql_db_dump:
+        type: script
+        value: |
+                #!/bin/sh
+                mysqldump -hdbprod -utoto -ptoto wordpress > wordpress_prod.sql
+        target: db

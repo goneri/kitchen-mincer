@@ -18,15 +18,7 @@ application:
   # Name of the application, Stack will be called according to this name
   name: spinal-stack-{{ dist }}-{{ release }}
 
-  medias:
-    install-server-{{ dist }}-{{ release }}:
-        type: block
-        disk_format: qcow2
-        copy_from: http://os-ci-edeploy.ring.enovance.com/edeploy-roles/{{ dist }}-{{ release }}/install-server-{{ dist }}-{{ release }}.img
-    openstack-full-{{ dist }}-{{ release }}:
-        type: block
-        disk_format: qcow2
-        copy_from: http://os-ci-edeploy.ring.enovance.com/edeploy-roles/{{ dist }}-{{ release }}/openstack-full-{{ dist }}-{{ release }}.img
+
 
   # TODO(Gonéri): fix the syntax here
   scenario:
@@ -36,3 +28,15 @@ application:
       params:
         - a
         - b
+    -
+     description: upload the medias
+     driver: upload_images
+     medias:
+       install-server-{{ dist }}-{{ release }}:
+           type: block
+           disk_format: qcow2
+           copy_from: http://os-ci-edeploy.ring.enovance.com/edeploy-roles/{{ dist }}-{{ release }}/install-server-{{ dist }}-{{ release }}.img
+       openstack-full-{{ dist }}-{{ release }}:
+           type: block
+           disk_format: qcow2
+           copy_from: http://os-ci-edeploy.ring.enovance.com/edeploy-roles/{{ dist }}-{{ release }}/openstack-full-{{ dist }}-{{ release }}.img

@@ -26,6 +26,7 @@ import mincer.actions.run_command as run_command
 import mincer.actions.serverspec_check as serverspec_check
 import mincer.actions.simple_check as simple_check
 import mincer.actions.start_infra as start_infra
+import mincer.actions.upload_images as upload_images
 import mincer.providers.heat. provider as provider
 
 action_list = [
@@ -124,6 +125,21 @@ class TestRunCommand(testtools.TestCase):
             {'hosts': ['my_instance'], 'commands': ['uname']},
             fake_provider())
         self.assertEqual(my_action.launch(), None)
+
+
+class TestUploadImages(testtools.TestCase):
+
+    def test_upload_images(self):
+        my_provider = mock.Mock()
+        my_action = upload_images.UploadImages(
+            {'medias':
+             {'img1':
+              {'type': 'local',
+                       'disk_format': 'qcow2',
+                       'path': 'nowhere'}}},
+            my_provider)
+        self.assertEqual(my_action.launch(), None)
+        self.assertTrue(my_provider.upload.called)
 
 
 class TestBackgroundCheck(testtools.TestCase):

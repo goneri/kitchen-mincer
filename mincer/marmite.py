@@ -80,7 +80,6 @@ class Marmite(object):
             Required('environments'): dict,
             Required('application'): {
                 Required('name'): str,
-                Required('medias'): dict,
                 Required('scenario'): [{
                     Required('driver'): str,
                     Required('description'): All(str, Length(min=5)),
@@ -157,21 +156,6 @@ class Environment(object):
 
         """
         return self.tree.get('provider_params', {})
-
-    def medias(self):
-        """Return the medias of the customer.
-
-        :returns: the medias
-        :rtype: dict
-
-        """
-        ret = {}
-        try:
-            for k, v in self.tree['medias'].iteritems():
-                ret[k] = media.Media(k, v)
-        except KeyError:
-            pass
-        return ret
 
     def key_pairs(self):
         """Return the customer keypair

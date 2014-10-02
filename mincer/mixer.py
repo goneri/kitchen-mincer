@@ -137,17 +137,9 @@ class Mixer(object):
         :type refresh_medias: list
         """
         environment = self.marmite.environment(env_name)
-        medias = self.marmite.application().medias()
-        medias.update(environment.medias())
-
-        for media_name in medias:
-            LOG.info("media%s>", media_name)
-
         provider = self._load_provider(environment)
 
         provider.connect(self.credentials.get())
-        # TODO(Gonéri): the media upload should we done using an action
-        provider.medias = provider.upload(medias, refresh_medias)
 
         scenario = []
         for step in self.marmite.application().scenario():
