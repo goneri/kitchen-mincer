@@ -10,7 +10,7 @@ export JENKINS_PLUGINS=git
 [ -d repos/tripleo-image-elements ] || git clone https://git.openstack.org/openstack/tripleo-image-elements.git repos/tripleo-image-elements
 [ -d repos/heat-templates ] || git clone git://git.openstack.org/openstack/heat-templates repos/heat-templates
 
-export ELEMENTS_PATH=$PWD/elements:$PWD/repos/diskimage-builder/elements:$PWD/repos/heat-templates/hot/software-config/elements:$PWD/repos/tripleo-image-elements/elements
+export ELEMENTS_PATH=$PWD/../../elements:$PWD/repos/diskimage-builder/elements:$PWD/repos/heat-templates/hot/software-config/elements:$PWD/repos/tripleo-image-elements/elements
 
 if [ ! -f jenkins_image.qcow2 ]; then
     ./repos/diskimage-builder/bin/disk-image-create -o jenkins_image \
