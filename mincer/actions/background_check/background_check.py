@@ -33,6 +33,5 @@ class BackgroundCheck(action.PluginActionBase):
         :rtype: None
 
         """
-
         for command in self.args['params']:
             self.provider.register_check(command)
