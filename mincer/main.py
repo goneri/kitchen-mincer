@@ -16,6 +16,7 @@
 import argparse
 import copy
 import logging
+import sys
 
 from mincer import marmite
 from mincer import mixer
@@ -119,7 +120,10 @@ def main():
     if args.test:
         m.test(args.target)
     elif args.target:
-        m.bootstrap(args.target, args.refresh_medias)
+        try:
+            m.bootstrap(args.target, args.refresh_medias)
+        except Exception:
+            sys.exit(1)
 
 if __name__ == '__main__':
     main()

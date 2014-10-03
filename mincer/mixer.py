@@ -139,18 +139,24 @@ class Mixer(object):
         environment = self.marmite.environment(env_name)
         provider = self._load_provider(environment)
 
-        provider.connect(self.credentials.get())
+        try:
+            provider.connect(self.credentials.get())
 
-        scenario = []
-        for step in self.marmite.application().scenario():
-            action = self._load_action(step, provider)
-            scenario.append(action)
+            scenario = []
+            for step in self.marmite.application().scenario():
+                action = self._load_action(step, provider)
+                scenario.append(action)
 
-        for action in scenario:
-            LOG.info("Running: %s" % action.description)
-            logs = action.launch()
-            self._store_log(logs, environment, provider)
-            provider.watch_running_checks()
-
-        if not self.args.preserve:
-            provider.cleanup()
+            for action in scenario:
+                LOG.info("Running: %s" % action.description)
+                logs = action.launch()
+                self._store_log(logs, environment, provider)
+                provider.watch_running_checks()
+        except Exception as e:
+            LOG.exception(e)
+            LOG.error("Internal error")
+            raise StandardError()
+        finally:
+            if not self.args.preserve:
+                LOG.debug("Cleaning the tenant")
+                provider.cleanup()

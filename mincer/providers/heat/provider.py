@@ -681,9 +681,12 @@ resources:
 
     def cleanup(self):
         """Clean up the tenant."""
-        self.delete_stack(self._tester_stack.get_id())
-        self.delete_stack(self._application_stack.get_id())
-        self._novaclient.keypairs.delete(self.name)
+        if self._tester_stack:
+            self.delete_stack(self._tester_stack.get_id())
+        if self._application_stack:
+            self.delete_stack(self._application_stack.get_id())
+        if self._novaclient:
+            self._novaclient.keypairs.delete(self.name)
 
     def get_machines(self):
         """Collect machine informations from a running stack.
