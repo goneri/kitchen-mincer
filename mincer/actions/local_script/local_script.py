@@ -34,7 +34,7 @@ class LocalScript(action.PluginActionBase):
         :rtype: None
 
         """
-        subprocess.call(
+        subprocess.check_call(
             self.args['command'],
             cwd=self.args.get('work_dir', None),
             shell=True)

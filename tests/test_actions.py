@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import subprocess
 import unittest
 
 import mock
@@ -78,12 +79,16 @@ class TestBase(testtools.TestCase):
 
 
 class TestLocalScript(testtools.TestCase):
-    @mock.patch('subprocess.call', mock.Mock(return_value=True))
     def test_launch(self):
         my_action = local_script.LocalScript(
-            {'command': 'toto', 'work_dir': '/tmp'},
+            {'command': 'whoami', 'work_dir': '/tmp'},
             None)
         self.assertEqual(my_action.launch(), None)
+        my_action = local_script.LocalScript(
+            {'command': 'missing_command', 'work_dir': '/tmp'},
+            None)
+        self.assertRaises(subprocess.CalledProcessError,
+                          my_action.launch)
 
 
 class TestStartInfra(testtools.TestCase):
