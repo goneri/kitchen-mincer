@@ -28,5 +28,6 @@ class StartInfra(action.PluginActionBase):
     def launch(self):
         """Launch the deployment."""
         LOG.info("Starting deployment..")
+        self.provider.register_pub_key(self.provider.pub_key)
         self.provider.launch_application()
         self.provider.init_ssh_transport()

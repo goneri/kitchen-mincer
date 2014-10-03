@@ -93,10 +93,15 @@ class TestLocalScript(testtools.TestCase):
 
 class TestStartInfra(testtools.TestCase):
     def test_launch(self):
+        provider = mock.Mock()
+        provider.pub_key = "toto"
         my_action = start_infra.StartInfra(
                                       {},
-                                      fake_provider())
+                                      provider)
         self.assertEqual(my_action.launch(), None)
+        provider.register_pub_key.assert_called_with("toto")
+        provider.launch_application.assert_called_with()
+        provider.init_ssh_transport.assert_called_with()
 
 
 class TestServerspec(testtools.TestCase):

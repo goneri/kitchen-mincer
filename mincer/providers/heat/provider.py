@@ -173,7 +173,6 @@ resources:
             preauthurl=self.swift_endpoint,
             preauthtoken=self._keystone.auth_token,
         )
-        self.register_pub_key(self.pub_key)
 
     def _filter_medias(self, medias, refresh_medias):
         """Return a tuple of two dicts.

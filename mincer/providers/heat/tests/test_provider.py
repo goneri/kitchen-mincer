@@ -82,7 +82,6 @@ class TestProvider(testtools.TestCase):
             {u'heat_template_version': u'2013-05-23',
              u'description': u'Yet another useless Heat template.\n'},
             {'roberto': 'sanchez'}, {}, {})
-        self.provider.register_pub_key.assert_called_with("this is a pub key")
 
     def test_create_with_missing_params(self):
         args = fake_args()
