@@ -1,18 +1,26 @@
 #!/bin/bash
-
 set -eu
 set -o pipefail
 
 export JENKINS_PLUGINS=git
-
-[ -d repos ] || mkdir repos
-[ -d repos/diskimage-builder ] || git clone https://github.com/openstack/diskimage-builder.git repos/diskimage-builder
-[ -d repos/tripleo-image-elements ] || git clone https://git.openstack.org/openstack/tripleo-image-elements.git repos/tripleo-image-elements
-[ -d repos/heat-templates ] || git clone git://git.openstack.org/openstack/heat-templates repos/heat-templates
-
 export ELEMENTS_PATH=$PWD/../../elements:$PWD/repos/diskimage-builder/elements:$PWD/repos/heat-templates/hot/software-config/elements:$PWD/repos/tripleo-image-elements/elements
+export PATH=$PWD/repos/diskimage-builder/bin:$PWD/repos/dib-utils/bin:$PATH
+
+function prepare() {
+    repos="diskimage-builder tripleo-image-elements
+           heat-templates dib-utils"
+
+    [ -d repos ] || mkdir repos
+    (
+        cd repos
+        for repo in ${repos}; do
+            [ -d ${repo} ] || git clone git://github.com/openstack/${repo}
+        done
+    )
+}
 
 if [ ! -f jenkins_image.qcow2 ]; then
+    prepare
     ./repos/diskimage-builder/bin/disk-image-create -o jenkins_image \
         fedora \
         jenkins \
@@ -28,6 +36,7 @@ else
     echo "Jenkins image already exists"
 fi
 if [ ! -f base_image.qcow2 ]; then
+    prepare
     ./repos/diskimage-builder/bin/disk-image-create -o base_image \
         fedora \
         heat-cfntools \
