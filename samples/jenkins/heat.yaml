@@ -20,6 +20,9 @@ parameters:
     type: string
     description : IP address of the upstream git server
     default: ""
+  private_network:
+    description: UUID of the internal network
+    type: string
 
 resources:
   jenkins_instance:
@@ -28,4 +31,24 @@ resources:
       image: { get_param: volume_id_jenkins_image }
       flavor: { get_param: flavor }
       key_name: { get_param: app_key_name }
-
+      networks:
+      - port: {get_resource: jenkins_instance_port}
+  jenkins_instance_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: {get_param: private_network}
+      security_groups:
+      - {get_resource: jenkins_security_group}
+  jenkins_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      description: Add security group for Jenkins server
+      name: security-group
+      rules:
+      - {port_range_max: '22',
+         port_range_min: '22',
+         protocol: tcp, remote_ip_prefix: 0.0.0.0/0}
+      - {port_range_max: '8080',
+         port_range_min: '8080',
+         protocol: tcp, remote_ip_prefix: 0.0.0.0/0}
+      - {protocol: icmp, remote_ip_prefix: 0.0.0.0/0}
