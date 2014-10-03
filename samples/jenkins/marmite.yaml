@@ -33,13 +33,13 @@ application:
     driver: upload_images
     medias:
       jenkins_image:
-          type: local
-          disk_format: qcow2
-          path: samples/jenkins/jenkins_image.qcow2
+        type: local
+        disk_format: qcow2
+        path: samples/jenkins/jenkins_image.qcow2
       base_image:
-          type: local
-          disk_format: qcow2
-          path: samples/jenkins/base_image.qcow2
+        type: local
+        disk_format: qcow2
+        path: samples/jenkins/base_image.qcow2
   -
     description: prepare environment
     driver: start_infra
