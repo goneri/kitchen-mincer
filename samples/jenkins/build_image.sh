@@ -45,7 +45,8 @@ if [ ! -f base_image.qcow2 ]; then
         vm \
         stackuser \
         heat-config \
-        heat-config-script
+        heat-config-script \
+        serverspec
 else
     echo "Base image already exists"
 fi

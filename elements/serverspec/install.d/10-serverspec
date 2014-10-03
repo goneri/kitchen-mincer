@@ -4,8 +4,8 @@ set -eux
 set -o xtrace
 set -o pipefail
 
-apt-get install ruby
-apt-get install rake
+yum --assumeyes install ruby
+yum --assumeyes install rake
 
 gem install serverspec
 gem install rspec-extra-formatters
