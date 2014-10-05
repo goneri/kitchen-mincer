@@ -19,6 +19,7 @@ import six
 from stevedore import driver
 
 import mincer.credentials
+import mincer.exceptions
 import mincer.logdispatcher
 
 LOG = logging.getLogger(__name__)
@@ -152,6 +153,10 @@ class Mixer(object):
                 logs = action.launch()
                 self._store_log(logs, environment, provider)
                 provider.watch_running_checks()
+        except mincer.exceptions.AuthorizationFailure as e:
+            LOG.exception(e)
+            LOG.error("Connection failed: Authorization failure")
+            raise StandardError()
         except Exception as e:
             LOG.exception(e)
             LOG.error("Internal error")

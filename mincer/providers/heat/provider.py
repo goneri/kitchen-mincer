@@ -25,11 +25,13 @@ import glanceclient
 import heatclient.client as heatclient
 from heatclient.common import template_utils
 import heatclient.exc as heatclientexc
+import keystoneclient.exceptions as keystoneexc
 import keystoneclient.v2_0 as keystone_client
 import novaclient.client as novaclient
 import six
 import swiftclient
 
+import mincer.exceptions
 import mincer.utils.ssh
 
 LOG = logging.getLogger(__name__)
@@ -141,16 +143,21 @@ resources:
         :type identity: dict
         """
         LOG.info("Connecting to %s" % identity['os_auth_url'])
-        self._keystone = keystone_client.Client(
-            auth_url=identity['os_auth_url'],
-            username=identity['os_username'],
-            password=identity['os_password'],
-            tenant_name=identity['os_tenant_name'])
-        self._novaclient = novaclient.Client(2,
-                    identity['os_username'],
-                    identity['os_password'],
-                    auth_url=identity['os_auth_url'],
-                    project_id=identity['os_tenant_name'])
+        try:
+            self._keystone = keystone_client.Client(
+                auth_url=identity['os_auth_url'],
+                username=identity['os_username'],
+                password=identity['os_password'],
+                tenant_name=identity['os_tenant_name'])
+            self._novaclient = novaclient.Client(2,
+                        identity['os_username'],
+                        identity['os_password'],
+                        auth_url=identity['os_auth_url'],
+                        project_id=identity['os_tenant_name'])
+        except (keystoneexc.AuthorizationFailure,
+                keystoneexc.Unauthorized) as e:
+            LOG.exception(e)
+            raise mincer.exceptions.AuthorizationFailure()
 
         self.heat_endpoint = self._keystone.service_catalog.url_for(
             service_type='orchestration')

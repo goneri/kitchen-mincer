@@ -17,11 +17,13 @@
 import tempfile
 
 import fixtures
+import keystoneclient.exceptions as keystoneexc
 import mock
 import novaclient.client as novaclient
 import six
 import testtools
 
+import mincer.exceptions
 import mincer.providers.heat. provider as provider
 
 provider.LOG = mock.Mock()
@@ -400,3 +402,13 @@ class TestProvider(testtools.TestCase):
     def test_cleanup_not_connected(self):
         my_provider = provider.Heat(args=fake_args())
         self.assertEqual(my_provider.cleanup(), None)
+
+    def raise_ks_auth_failure(auth_url, username, password, tenant_name):
+        raise keystoneexc.AuthorizationFailure()
+
+    @mock.patch('keystoneclient.v2_0.Client', raise_ks_auth_failure)
+    def test_connect_with_auth_failure(self):
+        my_provider = provider.Heat(args=fake_args())
+        self.assertRaises(mincer.exceptions.AuthorizationFailure,
+                          my_provider.connect,
+                          fake_identity)

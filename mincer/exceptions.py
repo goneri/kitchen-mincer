@@ -19,3 +19,8 @@ class NotFound(Exception):
     """Exception raised when an element is missing."""
 
     pass
+
+
+class AuthorizationFailure(Exception):
+
+    """Raised when connection to OpenStack API has failed."""
