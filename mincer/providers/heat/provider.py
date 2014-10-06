@@ -610,22 +610,28 @@ resources:
         return stack_params
 
     # TODO(Gonéri): Should be in the Stack class
-    def _wait_for_status_changes(self, stack_id, expected_status):
-        oldevents = []
+    def _wait_for_status_changes(self, stack_id,
+                                 expected_status,
+                                 nbr_resources=None):
         for _ in six.moves.range(1, RETRY_MAX):
             stack = self._heat.stacks.get(stack_id)
-            newevents = self._heat.events.list(stack_id)
-            diffevents = list(set(newevents) - set(oldevents))
-            for i in diffevents:
-                LOG.info("%s - %s", i.resource_name, i.event_time)
-                LOG.info("status: %s (%s)" % (stack.status, expected_status))
+            events = self._heat.events.list(stack_id)
+            if nbr_resources:
+                created = set([item.resource_name for item in events if
+                               item.resource_status == 'CREATE_COMPLETE'])
+                creating = set([item.resource_name for item in events if
+                                item.resource_status == 'CREATE_IN_PROGRESS'])
+                LOG.info("%i/%i: creating %s" %
+                         (len(created),
+                          nbr_resources,
+                          ", ".join(creating - created)))
             if stack.status in expected_status:
                 break
             elif stack.status == 'FAILED':
                 LOG.error("Error while creating Stack: %s",
                           stack.stack_status_reason)
                 raise StackCreationFailure()
-            time.sleep(10)
+            time.sleep(2)
         else:
             raise StackTimeoutException("status: %s" % stack.status)
         return stack
@@ -647,6 +653,7 @@ resources:
         tpl_files, template = template_utils.get_template_contents(
             template_path
         )
+        nbr_resources = 'resource' in template and template['resource'] or None
         stack_params = self.get_stack_parameters(
             tpl_files,
             template,
@@ -667,8 +674,9 @@ resources:
         stack_id = resp['stack']['id']
 
         stack = self._wait_for_status_changes(stack_id,
-                                              ['COMPLETE', 'CREATE_COMPLETE'])
-        info = ('stack %s processed in %f, final status: %s' %
+                                              ['COMPLETE', 'CREATE_COMPLETE'],
+                                              nbr_resources=nbr_resources)
+        info = ('stack %s processed in %.2f, final status: %s' %
                 (name, time.time() - t0, stack.status))
         LOG.info(info)
         logs = {'general': six.StringIO(info)}
