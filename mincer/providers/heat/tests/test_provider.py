@@ -396,3 +396,7 @@ class TestProvider(testtools.TestCase):
                           my_provider._wait_for_status_changes,
                           1,
                           expected_status)
+
+    def test_cleanup_not_connected(self):
+        my_provider = provider.Heat(args=fake_args())
+        self.assertEqual(my_provider.cleanup(), None)

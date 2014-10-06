@@ -55,6 +55,7 @@ class Heat(object):
         self.params = params
         self.args = args
         self._keystone = None
+        self._novaclient = None
         self.medias = {}
         self.key_pairs = {}
         self.floating_ips = {}
