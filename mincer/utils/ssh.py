@@ -110,14 +110,16 @@ class SSH(object):
             t = paramiko.Transport(channel)
             t.start_client()
 
-            auth_ok = None
-            while auth_ok is None:
+            max_retry = 10
+            for retry in six.moves.range(0, max_retry):
                 try:
                     LOG.info("Trying to open the SSH session...")
                     t.auth_publickey('ec2-user', self._priv_key)
-                    auth_ok = 1
+                    break
                 except paramiko.ssh_exception.SSHException:
                     time.sleep(30)
+            if (retry + 1) >= max_retry:
+                raise AuthOverSSHTransportError()
 
             session = t.open_session()
         else:
@@ -125,3 +127,8 @@ class SSH(object):
             session = self._ssh_client.get_transport().open_session()
 
         return session
+
+
+class AuthOverSSHTransportError(Exception):
+
+    """Raised when the client failed to connect throught the SSH transport."""

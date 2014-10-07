@@ -20,6 +20,7 @@ import mincer.utils.ssh
 
 import fixtures
 import mock
+import paramiko.ssh_exception
 import testtools
 
 
@@ -106,3 +107,18 @@ class TestSSH(testtools.TestCase):
         self.ssh._ssh_client = mock.Mock()
         self.ssh._ssh_client.return_value = mock.Mock()
         self.assertTrue(self.ssh.open_session('127.0.0.1'))
+
+    def raise_ssh_exception(arg1, arg2, arg3):
+        raise paramiko.ssh_exception.SSHException()
+
+    @mock.patch('paramiko.transport.Transport.open_session', mock.Mock())
+    @mock.patch('paramiko.transport.Transport.start_client', mock.Mock())
+    @mock.patch('paramiko.transport.Transport.auth_publickey',
+                raise_ssh_exception)
+    @mock.patch('time.sleep', mock.Mock())
+    def test_open_session_max_retry(self):
+        self.ssh._ssh_client = mock.Mock()
+        self.ssh._ssh_client.return_value = mock.Mock()
+        self.assertRaises(mincer.utils.ssh.AuthOverSSHTransportError,
+                          self.ssh.open_session,
+                          '127.0.0.1')
