@@ -23,6 +23,7 @@ if [ ! -f jenkins_image.qcow2 ]; then
     prepare
     ./repos/diskimage-builder/bin/disk-image-create -o jenkins_image \
         fedora \
+        selinux-permissive \
         jenkins \
         heat-cfntools \
         jenkins-jjb \
@@ -39,6 +40,7 @@ if [ ! -f base_image.qcow2 ]; then
     prepare
     ./repos/diskimage-builder/bin/disk-image-create -o base_image \
         fedora \
+        selinux-permissive \
         heat-cfntools \
         os-apply-config \
         os-collect-config \
