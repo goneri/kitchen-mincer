@@ -81,9 +81,9 @@ class SSH(object):
                 self._ssh_client = client
                 break
             except socket.error as e:
-                LOG.exception(e)
+                LOG.debug(e)
             except paramiko.ssh_exception.SSHException as e:
-                LOG.exception(e)
+                LOG.debug(e)
             time.sleep(5)
             LOG.info("retrying")
         LOG.info("SSH transport is ready")
@@ -104,7 +104,7 @@ class SSH(object):
                         (host_ip, 22),
                         (self._gateway_ip, 0))
                 except paramiko.ssh_exception.ChannelException as e:
-                    LOG.exception(e)
+                    LOG.debug(e)
                     time.sleep(5)
                     LOG.info("Retrying")
 
