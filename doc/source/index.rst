@@ -132,6 +132,10 @@ marmite YAML file
 The floating ips
 ----------------
 
+Floating IP are depending on the environment. For example, an OpenStack tenant will get
+its own list of reserved public IP. It may be important to reuse them when the application
+will go live, for example, to preserve DNS or HA configuration.
+
 The "floating_ips" section in the environment allows to specify some floating IPs which
 are used by the Heat template. These floating IPs could be static or dynamic.
 
@@ -274,10 +278,10 @@ That's the reason why they are based on *drivers*.
     done in the monitoring world. For example: call ping 5 time against all the
     host.
 *ServerSpec*
-    Call *serverspec* ( http://serverspec.org/ ) command.
+    Call `serverspec <http://serverspec.org/>`_ command.
 
 Rational regarding the use of an ephemeral stack to run actions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This paragraph explains the reasons why we added the ability to run ephemeral stacks
 for some actions that run the tests.
@@ -364,5 +368,6 @@ instance (Solution B).
 
 .. rubric:: Footnotes
 
-.. [#other_cloud] For the moment, we only work with OpenStack Heat. The support of
-   other cloud technologies is a mid-term goal.
+.. [#other_cloud] At this time, we only focus on getting the OpenStack Heat provider working.
+We are planning to provide another provider in the near future to support
+`eDeploy <https://github.com/enovance/edeploy>`_.
