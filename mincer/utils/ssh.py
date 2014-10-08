@@ -74,6 +74,7 @@ class SSH(object):
             try:
                 LOG.info("Trying to open the SSH tunnel...")
                 if 'proxycommand' in user_config:
+                    LOG.debug("proxycommand found in SSH user configuration")
                     cfg['sock'] = paramiko.ProxyCommand(
                         user_config['proxycommand'])
                 client.connect(**cfg)
