@@ -412,3 +412,16 @@ class TestProvider(testtools.TestCase):
         self.assertRaises(mincer.exceptions.AuthorizationFailure,
                           my_provider.connect,
                           fake_identity)
+
+    def test__show_stack_progress(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._heat = mock.Mock()
+        entry1 = mock.Mock()
+        entry1.resource_status = 'CREATE_IN_PROGRESS'
+        entry1.resource_name = 'foo'
+        my_provider._heat.events.list.return_value = [
+            entry1
+        ]
+        provider.LOG = mock.Mock()
+        my_provider._show_stack_progress(1)
+        provider.LOG.info.assert_called_with('0: creating foo')
