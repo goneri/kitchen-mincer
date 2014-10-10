@@ -45,13 +45,13 @@ class Media(object):
             my_second_media_name:
             # media definition
 
-     A media entry has a **type** key and some associated additional keys.
+    A media entry has a **type** key and some associated additional keys.
 
-     * type **dynamic**: The image is generated on the mincer machine from
-       a serie of directives (*sources*).
-     * Type **local**: The image already exists on the machine. The *path*
-       key is used to specify the image location.
-     * Type **block**: The image already exists on a remote HTTP server.
+    * type **dynamic**: The image is generated on the mincer machine from
+      a serie of directives (*sources*).
+    * Type **local**: The image already exists on the machine. The *path*
+      key is used to specify the image location.
+    * Type **block**: The image already exists on a remote HTTP server.
 
 
     The YAML configuration structure for a dynamic media:
@@ -62,6 +62,7 @@ class Media(object):
         medias:
           dump_mysql:
             type: dynamic
+            filter_on: [name]
             sources:
               -
                 driver: script
@@ -98,17 +99,26 @@ class Media(object):
                 disk_format: iso
                 copy_from: http://my.mirror/ubuntu-13.10-server-amd64.iso
                 checksum: 4d1a8b720cdd14b76ed9410c63a00d0e
+                filter_on: [name, checksum]
             base_image:
                 type: block
                 disk_format: qcow2
                 copy_from: http://my.mirror/ubuntu-vm.qcow2
                 checksum: e3224ba9d93b1df12db3b9e1d2f34ea7
+                filter_on: [name, checksum]
 
     The following keys can be used:
 
         * disk_format: default is qcow2
         * copy_from: the HTTP URL to the image
         * checksum: the checksum of the image
+        * filter_on: the policy to use to know if the image already exist on
+          the remote location, the key expects a list of parameters. The
+          possible parameters are:
+
+           * name: just check a media exist with the same name
+           * checksum: ensure the remote image checksum match
+           * size: just check the size of the image is the same
 
     """
 
@@ -128,10 +138,12 @@ class Media(object):
         self.name = name
         self._type = description.get('type')
         self.checksum = description.get('checksum')
+        self.size = description.get('size', 0)
         self.disk_format = description.get('disk_format', 'raw')
         self._local_image = None
         self.copy_from = description.get('copy_from')
-        self.checksum = description.get('checksum')
+        self.filter_on = description.get('filter_on', 'name')
+        self.glance_id = None
 
         # TODO(Gonéri): move this in a subclass/driver
         if self._type == "dynamic":
@@ -145,6 +157,11 @@ class Media(object):
                 self._local_image = description['path']
             except KeyError:
                 raise MediaManagerException("Missing key 'path''")
+
+            if not self.checksum and 'checksum' in self.filter_on:
+                self.checksum = hashlib.md5(
+                    open(self._local_image, 'rb').read()).hexdigest()
+            self.size = os.path.getsize(self._local_image)
 
     def generate(self):
         """Publish method to generate an image."""
@@ -235,5 +252,3 @@ class Media(object):
         finally:
             if g:
                 g.close()
-        self.checksum = hashlib.md5(
-            self._dynamic_image.encode(encoding='ASCII')).hexdigest()

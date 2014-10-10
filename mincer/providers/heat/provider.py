@@ -20,6 +20,7 @@ import tempfile
 import time
 import uuid
 
+from concurrent import futures
 from Crypto.PublicKey import RSA
 import glanceclient
 import heatclient.client as heatclient
@@ -195,26 +196,30 @@ resources:
         :param refresh_medias: list of medias names to refresh
         :type refresh_medias: list
         """
-        # Make an association of names and IDs of existent Glance images.
-        names_ids_images = {}
-        for image in self._glance.images.list():
-            if image.status == 'active':
-                names_ids_images[image.name] = image.id
+        medias_to_upload = medias.copy()
+        for media_to_upload in medias_to_upload.values():
+            for media_in_glance in self._glance.images.list():
+                if media_in_glance.status != 'active':
+                    continue
+                if media_to_upload.name in refresh_medias:
+                    continue
+                if 'name' in media_to_upload.filter_on:
+                    if media_to_upload.name != media_in_glance.name:
+                        continue
+                if 'size' in media_to_upload.filter_on:
+                    if media_to_upload.size != media_in_glance.size:
+                        continue
+                if 'checksum' in media_to_upload.filter_on:
+                    if media_to_upload.checksum != media_in_glance.checksum:
+                        continue
+                LOG.info("An image '%s' already exist in Glance (%s) "
+                         "and match the criteria (%s)." % (
+                             media_to_upload.name,
+                             media_in_glance.id,
+                             ", ".join(media_to_upload.filter_on)))
+                media_to_upload.glance_id = media_in_glance.id
 
-        medias_to_upload = {}
-        medias_to_not_upload = {}
-
-        for media_name in medias.keys():
-            if media_name not in refresh_medias:
-                if media_name in names_ids_images.keys():
-                    medias_to_not_upload[media_name] = \
-                        names_ids_images[media_name]
-                else:
-                    medias_to_upload[media_name] = None
-            else:
-                medias_to_upload[media_name] = None
-
-        return medias_to_upload, medias_to_not_upload
+        return medias_to_upload
 
     def upload(self, medias, refresh_medias):
         """Upload medias in Glance.
@@ -224,44 +229,58 @@ resources:
         :param refresh_medias: list of medias names to refresh
         :type refresh_medias: list
         """
-        parameters = {}
+        medias_to_upload = self._filter_medias(medias, refresh_medias)
+        self._upload_medias(medias_to_upload)
+        return self._wait_for_medias_in_glance(medias_to_upload)
 
-        medias_to_up, medias_to_not_up = self._filter_medias(medias,
-                                                             refresh_medias)
+    def _upload_medias(self, medias_to_upload):
+        for media in medias_to_upload.values():
+            if media.glance_id:
+                LOG.info("%s already in Glance (%s)" % (
+                    media.name, media.glance_id))
+                continue
 
-        # populate parameters for medias to not upload
-        for media_name in medias_to_not_up:
-            LOG.debug("not upload 'volume_id_%s'" % media_name)
-            parameters['volume_id_%s' % media_name] = \
-                medias_to_not_up[media_name]
-
-        for media_name in medias_to_up:
-            LOG.debug("upload '%s'", media_name)
-            media = medias[media_name]
             media.generate()
-
-            image = self._glance.images.create(name=media_name)
+            image = self._glance.images.create(name=media.name)
+            media.glance_id = image.id
             # TODO(Gonéri) clean the image in case of failure
             if media.copy_from:
+                LOG.info("Downloading '%s' from %s" % (media.name,
+                                                      media.copy_from))
                 image.update(container_format='bare',
                              disk_format=media.disk_format,
                              copy_from=media.copy_from)
             else:
                 with open(media.getPath(), "rb") as media_data:
-                    image.update(container_format='bare',
-                                 disk_format=media.disk_format,
-                                 data=media_data)
+                    LOG.info("Uploading %s to %s" % (media.getPath(),
+                                                     media.name))
+                    with futures.ThreadPoolExecutor(max_workers=1) as executor:
+                        upload = executor.submit(
+                            image.update, container_format='bare',
+                            disk_format=media.disk_format,
+                            data=media_data)
+                        while upload.running():
+                            time.sleep(5)
+                            LOG.info("%s: %5dM /%5dM" % (
+                                media.name,
+                                media_data.tell() / 1024 / 1024,
+                                media.size / 1024 / 1024))
 
-            while True:
-                image = self._glance.images.get(image.id)
+    def _wait_for_medias_in_glance(self, medias_to_upload):
+        parameters = {}
+        LOG.info("Checking the image(s) status")
+        while len(parameters) != len(medias_to_upload):
+            for media in medias_to_upload.values():
+                image = self._glance.images.get(media.glance_id)
+                LOG.debug("status: %s - %s", image.name, image.status)
                 if image.status == 'active':
-                    break
-                if image.status == 'killed':
+                    LOG.info("Image %s is ready" % image.name)
+                    parameters['volume_id_%s' % image.name] = media.glance_id
+                elif image.status == 'killed':
                     raise ImageException("Error while waiting for image")
-                time.sleep(5)
-                LOG.info("waiting for %s", media.name)
-            parameters['volume_id_%s' % image.name] = image.id
-            LOG.debug("status: %s - %s", image.name, image.status)
+                else:
+                    LOG.info("waiting for %s", media.name)
+                    time.sleep(5)
         return parameters
 
     def register_pub_key(self, test_public_key):

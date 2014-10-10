@@ -238,22 +238,20 @@ class TestProvider(testtools.TestCase):
         mock_image_1.name = "name_1"
         mock_image_1.id = 1
         mock_image_1.status = 'active'
-        mock_image_2 = mock.Mock()
-        mock_image_2.name = "name_2"
-        mock_image_2.id = 2
-        mock_image_2.status = 'active'
+        mock_image_1.filter_on = ['name']
         mock_image_3 = mock.Mock()
         mock_image_3.name = "name_3"
         mock_image_3.id = 3
         mock_image_3.status = 'killed'
+        mock_image_3.filter_on = ['name', 'size']
         my_provider._glance.images.list.return_value = [
-            mock_image_1, mock_image_2, mock_image_3
+            mock_image_1, mock_image_3
         ]
-        print("Roberto")
-        medias = {"name_1": "", "name_2": "", "name_3": ""}
-        to_up, to_not_up = my_provider._filter_medias(medias, ["name_2"])
-        self.assertDictEqual(to_up, {"name_2": None, "name_3": None})
-        self.assertDictEqual(to_not_up, {"name_1": 1})
+        medias = {"name_1": mock_image_1,
+                  "name_3": mock_image_3}
+        to_up = my_provider._filter_medias(medias, ["name_2"])
+        self.assertDictEqual(to_up, {"name_1": mock_image_1,
+                                     "name_3": mock_image_3})
 
         # A local image
         mock_local_media = mock.Mock()
@@ -265,15 +263,169 @@ class TestProvider(testtools.TestCase):
 
         with mock.patch('%s.open' % six.moves.builtins.__name__):
             actual_parameters = my_provider.upload(medias, ["name_1"])
-        expected_parameters = {'volume_id_name_1': 1}
-        self.assertDictEqual(actual_parameters, expected_parameters)
+        self.assertEqual(actual_parameters.keys(),
+                         {'volume_id_name_1': None}.keys())  # Py34
 
         my_provider._glance.images.get.return_value = mock_image_3
-
         medias = {"name_1": mock_image_1}
         self.assertRaises(provider.ImageException,
                           my_provider.upload, medias, ["name_1"])
-        self.assertDictEqual(actual_parameters, expected_parameters)
+        self.assertEqual(actual_parameters.keys(),
+                         {'volume_id_name_1': None}.keys())
+
+    def _create_images_in_glance(self):
+        img_in_glance = mock.Mock()
+        img_in_glance.name = "name_1"
+        img_in_glance.status = 'active'
+        img_in_glance.disk_format = 'raw'
+        img_in_glance.id = 1
+        return [img_in_glance]
+
+    def _create_images_to_upload(self):
+        img_to_upload = mock.Mock()
+        img_to_upload.name = "name_1"
+        img_to_upload.disk_format = 'raw'
+        img_to_upload.filter_on = ['name']
+        img_to_upload.glance_id = None
+        return {'name_1': img_to_upload}
+
+    def test_filter_medias_by_status(self):
+        my_provider = provider.Heat(args=fake_args())
+        images_in_glance = self._create_images_in_glance()
+        images_to_upload = self._create_images_to_upload()
+        images_in_glance[0].status = 'killed'
+        my_provider._glance = mock.Mock()
+        my_provider._glance.images.list.return_value = images_in_glance
+        to_up = my_provider._filter_medias(
+            images_to_upload,
+            [])
+        self.assertEqual(to_up['name_1'].glance_id, None)
+
+    def test_filter_medias_by_name(self):
+        my_provider = provider.Heat(args=fake_args())
+        images_in_glance = self._create_images_in_glance()
+        images_to_upload = self._create_images_to_upload()
+        my_provider._glance = mock.Mock()
+        # Match
+        my_provider._glance.images.list.return_value = images_in_glance
+        to_up = my_provider._filter_medias(
+            images_to_upload,
+            [])
+        self.assertEqual(to_up['name_1'].glance_id, 1)
+
+    def test_filter_medias_by_name_dont_match(self):
+        my_provider = provider.Heat(args=fake_args())
+        images_in_glance = self._create_images_in_glance()
+        images_to_upload = self._create_images_to_upload()
+        my_provider._glance = mock.Mock()
+        # Don't match
+        images_in_glance[0].name = "Michel"
+        my_provider._glance = mock.Mock()
+        my_provider._glance.images.list.return_value = images_in_glance
+        to_up = my_provider._filter_medias(
+            images_to_upload,
+            [])
+        self.assertEqual(to_up['name_1'].glance_id, None)
+
+    def test_filter_medias_by_name_size(self):
+        my_provider = provider.Heat(args=fake_args())
+        images_in_glance = self._create_images_in_glance()
+        images_to_upload = self._create_images_to_upload()
+        my_provider._glance = mock.Mock()
+        # Match
+        images_in_glance[0].size = 10
+        images_to_upload['name_1'].size = 10
+        images_to_upload['name_1'].filter_on = ['name', 'size']
+        my_provider._glance.images.list.return_value = images_in_glance
+        to_up = my_provider._filter_medias(
+            images_to_upload,
+            [])
+        self.assertEqual(to_up['name_1'].glance_id, 1)
+
+        # Don't match
+        images_to_upload['name_1'].size = 11
+        to_up = my_provider._filter_medias(
+            images_to_upload,
+            [])
+        self.assertEqual(to_up['name_1'].glance_id, 1)
+
+    def test_filter_medias_by_checksum(self):
+        my_provider = provider.Heat(args=fake_args())
+        images_in_glance = self._create_images_in_glance()
+        images_to_upload = self._create_images_to_upload()
+        my_provider._glance = mock.Mock()
+        # Match
+        images_in_glance[0].checksum = 'abc'
+        images_to_upload['name_1'].checksum = 'abc'
+        images_to_upload['name_1'].filter_on = ['checksum']
+        my_provider._glance.images.list.return_value = images_in_glance
+        to_up = my_provider._filter_medias(
+            images_to_upload,
+            [])
+        self.assertEqual(to_up['name_1'].glance_id, 1)
+
+        # Don't match
+        images_to_upload['name_1'].checksum = 'abcd'
+        to_up = my_provider._filter_medias(
+            images_to_upload,
+            [])
+        self.assertEqual(to_up['name_1'].glance_id, 1)
+
+    def test__upload_medias_already_done(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_media = mock.Mock()
+        my_media.name = "Jim"
+        my_media.glance_id = 123
+        provider.LOG = mock.Mock()
+        my_provider._upload_medias({'my_media': my_media})
+        provider.LOG.info.assert_called_with('Jim already in Glance (123)')
+
+    def test__upload_medias_with_copy_from(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_media = mock.Mock()
+        my_media.name = "Jim"
+        my_media.copy_from = "http://somewhere"
+        my_media.glance_id = None
+        provider.LOG = mock.Mock()
+        my_provider._glance = mock.Mock()
+        my_provider._upload_medias({'my_media': my_media})
+        provider.LOG.info.assert_called_with(
+            "Downloading 'Jim' from http://somewhere")
+
+    def test__upload_medias_with_local_image(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_media = mock.Mock()
+        my_media.name = "Jim"
+        my_media.copy_from = None
+        my_media.glance_id = None
+        provider.LOG = mock.Mock()
+        my_provider._glance = mock.Mock()
+        tf = tempfile.NamedTemporaryFile()
+        my_media.getPath.return_value = tf.name
+        my_provider._upload_medias({'my_media': my_media})
+        provider.LOG.info.assert_called_with(
+            'Uploading %s to Jim' % tf.name)
+
+    def test__wait_for_medias_in_glance(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_media = mock.Mock()
+        my_media.name = 'Kim'
+        my_media.glance_id = 123
+        my_provider._glance = mock.Mock()
+        my_provider._glance.images.get.return_value = my_media
+        self.assertEqual(my_provider._wait_for_medias_in_glance({}), {})
+
+        provider.LOG = mock.Mock()
+        my_media.status = 'active'
+        my_provider._wait_for_medias_in_glance({'bob': my_media})
+        provider.LOG.info.assert_called_with(
+            'Image Kim is ready')
+
+        my_media.status = 'killed'
+        self.assertRaises(provider.ImageException,
+                          my_provider._wait_for_medias_in_glance,
+                          {'bob': my_media})
+        provider.LOG.info.assert_called_with('Checking the image(s) status')
 
     def test_regiter_pub_key_ok(self):
         my_provider = provider.Heat(args=fake_args())

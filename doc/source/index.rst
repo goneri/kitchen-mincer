@@ -173,7 +173,10 @@ will depends on them.
 
 These medias can be either:
     * In the application itself, e.g: a Fedora repository or an eDeploy image
-    * In the environment, e.g: a backup to restore or some additional configuration
+    * In the environment, e.g: a backup to restore or some additional configuration.
+
+.. autoclass:: mincer.media.Media
+    :no-undoc-members:
 
 The actions
 -----------
