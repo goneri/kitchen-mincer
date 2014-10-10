@@ -37,7 +37,6 @@ class UploadImages(action.PluginActionBase):
         """
         medias = {}
         for k, v in six.iteritems(self.args['medias']):
-            LOG.info("media%s>", k)
             medias[k] = media.Media(k, v)
 
         # TODO(Gonéri): replace this provider.medias attribue with a
