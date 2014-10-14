@@ -24,6 +24,8 @@ import six
 
 LOG = logging.getLogger(__name__)
 
+MAX_RETRY = 40
+
 
 class SSH(object):
 
@@ -41,6 +43,7 @@ class SSH(object):
             stream = six.StringIO(priv_key.decode('UTF-8'))
         except AttributeError:  # Py27
             stream = six.StringIO(priv_key)
+        self._raw_priv_key = stream
         self._priv_key = paramiko.RSAKey.from_private_key(stream)
 
     def get_user_config(self, hostname):
@@ -70,7 +73,7 @@ class SSH(object):
 
         cfg['pkey'] = self._priv_key
 
-        while self._ssh_client is None:
+        for retry in six.moves.range(0, MAX_RETRY):
             try:
                 LOG.info("Trying to open the SSH tunnel...")
                 if 'proxycommand' in user_config:
@@ -86,48 +89,43 @@ class SSH(object):
                 LOG.debug(e)
             time.sleep(5)
             LOG.info("retrying")
+        sftp = paramiko.SFTPClient.from_transport(
+            self.get_transport())
+        id_rsa = sftp.open('/home/ec2-user/.ssh/id_rsa', 'w')
+        id_rsa.write(self._raw_priv_key.getvalue())
+        sftp.chmod('/home/ec2-user/.ssh/id_rsa', 0o600)
         LOG.info("SSH transport is ready")
 
-    def open_session(self, host_ip=None):
+    def get_transport(self, host_ip=None):
         """Open a session from the existing SSH transport.
 
         The SSH transport has to be created first with start_transport()
 
         """
         if host_ip is not None:
-            transport = self._ssh_client.get_transport()
-            channel = None
-            while channel is None:
+            for retry in six.moves.range(0, MAX_RETRY):
                 try:
-                    channel = transport.open_channel(
+                    LOG.info("Trying to open the SSH session...")
+                    channel = self._ssh_client.get_transport().open_channel(
                         'direct-tcpip',
                         (host_ip, 22),
                         (self._gateway_ip, 0))
-                except paramiko.ssh_exception.ChannelException as e:
-                    LOG.debug(e)
-                    time.sleep(5)
-                    LOG.info("Retrying")
 
-            t = paramiko.Transport(channel)
-            t.start_client()
+                    t = paramiko.Transport(channel)
+                    t.start_client()
 
-            max_retry = 10
-            for retry in six.moves.range(0, max_retry):
-                try:
-                    LOG.info("Trying to open the SSH session...")
                     t.auth_publickey('ec2-user', self._priv_key)
                     break
                 except paramiko.ssh_exception.SSHException:
                     time.sleep(30)
-            if (retry + 1) >= max_retry:
+                    LOG.info("Retrying")
+            if (retry + 1) >= MAX_RETRY:
                 raise AuthOverSSHTransportError()
-
-            session = t.open_session()
         else:
             # Open a session directly on the Gateway
-            session = self._ssh_client.get_transport().open_session()
+            t = self._ssh_client.get_transport()
 
-        return session
+        return t
 
 
 class AuthOverSSHTransportError(Exception):

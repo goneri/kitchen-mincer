@@ -73,9 +73,12 @@ class TestSSH(testtools.TestCase):
 
     @mock.patch('paramiko.client.SSHClient.connect',
                 mock.Mock(return_value=True))
+    @mock.patch('paramiko.SFTPClient.from_transport',
+                mock.Mock())
     def test_start_transport(self):
         # without user_config
         self.ssh.get_user_config = mock.Mock(return_value={})
+        self.get_transport = mock.Mock()
         self.ssh.start_transport('127.0.0.1')
         self.ssh._ssh_client.connect.assert_called_with(
             hostname='127.0.0.1',
@@ -95,18 +98,18 @@ class TestSSH(testtools.TestCase):
         self.ssh.start_transport('127.0.0.1')
         self.assertTrue(self.ssh._ssh_client.connect.called, True)
 
-    def test_open_session_no_gateway(self):
+    def test_get_transport_no_gateway(self):
         self.ssh._ssh_client = mock.Mock()
         self.ssh._ssh_client.return_value = mock.Mock()
-        self.assertTrue(self.ssh.open_session(None))
+        self.assertTrue(self.ssh.get_transport(None))
 
     @mock.patch('paramiko.transport.Transport.open_session', mock.Mock())
     @mock.patch('paramiko.transport.Transport.start_client', mock.Mock())
     @mock.patch('paramiko.transport.Transport.auth_publickey', mock.Mock())
-    def test_open_session_with_gateway(self):
+    def test_get_transport_with_gateway(self):
         self.ssh._ssh_client = mock.Mock()
         self.ssh._ssh_client.return_value = mock.Mock()
-        self.assertTrue(self.ssh.open_session('127.0.0.1'))
+        self.assertTrue(self.ssh.get_transport('127.0.0.1'))
 
     def raise_ssh_exception(arg1, arg2, arg3):
         raise paramiko.ssh_exception.SSHException()
@@ -116,9 +119,9 @@ class TestSSH(testtools.TestCase):
     @mock.patch('paramiko.transport.Transport.auth_publickey',
                 raise_ssh_exception)
     @mock.patch('time.sleep', mock.Mock())
-    def test_open_session_max_retry(self):
+    def test_get_transport_max_retry(self):
         self.ssh._ssh_client = mock.Mock()
         self.ssh._ssh_client.return_value = mock.Mock()
         self.assertRaises(mincer.utils.ssh.AuthOverSSHTransportError,
-                          self.ssh.open_session,
+                          self.ssh.get_transport,
                           '127.0.0.1')

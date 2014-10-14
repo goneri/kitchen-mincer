@@ -104,7 +104,9 @@ resources:
       key_name: {get_param: app_key_name}
       networks:
       - port: {get_resource: tester_instance_port}
-      user_data_format: SOFTWARE_CONFIG
+# TODO(Goneri): user_data_format=SOFTWARE_CONFIG is broken
+# with eNoCloud-CA
+#      user_data_format: SOFTWARE_CONFIG
     type: OS::Nova::Server
   tester_instance_floating_ip:
     properties:
@@ -427,7 +429,7 @@ resources:
         except KeyError:
             host_ip = None
 
-        session = self.ssh_client.open_session(host_ip)
+        session = self.ssh_client.get_transport(host_ip).open_session()
 
         session.set_combine_stderr(True)
         session.get_pty()
@@ -471,7 +473,7 @@ resources:
                  for k, v in six.iteritems(machines))
         )
 
-        session = self.ssh_client.open_session()
+        session = self.ssh_client.get_transport().open_session()
         session.set_combine_stderr(True)
         session.get_pty()
         session.setblocking(0)
@@ -556,7 +558,7 @@ resources:
         gateway_ip = t['tester_instance_public_ip'].getvalue()
 
         self.ssh_client.start_transport(gateway_ip)
-        session = self.ssh_client.open_session()
+        session = self.ssh_client.get_transport().open_session()
         session.exec_command('uname -a')
 
         for host in self.get_machines():
