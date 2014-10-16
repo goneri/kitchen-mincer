@@ -84,4 +84,3 @@ application:
     driver: simple_check
     commands:
       - ping -c5 $jenkins_instance
-      - curl -I $jenkins_instance:8080
