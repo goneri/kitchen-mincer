@@ -63,22 +63,22 @@ class TestProvider(testtools.TestCase):
     @mock.patch('glanceclient.Client', mock.Mock())
     @mock.patch('heatclient.v1.client.Client')
     def test_create(self, heatclient):
-        heatclient.stacks.create.return_value = {'stack': {'id': 1}}
-        fa = fake_args()
+        self.provider._heat = mock.Mock()
+        self.provider._heat.stacks.create.return_value = {'stack': {'id': 1}}
         self.provider.pub_key = "this is a pub key"
         self.provider.get_stack_parameters = mock.Mock()
         self.provider.register_pub_key = mock.Mock()
-        self.assertEqual(self.provider.connect(fake_identity), None)
+        fa = fake_args()
         template_path = fa.marmite_directory + "/heat.yaml"
         mystack = mock.Mock()
         mystack.status = 'CREATE_COMPLETE'
         mystack.outputs = [{'output_key': 'foo', 'output_value': 'bar'}]
         self.provider._wait_for_status_changes = \
             mock.Mock(return_value=mystack)
-        stack_result = self.provider.create_stack(
+        stack_id = self.provider.create_stack(
             "test_stack",
             template_path, {})
-        self.assertIsInstance(stack_result, provider.Stack)
+        self.assertEqual(1, stack_id)
         self.provider.get_stack_parameters.assert_called_with(
             {},
             {u'heat_template_version': u'2013-05-23',
@@ -114,10 +114,9 @@ class TestProvider(testtools.TestCase):
                             'output_value': 'my output'}]
         my_provider._wait_for_status_changes = \
             mock.Mock(return_value=mystack)
-        actual = my_provider.launch_application()
-        self.assertIsInstance(actual, dict)
-        self.assertTrue("stdout" in actual)
-        self.assertEqual(actual["stdout"].getvalue(), "my output")
+        self.assertEqual(my_provider.launch_application(), None)
+        self.assertTrue(my_provider._tester_stack)
+        self.assertTrue(my_provider._application_stack)
 
     def test_register_floating_ips(self):
         my_provider = provider.Heat(args=fake_args())

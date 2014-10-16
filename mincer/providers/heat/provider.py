@@ -539,6 +539,7 @@ resources:
         Start the application and gateway stacks and initialize the SSH
         transport.
         """
+        t0 = time.time()
         parameters = {}
         try:
             parameters.update(self.args.extra_params)
@@ -560,18 +561,32 @@ resources:
             stack_file.write(bytearray(self._gateway_heat_template, 'UTF-8'))
             stack_file.seek(0)
 
-            self._tester_stack = self.create_stack(
+            tester_id = self.create_stack(
                 self.name + "_gway",
                 stack_file.name,
                 parameters)
 
         # Create the app
-        self._application_stack = self.create_stack(
+        application_id = self.create_stack(
             self.name + "_app",
             self.args.marmite_directory + "/heat.yaml",
             parameters)
+        success_status = ['COMPLETE', 'CREATE_COMPLETE']
+        stack = self._wait_for_status_changes(tester_id, success_status)
+        logs = {}
+        for output in stack.outputs:
+            logs[output['output_key']] = six.StringIO(output['output_value'])
+        self._tester_stack = Stack(tester_id, logs)
 
-        return self._tester_stack.get_logs()
+        logs = {}
+        stack = self._wait_for_status_changes(application_id, success_status)
+        info = ('stack creation processed in %.2f, final status: %s' %
+                (time.time() - t0, stack.status))
+        LOG.info(info)
+        logs = {'general': six.StringIO(info)}
+        for output in stack.outputs:
+            logs[output['output_key']] = six.StringIO(output['output_value'])
+        self._application_stack = Stack(application_id, logs)
 
     def init_ssh_transport(self):
         """Initialize the SSH transport through the gateway stack."""
@@ -668,11 +683,10 @@ resources:
         :type template_path: str
         :param params: parameters of the template
         :type params: dict
-        :returns: a dictionary with a key "stack_id" and a key "logs"
-        :rtype: dict
+        :returns: the stack ID
+        :rtype: int
         """
         # TODO(Gonéri): name param is not used anymore
-        t0 = time.time()
         tpl_files, template = template_utils.get_template_contents(
             template_path
         )
@@ -692,17 +706,7 @@ resources:
         except heatclientexc.HTTPConflict:
             LOG.error("Stack '%s' failed because of a conflict", name)
             raise AlreadyExisting()
-
-        stack_id = resp['stack']['id']
-        stack = self._wait_for_status_changes(stack_id,
-                                              ['COMPLETE', 'CREATE_COMPLETE'])
-        info = ('stack %s processed in %.2f, final status: %s' %
-                (name, time.time() - t0, stack.status))
-        LOG.info(info)
-        logs = {'general': six.StringIO(info)}
-        for output in stack.outputs:
-            logs[output['output_key']] = six.StringIO(output['output_value'])
-        return Stack(stack_id, logs)
+        return resp['stack']['id']
 
     # TODO(Gonéri): Should be in the Stack class
     def delete_stack(self, stack_id):
