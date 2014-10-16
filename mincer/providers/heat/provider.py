@@ -199,6 +199,8 @@ resources:
         medias_to_upload = medias.copy()
         for media_to_upload in medias_to_upload.values():
             for media_in_glance in self._glance.images.list():
+                if media_in_glance.disk_format != media_to_upload.disk_format:
+                    continue
                 if media_in_glance.status != 'active':
                     continue
                 if media_to_upload.name in refresh_medias:

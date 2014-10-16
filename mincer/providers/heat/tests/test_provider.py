@@ -371,6 +371,16 @@ class TestProvider(testtools.TestCase):
             [])
         self.assertEqual(to_up['name_1'].glance_id, 1)
 
+    def test_filter_medias_different_format(self):
+        my_provider = provider.Heat(args=fake_args())
+        images_in_glance = self._create_images_in_glance()
+        images_to_upload = self._create_images_to_upload()
+        my_provider._glance = mock.Mock()
+        images_in_glance[0].disk_format = 'vmdk'
+        my_provider._glance.images.list.return_value = images_in_glance
+        to_up = my_provider._filter_medias(images_to_upload, [])
+        self.assertEqual(to_up['name_1'].glance_id, None)
+
     def test__upload_medias_already_done(self):
         my_provider = provider.Heat(args=fake_args())
         my_media = mock.Mock()
