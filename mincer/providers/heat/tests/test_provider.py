@@ -436,6 +436,20 @@ class TestProvider(testtools.TestCase):
                           {'bob': my_media})
         provider.LOG.info.assert_called_with('Checking the image(s) status')
 
+    @mock.patch('time.sleep', mock.Mock())
+    def test__show_media_upload_status(self):
+        MB = 1024 * 1024
+        my_provider = provider.Heat(args=fake_args())
+        fd = mock.Mock()
+        fd.tell = mock.Mock()
+        fd.tell.side_effect = [6 * MB, 12 * MB]
+        provider.LOG = mock.Mock()
+        size = 12 * MB
+        my_provider._show_media_upload_status('foo', fd, size)
+        provider.LOG.info.assert_called_with('foo:     6M /   12M')
+        my_provider._show_media_upload_status('foo', fd, size)
+        provider.LOG.info.assert_called_with('foo:    12M /   12M')
+
     def test_regiter_pub_key_ok(self):
         my_provider = provider.Heat(args=fake_args())
         my_provider._novaclient = mock.Mock()

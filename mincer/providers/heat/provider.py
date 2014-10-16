@@ -235,6 +235,17 @@ resources:
         self._upload_medias(medias_to_upload)
         return self._wait_for_medias_in_glance(medias_to_upload)
 
+    def _show_media_upload_status(self, name, fd, size):
+        time.sleep(5)
+        try:
+            LOG.info("%s: %5dM /%5dM" % (
+                name,
+                fd.tell() / 1024 / 1024,
+                size / 1024 / 1024))
+        except Exception as e:
+            LOG.exception(e)
+            pass
+
     def _upload_medias(self, medias_to_upload):
         for media in medias_to_upload.values():
             if media.glance_id:
@@ -253,20 +264,19 @@ resources:
                              disk_format=media.disk_format,
                              copy_from=media.copy_from)
             else:
-                with open(media.getPath(), "rb") as media_data:
+                with open(media.getPath(), "rb") as media_fd:
                     LOG.info("Uploading %s to %s" % (media.getPath(),
                                                      media.name))
                     with futures.ThreadPoolExecutor(max_workers=1) as executor:
                         upload = executor.submit(
                             image.update, container_format='bare',
                             disk_format=media.disk_format,
-                            data=media_data)
+                            data=media_fd)
                         while upload.running():
-                            time.sleep(5)
-                            LOG.info("%s: %5dM /%5dM" % (
+                            self._show_media_upload_status(
                                 media.name,
-                                media_data.tell() / 1024 / 1024,
-                                media.size / 1024 / 1024))
+                                media_fd,
+                                media.size)
 
     def _wait_for_medias_in_glance(self, medias_to_upload):
         parameters = {}
