@@ -543,53 +543,37 @@ resources:
             else:
                 LOG.info("Command is still running")
 
-    def launch_application(self):
+    def launch_application(self, template_path=None):
         """Start the application infrastructure
 
         Start the application and gateway stacks and initialize the SSH
         transport.
         """
+        if not template_path:
+            template_path = self.args.marmite_directory + "/heat.yaml"
         t0 = time.time()
-        parameters = {}
-        try:
-            parameters.update(self.args.extra_params)
-        except TypeError:
-            pass
-        parameters.update(self.key_pairs)
-        parameters.update(self.floating_ips)
-        parameters['flavor'] = 'm1.small'
-
-        for network in self._novaclient.networks.list():
-            parameters['%s_network' % network.label] = network.id
-
-        LOG.info(
-            "The following keys are available from your "
-            "heat template: " + ", ".join(parameters.keys()))
-
         # Create the gateway stack
         with tempfile.NamedTemporaryFile() as stack_file:
             stack_file.write(bytearray(self._gateway_heat_template, 'UTF-8'))
             stack_file.seek(0)
 
-            tester_id = self.create_stack(
-                self.name + "_gway",
-                stack_file.name,
-                parameters)
+            tester_id = self.create_or_update_stack(
+                name=self.name + "_gway",
+                template_path=stack_file.name)
 
         # Create the app
-        application_id = self.create_stack(
-            self.name + "_app",
-            self.args.marmite_directory + "/heat.yaml",
-            parameters)
+        application_id = self.create_or_update_stack(
+            name=self.name + "_app",
+            template_path=template_path)
         success_status = ['COMPLETE', 'CREATE_COMPLETE']
-        stack = self._wait_for_status_changes(tester_id, success_status)
+        stack = self.wait_for_status_changes(tester_id, success_status)
         logs = {}
         for output in stack.outputs:
             logs[output['output_key']] = six.StringIO(output['output_value'])
         self._tester_stack = Stack(tester_id, logs)
 
         logs = {}
-        stack = self._wait_for_status_changes(application_id, success_status)
+        stack = self.wait_for_status_changes(application_id, success_status)
         info = ('stack creation processed in %.2f, final status: %s' %
                 (time.time() - t0, stack.status))
         LOG.info(info)
@@ -668,8 +652,15 @@ resources:
                       ", ".join(creating - created)))
 
     # TODO(Gonéri): Should be in the Stack class
-    def _wait_for_status_changes(self, stack_id,
-                                 expected_status):
+    def wait_for_status_changes(self, stack_id, expected_status):
+        """Wait untill a stack has a new status.
+
+        :param stack_id: The ID of the stack
+        :type stack_id: int
+        :param expected_status: the exepected final status
+        :type expected_status: a array of strings
+
+        """
         for _ in six.moves.range(1, RETRY_MAX):
             stack = self._heat.stacks.get(stack_id)
             if stack.status in expected_status:
@@ -684,7 +675,11 @@ resources:
             raise StackTimeoutException("status: %s" % stack.status)
         return stack
 
-    def create_stack(self, name, template_path, params):
+    def create_or_update_stack(self,
+                               name=None,
+                               stack_id=None,
+                               template_path=None,
+                               parameters={}):
         """Run the stack and provides the parameters to Heat.
 
         :param name: name of the stack
@@ -696,6 +691,21 @@ resources:
         :returns: the stack ID
         :rtype: int
         """
+        try:
+            parameters.update(self.args.extra_params)
+        except TypeError:
+            pass
+        parameters.update(self.key_pairs)
+        parameters.update(self.floating_ips)
+        parameters['flavor'] = 'm1.small'
+
+        for network in self._novaclient.networks.list():
+            parameters['%s_network' % network.label] = network.id
+
+        LOG.info(
+            "The following keys are available from your "
+            "heat template: " + ", ".join(parameters.keys()))
+
         # TODO(Gonéri): name param is not used anymore
         tpl_files, template = template_utils.get_template_contents(
             template_path
@@ -704,11 +714,17 @@ resources:
             tpl_files,
             template,
             self.args.extra_params,
-            params,
+            parameters,
             self.medias)
 
+        if stack_id:
+            action_function = self._heat.stacks.update
+        else:
+            action_function = self._heat.stacks.create
+
         try:
-            resp = self._heat.stacks.create(
+            resp = action_function(
+                stack_id=stack_id,
                 stack_name=name,
                 parameters=stack_params,
                 template=template,
@@ -716,7 +732,7 @@ resources:
         except heatclientexc.HTTPConflict:
             LOG.error("Stack '%s' failed because of a conflict", name)
             raise AlreadyExisting()
-        return resp['stack']['id']
+        return stack_id if stack_id else resp['stack']['id']
 
     # TODO(Gonéri): Should be in the Stack class
     def delete_stack(self, stack_id):

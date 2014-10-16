@@ -86,3 +86,29 @@ application:
     driver: simple_check
     commands:
       - ping -c5 $jenkins_instance
+  -
+    description: Adding a second Jenkins node
+    driver: update_infra
+    heat_file: ./samples/jenkins/heat_v2.yaml
+  -
+    description: Waiting for the second node to be ready
+    driver: simple_check
+    commands:
+# We have to wait for jenkins_instance_2 to be ready
+      - ping -c30 $jenkins_instance_2
+  -
+    description: restarting jenkins on the second node
+    driver: run_command
+    retry: 4
+    connect_timeout: 180
+    user: ec2-user
+    hosts:
+      - jenkins_instance_2
+    commands:
+      - sudo service jenkins restart
+  -
+    description: Trying to open a HTTP connection to the Jenkins nodes
+    driver: simple_check
+    commands:
+      - curl --retry 5 --silent --head http://$jenkins_instance:8080
+      - curl --retry 5 --silent --head http://$jenkins_instance_2:8080

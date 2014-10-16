@@ -29,6 +29,7 @@ import mincer.actions.run_command as run_command
 import mincer.actions.serverspec_check as serverspec_check
 import mincer.actions.simple_check as simple_check
 import mincer.actions.start_infra as start_infra
+import mincer.actions.update_infra as update_infra
 import mincer.actions.upload_images as upload_images
 import mincer.providers.heat. provider as provider
 
@@ -102,8 +103,24 @@ class TestStartInfra(testtools.TestCase):
                                       provider)
         self.assertEqual(my_action.launch(), None)
         provider.register_pub_key.assert_called_with("toto")
-        provider.launch_application.assert_called_with()
+        provider.launch_application.assert_called_with(
+            template_path=None)
         provider.init_ssh_transport.assert_called_with()
+
+
+class TestUpdateInfra(testtools.TestCase):
+    def test_launch(self):
+        provider = mock.Mock()
+        provider._application_stack.get_id.return_value = "Belette verte"
+        provider.pub_key = "toto"
+        my_action = update_infra.UpdateInfra(
+            {'heat_file': 'foo'},
+            provider)
+        self.assertEqual(my_action.launch(), None)
+        provider.create_or_update_stack.assert_called_with(
+            stack_id='Belette verte', template_path='foo')
+        provider.wait_for_status_changes.assert_called_with(
+            'Belette verte', ['COMPLETE'])
 
 
 class TestServerspec(testtools.TestCase):

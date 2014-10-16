@@ -21,14 +21,16 @@ from mincer import action
 LOG = logging.getLogger(__name__)
 
 
-class StartInfra(action.PluginActionBase):
+class UpdateInfra(action.PluginActionBase):
 
     """Start the application infrastructure."""
 
     def launch(self):
         """Launch the deployment."""
         LOG.info("Starting deployment..")
-        self.provider.register_pub_key(self.provider.pub_key)
-        heat_file = self.args.get('heat_file', None)
-        self.provider.launch_application(template_path=heat_file)
-        self.provider.init_ssh_transport()
+        self.provider.create_or_update_stack(
+            stack_id=self.provider._application_stack.get_id(),
+            template_path=self.args['heat_file'])
+        self.provider.wait_for_status_changes(
+            self.provider._application_stack.get_id(),
+            ['COMPLETE'])

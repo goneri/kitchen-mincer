@@ -61,30 +61,37 @@ class TestProvider(testtools.TestCase):
     @mock.patch('keystoneclient.v2_0.Client', mock.Mock())
     @mock.patch('novaclient.client.Client', mock.Mock())
     @mock.patch('glanceclient.Client', mock.Mock())
+    @mock.patch('heatclient.common.template_utils.get_template_contents',
+                mock.Mock(return_value=({'a': 'b'}, '/somewhere.yaml')))
     @mock.patch('heatclient.v1.client.Client')
     def test_create(self, heatclient):
         self.provider._heat = mock.Mock()
         self.provider._heat.stacks.create.return_value = {'stack': {'id': 1}}
+        self.provider._novaclient = mock.Mock()
+        self.provider._novaclient.networks.list.return_value = []
         self.provider.pub_key = "this is a pub key"
         self.provider.get_stack_parameters = mock.Mock()
         self.provider.register_pub_key = mock.Mock()
-        fa = fake_args()
-        template_path = fa.marmite_directory + "/heat.yaml"
+        template_path = "/heat.yaml"
         mystack = mock.Mock()
         mystack.status = 'CREATE_COMPLETE'
         mystack.outputs = [{'output_key': 'foo', 'output_value': 'bar'}]
-        self.provider._wait_for_status_changes = \
+        self.provider.wait_for_status_changes = \
             mock.Mock(return_value=mystack)
-        stack_id = self.provider.create_stack(
-            "test_stack",
-            template_path, {})
+        stack_id = self.provider.create_or_update_stack(
+            name="test_stack",
+            template_path=template_path,
+            parameters={})
         self.assertEqual(1, stack_id)
         self.provider.get_stack_parameters.assert_called_with(
-            {},
-            {u'heat_template_version': u'2013-05-23',
-             u'description': u'Yet another useless Heat template.\n'},
-            {'roberto': 'sanchez'}, {}, {})
+            {'a': 'b'},
+            '/somewhere.yaml',
+            {'roberto': 'sanchez'},
+            {'flavor': 'm1.small', 'roberto': 'sanchez'},
+            {})
 
+    @mock.patch('heatclient.common.template_utils.get_template_contents',
+                mock.Mock(return_value=({'a': 'b'}, '/somewhere.yaml')))
     def test_create_with_missing_params(self):
         args = fake_args()
         args.extra_params = {}
@@ -92,10 +99,12 @@ class TestProvider(testtools.TestCase):
         my_provider._heat = mock.Mock()
         my_provider._heat.stacks.validate.return_value = {
             'Parameters': {'george': {'Default': 'a'}, 'helmout': {}}}
+        my_provider._novaclient = mock.Mock()
+        my_provider._novaclient.networks.list.return_value = []
         template_path = args.marmite_directory + "/heat.yaml"
         self.assertRaises(
             provider.InvalidStackParameter,
-            my_provider.create_stack,
+            my_provider.create_or_update_stack,
             "test_stack", template_path, {})
 
     def test_application(self):
@@ -112,7 +121,7 @@ class TestProvider(testtools.TestCase):
         mystack = mock.Mock()
         mystack.outputs = [{'output_key': 'stdout',
                             'output_value': 'my output'}]
-        my_provider._wait_for_status_changes = \
+        my_provider.wait_for_status_changes = \
             mock.Mock(return_value=mystack)
         self.assertEqual(my_provider.launch_application(), None)
         self.assertTrue(my_provider._tester_stack)
@@ -544,7 +553,7 @@ class TestProvider(testtools.TestCase):
         self.assertTrue(provider.LOG.info.called)
 
     @mock.patch('time.sleep', mock.Mock())
-    def test__wait_for_status_changes(self):
+    def test_wait_for_status_changes(self):
         my_provider = provider.Heat(args=fake_args())
         my_provider._heat = mock.Mock()
 
@@ -554,7 +563,7 @@ class TestProvider(testtools.TestCase):
         my_provider._heat.events.list.return_value = []
         expected_status = ['CREATE_COMPLETE']
         self.assertRaises(provider.StackTimeoutException,
-                          my_provider._wait_for_status_changes,
+                          my_provider.wait_for_status_changes,
                           1,
                           expected_status)
 
@@ -562,7 +571,7 @@ class TestProvider(testtools.TestCase):
         my_provider._heat.stacks.get.return_value = mock_stack
         my_provider._heat.events.list.return_value = []
         expected_status = ['CREATE_COMPLETE']
-        stack = my_provider._wait_for_status_changes(1, expected_status)
+        stack = my_provider.wait_for_status_changes(1, expected_status)
         self.assertTrue(stack)
 
         mock_stack.status = 'FAILED'
@@ -570,7 +579,7 @@ class TestProvider(testtools.TestCase):
         my_provider._heat.events.list.return_value = []
         expected_status = ['CREATE_COMPLETE']
         self.assertRaises(provider.StackCreationFailure,
-                          my_provider._wait_for_status_changes,
+                          my_provider.wait_for_status_changes,
                           1,
                           expected_status)
 
