@@ -125,3 +125,15 @@ class TestSSH(testtools.TestCase):
         self.assertRaises(mincer.utils.ssh.AuthOverSSHTransportError,
                           self.ssh.get_transport,
                           '127.0.0.1')
+
+    @mock.patch('time.sleep', mock.Mock())
+    def test__try_start_ssh_client_should_raise_err_on_failure(self):
+        def raise_exception():
+            raise paramiko.ssh_exception.SSHException()
+        client = mock.Mock()
+        client.connect = raise_exception
+        self.assertRaises(mincer.utils.ssh.AuthOverSSHTransportError,
+                          self.ssh._try_start_ssh_client,
+                          client,
+                          {},
+                          {})

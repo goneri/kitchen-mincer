@@ -55,6 +55,26 @@ class SSH(object):
                 ssh_config.parse(f)
         return ssh_config.lookup(hostname)
 
+    def _try_start_ssh_client(self, client, cfg, user_config):
+        for retry in six.moves.range(0, MAX_RETRY):
+            try:
+                LOG.info("Trying to open the SSH tunnel...")
+                if 'proxycommand' in user_config:
+                    LOG.debug("proxycommand found in SSH user configuration")
+                    cfg['sock'] = paramiko.ProxyCommand(
+                        user_config['proxycommand'])
+                client.connect(**cfg)
+                self._ssh_client = client
+                break
+            except socket.error as e:
+                LOG.debug(e)
+            except paramiko.ssh_exception.SSHException as e:
+                LOG.debug(e)
+            time.sleep(5)
+            LOG.info("retrying")
+        if (retry + 1) >= MAX_RETRY:
+            raise AuthOverSSHTransportError()
+
     def start_transport(self, gateway_ip):
         """Start the ssh tunnel between the mincer and the gateway."""
         self._gateway_ip = gateway_ip
@@ -72,23 +92,7 @@ class SSH(object):
                 cfg[k] = user_config[k]
 
         cfg['pkey'] = self._priv_key
-
-        for retry in six.moves.range(0, MAX_RETRY):
-            try:
-                LOG.info("Trying to open the SSH tunnel...")
-                if 'proxycommand' in user_config:
-                    LOG.debug("proxycommand found in SSH user configuration")
-                    cfg['sock'] = paramiko.ProxyCommand(
-                        user_config['proxycommand'])
-                client.connect(**cfg)
-                self._ssh_client = client
-                break
-            except socket.error as e:
-                LOG.debug(e)
-            except paramiko.ssh_exception.SSHException as e:
-                LOG.debug(e)
-            time.sleep(5)
-            LOG.info("retrying")
+        self._try_start_ssh_client(client, cfg, user_config)
         sftp = paramiko.SFTPClient.from_transport(
             self.get_transport())
         id_rsa = sftp.open('/home/ec2-user/.ssh/id_rsa', 'w')
