@@ -13,6 +13,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
+
 import argparse
 import copy
 import logging
@@ -21,6 +23,7 @@ import sys
 from mincer import marmite
 from mincer import mixer
 
+LOG = logging.getLogger(__name__)
 
 class AppendExtraParams(argparse.Action):
 
@@ -118,6 +121,7 @@ def main():
     m = mixer.Mixer(marmite.Marmite(args.marmite_directory,
                                     extra_params=args.extra_params), args)
     if args.test:
+        LOG.debug("Testing mode, all commands will not be executed")
         m.test(args.target)
     elif args.target:
         try:
