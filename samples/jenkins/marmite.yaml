@@ -36,10 +36,12 @@ application:
         type: local
         disk_format: qcow2
         path: samples/jenkins/jenkins_image.qcow2
+        filter_on: [name]
       base_image:
         type: local
         disk_format: qcow2
         path: samples/jenkins/base_image.qcow2
+        filter_on: [name]
   -
     description: prepare environment
     driver: start_infra

@@ -15,8 +15,10 @@
 # under the License.
 
 import subprocess
+import tempfile
 import unittest
 
+import fixtures
 import mock
 import testtools
 
@@ -138,15 +140,19 @@ class TestRunCommand(testtools.TestCase):
 
 
 class TestUploadImages(testtools.TestCase):
+    def setUp(self):
+        super(TestUploadImages, self).setUp()
+        self.useFixture(fixtures.NestedTempfile())
 
     def test_upload_images(self):
         my_provider = mock.Mock()
+        tf = tempfile.NamedTemporaryFile()
         my_action = upload_images.UploadImages(
             {'medias':
              {'img1':
               {'type': 'local',
                        'disk_format': 'qcow2',
-                       'path': 'nowhere'}}},
+                       'path': tf.name}}},
             my_provider)
         self.assertEqual(my_action.launch(), None)
         self.assertTrue(my_provider.upload.called)
