@@ -372,5 +372,5 @@ instance (Solution B).
 .. rubric:: Footnotes
 
 .. [#other_cloud] At this time, we only focus on getting the OpenStack Heat provider working.
-We are planning to provide another provider in the near future to support
-`eDeploy <https://github.com/enovance/edeploy>`_.
+   We are planning to provide another provider in the near future to support
+   `eDeploy <https://github.com/enovance/edeploy>`_.
