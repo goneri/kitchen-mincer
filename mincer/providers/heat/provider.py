@@ -448,13 +448,9 @@ resources:
         :type host: str
         :return: a tuple with the returned code and the output
         """
+        cmd = self._expand_template(cmd_tpl)
+
         machines = self.get_machines()
-
-        cmd = string.Template(cmd_tpl).substitute(
-            dict((k, v['primary_ip_address'])
-                 for k, v in six.iteritems(machines))
-        )
-
         try:
             host_ip = machines[host]['primary_ip_address']
         except KeyError:
@@ -498,11 +494,7 @@ resources:
 
     def register_check(self, cmd_tpl, interval=5):
         """Register a background check in the provider."""
-        machines = self.get_machines()
-        cmd = string.Template(cmd_tpl).substitute(
-            dict((k, v['primary_ip_address'])
-                 for k, v in six.iteritems(machines))
-        )
+        cmd = self._expand_template(cmd_tpl)
 
         session = self.ssh_client.get_transport().open_session()
         session.set_combine_stderr(True)
@@ -782,6 +774,19 @@ resources:
                 'primary_ip_address': primary_ip_address
             }
         return machines
+
+    def _expand_template(self, cmd_tpl):
+        machines = self.get_machines()
+        try:
+            cmd = string.Template(cmd_tpl).substitute(
+                dict((k, v['primary_ip_address'])
+                     for k, v in six.iteritems(machines))
+            )
+        except KeyError as e:
+            LOG.error("Hostname %s from the following template '%s' was not "
+                      "found in the stack resources." % (e, cmd_tpl))
+            raise mincer.exceptions.InstanceNameFromTemplateNotFoundInStack()
+        return cmd
 
 
 class Stack(object):

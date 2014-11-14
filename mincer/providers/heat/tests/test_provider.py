@@ -486,6 +486,20 @@ class TestProvider(testtools.TestCase):
 
         self.assertRaises(provider.ActionFailure, my_provider.run, "toto")
 
+    def test_run_template_missing_value(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider.get_machines = mock.Mock(return_value={})
+        my_provider.ssh_client = mock.Mock()
+
+        provider.LOG = mock.Mock()
+        self.assertRaises(
+            mincer.exceptions.InstanceNameFromTemplateNotFoundInStack,
+            my_provider.run,
+            "a $the b")
+        provider.LOG.error.assert_called_with(
+            "Hostname 'the' from the following template 'a $the b' "
+            "was not found in the stack resources.")
+
     def test_init_ssh_transport(self):
         my_provider = provider.Heat(args=fake_args())
         my_provider.run = mock.Mock(return_value=True)

@@ -157,6 +157,9 @@ class Mixer(object):
             LOG.exception(e)
             LOG.error("Connection failed: Authorization failure")
             raise StandardError()
+        except mincer.exceptions.InstanceNameFromTemplateNotFoundInStack as e:
+            LOG.error(e)
+            raise StandardError()
         except Exception as e:
             LOG.exception(e)
             LOG.error("Internal error")

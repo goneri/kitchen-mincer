@@ -24,3 +24,8 @@ class NotFound(Exception):
 class AuthorizationFailure(Exception):
 
     """Raised when connection to OpenStack API has failed."""
+
+
+class InstanceNameFromTemplateNotFoundInStack(Exception):
+
+    """Raised when a command reference an unexisting instance name."""
