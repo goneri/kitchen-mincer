@@ -451,10 +451,14 @@ resources:
         cmd = self._expand_template(cmd_tpl)
 
         machines = self.get_machines()
-        try:
-            host_ip = machines[host]['primary_ip_address']
-        except KeyError:
-            host_ip = None
+        host_ip = None
+        if host:
+            try:
+                host_ip = machines[host]['primary_ip_address']
+            except KeyError:
+                LOG.error("'%s' not found in machine list" %
+                          host)
+                raise ActionFailure()
 
         session = self.ssh_client.get_transport(host_ip).open_session()
 

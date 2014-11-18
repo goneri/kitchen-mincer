@@ -500,6 +500,17 @@ class TestProvider(testtools.TestCase):
             "Hostname 'the' from the following template 'a $the b' "
             "was not found in the stack resources.")
 
+    def test_run_bad_host(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider.get_machines = mock.Mock(return_value={})
+        my_provider.ssh_client = mock.Mock()
+
+        provider.LOG = mock.Mock()
+        self.assertRaises(provider.ActionFailure, my_provider.run,
+                          "toto", host='babar')
+        provider.LOG.error.assert_called_with(
+            "'babar' not found in machine list")
+
     def test_init_ssh_transport(self):
         my_provider = provider.Heat(args=fake_args())
         my_provider.run = mock.Mock(return_value=True)
