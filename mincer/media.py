@@ -161,7 +161,8 @@ class Media(object):
             if not self.checksum and 'checksum' in self.filter_on:
                 self.checksum = hashlib.md5(
                     open(self._local_image, 'rb').read()).hexdigest()
-            self.size = os.path.getsize(self._local_image)
+            if 'size' in self.filter_on:
+                self.size = os.path.getsize(self._local_image)
 
     def generate(self):
         """Publish method to generate an image."""
