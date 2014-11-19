@@ -24,7 +24,12 @@ LOG = logging.getLogger(__name__)
 
 class RunCommand(action.PluginActionBase):
 
-    """Action to run a script on the local machine."""
+    """Action to run a script on a given machine.
+
+    If the hosts key is not defined, the command is called from the
+    gateway machine.
+
+    """
 
     def launch(self):
         """Call the action
@@ -33,6 +38,7 @@ class RunCommand(action.PluginActionBase):
         :rtype: None
 
         """
-        for host in self.args['hosts']:
+        hosts = self.args.get('hosts', [None])
+        for host in hosts:
             for command in self.args['commands']:
                 self.provider.run(command, host=host)

@@ -155,6 +155,12 @@ class TestRunCommand(testtools.TestCase):
             fake_provider())
         self.assertEqual(my_action.launch(), None)
 
+    def test_run_command_with_no_hosts(self):
+        my_action = run_command.RunCommand(
+            {'commands': ['uname']},
+            fake_provider())
+        self.assertEqual(my_action.launch(), None)
+
 
 class TestUploadImages(testtools.TestCase):
     def setUp(self):
