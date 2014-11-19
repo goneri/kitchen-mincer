@@ -19,12 +19,11 @@ import jinja2
 from oslo.config import cfg
 import six
 import voluptuous
-import yaml
 
 from mincer import media
+import mincer.utils.fs_layer
 
 CONF = cfg.CONF
-
 LOG = logging.getLogger(__name__)
 
 
@@ -37,7 +36,7 @@ class Marmite(object):
 
     environments = {}
 
-    def __init__(self):
+    def __init__(self, marmite_directory):
         """Marmite constructor
 
         :param marmite_dir: the path of the marmite directory
@@ -45,23 +44,23 @@ class Marmite(object):
         :param extra_params: optional parameter to pass to Heat
         :type extra_params: dict
         """
-        if CONF.marmite_directory is None:
+        if marmite_directory is None:
             raise ValueError("'marmite_dir' argument is required")
-        self.marmite_dir = CONF.marmite_directory
+        self.fs_layer = mincer.utils.fs_layer.FSLayer(marmite_directory)
 
-        template_loader = jinja2.FileSystemLoader(searchpath=self.marmite_dir)
-        env = jinja2.Environment(loader=template_loader,
-                                 undefined=jinja2.StrictUndefined)
+        template_values = CONF.extra_params
+        template_values['marmite_dir'] = marmite_directory
         try:
-            template = env.get_template("marmite.yaml")
-        except jinja2.exceptions.TemplateNotFound:
-            raise NotFound()
+            self.marmite_tree = self.fs_layer.get_file(
+                'marmite.yaml',
+                template_values=template_values,
+                load_yaml=True)
+        except IOError as e:
+            raise NotFound(e)
+        except jinja2.exceptions.UndefinedError as e:
+            raise InvalidTemplate(e)
         except jinja2.exceptions.TemplateSyntaxError as e:
-            LOG.error("Invalid template syntax in %s/marmite.yaml: %s" % (
-                self.marmite_dir, e))
-            raise InvalidStructure()
-        marmite = template.render(CONF.extra_params)
-        self.marmite_tree = yaml.load(marmite)
+            raise InvalidTemplate(e)
         self._validate()
 
         self._application = Application(self.marmite_tree['application'])
@@ -91,7 +90,7 @@ class Marmite(object):
             schema(self.marmite_tree)
         except voluptuous.MultipleInvalid as e:
             LOG.error("Failed to validate %s/marmite.yaml structure: %s" %
-                      (self.marmite_dir, e))
+                      (self.fs_layer.base_dir, e))
             raise InvalidStructure()
 
     def description(self):
@@ -247,3 +246,8 @@ class NotFound(Exception):
 class InvalidStructure(Exception):
 
     """Exception raised when a marmite is not valide."""
+
+
+class InvalidTemplate(Exception):
+
+    """Exception raised when a marmite has an invalid Jinja2 structure."""

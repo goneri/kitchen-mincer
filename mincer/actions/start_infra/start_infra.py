@@ -25,10 +25,11 @@ class StartInfra(action.PluginActionBase):
 
     """Start the application infrastructure."""
 
-    def launch(self):
+    def launch(self, marmite):
         """Launch the deployment."""
         LOG.info("Starting deployment..")
         self.provider.register_pub_key(self.provider.pub_key())
-        heat_file = self.args.get('heat_file', None)
-        self.provider.launch_application(template_path=heat_file)
+        heat_file = self.args.get('heat_file', 'heat.yaml')
+        self.provider.launch_application(
+            marmite.fs_layer.get_file(heat_file))
         self.provider.init_ssh_transport()

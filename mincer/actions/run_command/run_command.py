@@ -31,7 +31,7 @@ class RunCommand(action.PluginActionBase):
 
     """
 
-    def launch(self):
+    def launch(self, marmite):
         """Call the action
 
         :returns: None

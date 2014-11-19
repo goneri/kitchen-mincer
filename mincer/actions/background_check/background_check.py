@@ -26,7 +26,7 @@ class BackgroundCheck(action.PluginActionBase):
 
     """Action to run a script on the local machine."""
 
-    def launch(self):
+    def launch(self, marmite):
         """Call the action
 
         :returns: None

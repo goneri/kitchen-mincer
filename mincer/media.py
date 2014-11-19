@@ -95,13 +95,13 @@ class Media(object):
 
         medias:
             ubuntu-13.10-server-amd64.iso:
-                type: block
+                type: remote
                 disk_format: iso
                 copy_from: http://my.mirror/ubuntu-13.10-server-amd64.iso
                 checksum: 4d1a8b720cdd14b76ed9410c63a00d0e
                 filter_on: [name, checksum]
             base_image:
-                type: block
+                type: remote
                 disk_format: qcow2
                 copy_from: http://my.mirror/ubuntu-vm.qcow2
                 checksum: e3224ba9d93b1df12db3b9e1d2f34ea7

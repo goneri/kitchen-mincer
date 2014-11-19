@@ -374,7 +374,7 @@ resources:
                                       (static_ip, already_reserved))
 
             # here we can safely reserve the floating IP and provide it
-            # to the Heat template parameters
+            # to the Heat template paracmeters
             self.floating_ips['floating_ip_%s' % name] = str(static_ip)
             output_floating_ips[name] = str(static_ip)
 
@@ -561,14 +561,12 @@ resources:
             else:
                 LOG.info("Command is still running")
 
-    def launch_application(self, template_path=None):
+    def launch_application(self, heat_template):
         """Start the application infrastructure
 
         Start the application and gateway stacks and initialize the SSH
         transport.
         """
-        if not template_path:
-            template_path = self.args.marmite_directory + "/heat.yaml"
         t0 = time.time()
         # Create the gateway stack
         with tempfile.NamedTemporaryFile() as stack_file:
@@ -580,11 +578,15 @@ resources:
                 template_path=stack_file.name)
 
         # Create the app
-        application_id = self.create_or_update_stack(
-            name=self.name + "_app",
-            template_path=template_path)
-        success_status = ['COMPLETE', 'CREATE_COMPLETE']
-        stack = self.wait_for_status_changes(tester_id, success_status)
+        with tempfile.NamedTemporaryFile() as stack_file:
+            stack_file.write(bytearray(heat_template, 'UTF-8'))
+            stack_file.seek(0)
+
+            application_id = self.create_or_update_stack(
+                name=self.name + "_app",
+                template_path=stack_file.name)
+            success_status = ['COMPLETE', 'CREATE_COMPLETE']
+            stack = self.wait_for_status_changes(tester_id, success_status)
         logs = {}
         for output in stack.outputs:
             logs[output['output_key']] = six.StringIO(output['output_value'])

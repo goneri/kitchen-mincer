@@ -17,6 +17,7 @@
 import tempfile
 
 import fixtures
+import heatclient
 import keystoneclient.exceptions as keystoneexc
 import mock
 import novaclient.client as novaclient
@@ -123,7 +124,11 @@ class TestProvider(testtools.TestCase):
                             'output_value': 'my output'}]
         my_provider.wait_for_status_changes = \
             mock.Mock(return_value=mystack)
-        self.assertEqual(my_provider.launch_application(), None)
+        heatclient.common.template_utils.get_template_contents = mock.Mock()
+        heatclient.common.template_utils.get_template_contents.return_value = (
+            {'a': 'b'}, 'c')
+        self.assertEqual(my_provider.launch_application(
+            "a Heat stack template"), None)
         self.assertTrue(my_provider._tester_stack)
         self.assertTrue(my_provider._application_stack)
 
