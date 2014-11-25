@@ -1,0 +1,74 @@
+description: A Jenkins restart scenario
+
+# an account on an OpenStack cloud providing Heat API.
+environments:
+  devtest:
+# Implicite, heat is the default provider.
+#    provider: heat
+    logdispatchers:
+      -
+        name: pylogger
+        driver: pylogger
+      -
+        name: local
+        driver: directory
+        path: .
+      -
+        name: swift-ci
+        driver: swift
+        container: log
+        path_template: 'my/log/$name'
+
+application:
+  # Name of the application, Stack will be called according to this name
+  name: wordpress
+  scenario:
+  -
+    description: generate the images
+    driver: local_script
+    work_dir: 'samples/wordpress/'
+    command: ./build_image.sh
+  -
+    description: media upload
+    driver: upload_images
+    medias:
+      wordpress_image:
+        type: local
+        disk_format: qcow2
+        path: samples/wordpress/wordpress_image.qcow2
+        filter_on: [name]
+      base_image:
+        type: local
+        disk_format: qcow2
+        path: samples/wordpress/base_image.qcow2
+        filter_on: [name]
+  -
+    description: prepare environment
+    driver: start_infra
+    params:
+  -
+    description: use Google DNS
+    driver: run_command
+    user: ec2-user
+    hosts:
+      - wordpress_instance
+    commands:
+      - sudo bash -c 'echo nameserver 8.8.4.4 > /etc/resolv.conf'
+  -
+    description: Wait until HTTP is ready
+    driver: simple_check
+    commands:
+      - sleep 60
+  -
+    description: Trying to open a HTTP connection to the wordpress node
+    driver: simple_check
+    commands:
+      - curl --retry 50 --silent --head http://$wordpress_instance
+  -
+    description: Install wordpress
+    driver: run_command
+    user: ec2-user
+    hosts:
+      - wordpress_instance
+    commands:
+      - curl --data "weblog_title=Robert&user_name=Robert&admin_password=toto&admin_password2=toto&admin_email=robert@robert.com&blog_public=1&Submit=Install WordPress" "http://localhost/wordpress/wp-admin/install.php?step=2"
