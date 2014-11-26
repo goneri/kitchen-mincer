@@ -16,10 +16,14 @@
 
 import logging
 
+from oslo.config import cfg
+
 from mincer import action
 from mincer import media  # noqa
 
 import six
+
+CONF = cfg.CONF
 
 LOG = logging.getLogger(__name__)
 
@@ -43,4 +47,4 @@ class UploadImages(action.PluginActionBase):
         # method, e.g: provider.set_media()
         self.provider.medias = self.provider.upload(
             medias,
-            self.provider.args.refresh_medias)
+            CONF.refresh_medias)

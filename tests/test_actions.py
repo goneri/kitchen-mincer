@@ -151,8 +151,10 @@ class TestUploadImages(testtools.TestCase):
         super(TestUploadImages, self).setUp()
         self.useFixture(fixtures.NestedTempfile())
 
-    def test_upload_images(self):
+    @mock.patch('mincer.actions.upload_images.upload_images.CONF')
+    def test_upload_images(self, CONF):
         my_provider = mock.Mock()
+        CONF.refresh_medias = {}
         tf = tempfile.NamedTemporaryFile()
         my_action = upload_images.UploadImages(
             {'medias':

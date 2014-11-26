@@ -69,39 +69,44 @@ class TestCredentials(testtools.TestCase):
                           self.c._expand_credentials,
                           {'aze': '$OS_FOO'})
 
-    def test__init__missing_file(self):
+    @mock.patch('mincer.credentials.CONF')
+    def test__init__missing_file(self, CONF):
+        CONF.credentials_file = "/nowhere"
         self.assertRaises(IOError,
-                          self.c.__init__,
-                          '/nowhere')
+                          self.c.__init__)
 
     @mock.patch('os.path.exists')
-    def test__init__load_default_file(self, mocked_path_exists):
+    @mock.patch('mincer.credentials.CONF')
+    def test__init__load_default_file(self, CONF, mocked_path_exists):
         def my_get_from_file(a):
             return(reference)
-
+        CONF.credentials_file = None
         mocked_path_exists.return_value = True
         self.c._get_from_file = my_get_from_file
-        self.c.__init__(None)
+        self.c.__init__()
         self.assertEqual(self.c.credentials, reference)
 
     @mock.patch('os.path.exists')
-    def test__init__load_environ(self, mocked_path_exists):
+    @mock.patch('mincer.credentials.CONF')
+    def test__init__load_environ(self, CONF, mocked_path_exists):
         def my_get_environ():
             return(reference)
-
+        CONF.credentials_file = None
         mocked_path_exists.return_value = False
         self.c._get_from_environ = my_get_environ
-        self.c.__init__(None)
+        self.c.__init__()
         self.assertEqual(self.c.credentials, reference)
 
-    def test__init__from_file(self):
+    @mock.patch('mincer.credentials.CONF')
+    def test__init__from_file(self, CONF):
         file_loc = tempfile.mkdtemp() + "/file.yaml"
         with open(file_loc, "w") as credentials_file:
             credentials_file.write("os_auth_url: a\n"
                                    "os_username: b\n"
                                    "os_password: c\n"
                                    "os_tenant_name: d")
-        self.c.__init__(file_loc)
+        CONF.credentials_file = file_loc
+        self.c.__init__()
         self.assertEqual(self.c.credentials,
                          {'os_password': 'c', 'os_auth_url': 'a',
                           'os_username': 'b', 'os_tenant_name': 'd'})

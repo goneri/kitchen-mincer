@@ -16,9 +16,12 @@
 import logging
 import os
 
+from oslo.config import cfg
 import six
 import voluptuous
 import yaml
+
+CONF = cfg.CONF
 
 LOG = logging.getLogger(__name__)
 
@@ -27,7 +30,7 @@ class Credentials(object):
 
     """Credentials class is in charge of loading the login/password."""
 
-    def __init__(self, credentials_file=None):
+    def __init__(self):
         """Initialize the Credentials object
 
         Try to load credential in this order:
@@ -37,13 +40,12 @@ class Credentials(object):
             - from the OpenStack OS_ environment variables
 
         :param credentials_file: location of a credential file (optional)
-        :type credentilas_file: str
 
         """
         default_credentials_file = (
             "%s/.config/mincer/credentials.yaml" % os.environ['HOME'])
-        if credentials_file:
-            raw = self._get_from_file(credentials_file)
+        if CONF.credentials_file:
+            raw = self._get_from_file(CONF.credentials_file)
         elif os.path.exists(default_credentials_file):
             raw = self._get_from_file(default_credentials_file)
         else:

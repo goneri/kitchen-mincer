@@ -16,6 +16,7 @@
 import logging
 
 import fixtures
+import mock
 import testtools
 
 from mincer import marmite
@@ -23,15 +24,20 @@ from mincer import marmite
 
 class TestMarmite(testtools.TestCase):
 
-    def setUp(self):
+    @mock.patch('mincer.marmite.CONF')
+    def setUp(self, CONF):
         super(TestMarmite, self).setUp()
+        CONF.marmite_directory = "./tests/test_marmite"
         self.useFixture(fixtures.NestedTempfile())
-        self.marmite = marmite.Marmite("./tests/test_marmite")
+        self.marmite = marmite.Marmite()
         self.application = self.marmite.application()
 
-    def test_fake_marmite_init(self):
-        self.assertRaises(ValueError, marmite.Marmite, None)
-        self.assertRaises(marmite.NotFound, marmite.Marmite, "/tmp")
+    @mock.patch('mincer.marmite.CONF')
+    def test_fake_marmite_init(self, CONF):
+        CONF.marmite_directory = None
+        self.assertRaises(ValueError, marmite.Marmite)
+        CONF.marmite_directory = "/tmp"
+        self.assertRaises(marmite.NotFound, marmite.Marmite)
 
     def test_description(self):
         self.assertEqual("a sample marmite",
@@ -52,13 +58,15 @@ class TestMarmite(testtools.TestCase):
         self.assertEqual("wordpress", self.application.name())
         self.assertIsNotNone(self.application.scenario())
 
-    def test_marmite_bad_template(self):
+    @mock.patch('mincer.marmite.CONF')
+    def test_marmite_bad_template(self, CONF):
         logging.disable(logging.CRITICAL)
+        CONF.marmite_directory = "./tests/test_marmite_bad_template"
         self.assertRaises(marmite.InvalidStructure,
-                          marmite.Marmite,
-                          "./tests/test_marmite_bad_template")
+                          marmite.Marmite)
 
-    def test_marmite_missing_keys(self):
+    @mock.patch('mincer.marmite.CONF')
+    def test_marmite_missing_keys(self, CONF):
+        CONF.marmite_directory = "./tests/test_marmite_missing_keys"
         self.assertRaises(marmite.InvalidStructure,
-                          marmite.Marmite,
-                          "./tests/test_marmite_missing_keys")
+                          marmite.Marmite)

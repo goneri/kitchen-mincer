@@ -13,79 +13,43 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import argparse
-import copy
 import logging
 import sys
 
-from mincer import marmite
+from oslo.config import cfg
+
 from mincer import mixer
 
 LOG = logging.getLogger(__name__)
 
+CONF = cfg.CONF
 
-class AppendExtraParams(argparse.Action):
+OPTS = [
+    cfg.StrOpt('target', default='devtest',
+               help='Target to run'),
+    cfg.StrOpt('credentials_file',
+               help="Adjust the location of "
+               "the credential file, default is", default=None),
+    cfg.BoolOpt('debug', default=False,
+                help='Debug mode'),
+    cfg.DictOpt('extra_params',
+                help="Additional parameters", default={}),
+    cfg.BoolOpt('test', default=False, help="Enter the test mode"),
+    cfg.DictOpt('refresh_medias', help="medias to refresh", default={}),
+    cfg.BoolOpt('preserve',
+                help="Do not clean the stack at end of the process",
+                default=False),
+    cfg.StrOpt('marmite_directory', help="Main marmite directory."),
+]
 
-    """The AppendExtraParams action to argparse.
-
-    This action expects the parameter to be in the `key=value` format.
-    It adds the key/value in a dictionary.
-    This is useful to allow extra parameters to be specified multiple times.
-    """
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        """argparse.Action callback
-
-        :param parser: unused
-        :type parse: None
-        :param namespace: the command-line argument object
-        :type namespace: argeparse.Namespace instance
-        :param values: a list of value
-        :type values: list() or str()
-        :param option_string: unused parameter
-        :type option_string: None
-        :returns: None
-        :rtype: None
-
-        """
-        (k, v) = values.split('=')
-        items = copy.copy(argparse._ensure_value(namespace, self.dest, {}))
-        items[k] = v
-        setattr(namespace, self.dest, items)
+opt_group = cfg.OptGroup(name='mincer',
+                         title='The options of the mincer')
+CONF.register_group(opt_group)
+CONF.register_opts(OPTS, opt_group)
+CONF.register_cli_opts(OPTS)
 
 
-def get_args(args=None):
-    """Parse the argument
-
-    In a script, parse_args() will typically be called with no arguments,
-    and the ArgumentParser will automatically determine the command-line
-    arguments from sys.argv.
-
-    :param args: optional list of argument
-    :returns: object holding attributes
-    :rtype: argparse.Namespace
-
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--target", help="Target to run")
-    parser.add_argument("--credentials-file", help="Adjust the location of "
-                        "the credential file, default is "
-                        "~/.config/mincer/credentials.yaml")
-    parser.add_argument("--debug", action="store_true",
-                        help="Debug mode")
-    parser.add_argument("--extra_params", action=AppendExtraParams,
-                        help="Additional parameters", default={})
-    parser.add_argument("--test", action="store_true",
-                        help="Enter the test mode")
-    parser.add_argument('--refresh-medias', nargs='+',
-                        help="medias to refresh", default=[])
-    parser.add_argument("--preserve", action="store_true",
-                        help="Do not clean the stack at end of the process")
-    parser.add_argument("marmite_directory", help="Main marmite directory.")
-    return parser.parse_args(args=args)
-
-
-def setup_logging(debug):
+def setup_logging():
     """Configure the logging class
 
     :param debug: boolean to enable debugging
@@ -93,7 +57,7 @@ def setup_logging(debug):
     :rtype: None
 
     """
-    log_lvl = logging.DEBUG if debug else logging.INFO
+    log_lvl = logging.DEBUG if CONF.debug else logging.INFO
     logging.basicConfig(
         format="%(levelname)s (%(module)s) %(message)s",
         level=log_lvl)
@@ -113,18 +77,15 @@ def main():
     :rtype: None
 
     """
-    args = get_args()
-
-    setup_logging(args.debug)
-
-    m = mixer.Mixer(marmite.Marmite(args.marmite_directory,
-                                    extra_params=args.extra_params), args)
-    if args.test:
+    CONF(sys.argv[1:], project="mincer")
+    setup_logging()
+    m = mixer.Mixer()
+    if CONF.test is True:
         LOG.debug("Testing mode, all commands will not be executed")
-        m.test(args.target)
-    elif args.target:
+        m.test(CONF.target)
+    elif CONF.target:
         try:
-            m.bootstrap(args.target, args.refresh_medias)
+            m.bootstrap()
         except Exception:
             sys.exit(1)
 

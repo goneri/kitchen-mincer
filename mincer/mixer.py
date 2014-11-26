@@ -15,15 +15,18 @@
 
 import logging
 
+from oslo.config import cfg
 import six
 from stevedore import driver
 
 import mincer.credentials
 import mincer.exceptions
 import mincer.logdispatcher
+from mincer import marmite
 
 LOG = logging.getLogger(__name__)
 
+CONF = cfg.CONF
 
 MINCER_PROVIDERS_NS = 'mincer.providers'
 MINCER_ACTIONS_NS = 'mincer.actions'
@@ -33,21 +36,14 @@ class Mixer(object):
 
     """The Kitchen Mincer main class."""
 
-    def __init__(self, marmite, args):
+    def __init__(self):
         """Constructor of the Mixer object
 
-        :param marmite: directory to the marmite
-        :type marmite: str
-        :param args: The arguments returned by get_args()
-        :type args: A argparse.Namespace instance
         :returns: None
-        :rtype: None
 
         """
-        self.args = args
-        self.marmite = marmite
-        self.credentials = mincer.credentials.Credentials(
-            args.credentials_file)
+        self.marmite = marmite.Marmite()
+        self.credentials = mincer.credentials.Credentials()
 
     @staticmethod
     def report_error(manager, entrypoint, exception):
@@ -71,7 +67,7 @@ class Mixer(object):
 
     def _load_provider(self, environment):
 
-        kwargs = dict(params=environment.provider_params(), args=self.args)
+        kwargs = dict(params=environment.provider_params(), args=CONF)
 
         return driver.DriverManager(
             namespace=MINCER_PROVIDERS_NS,
@@ -93,7 +89,7 @@ class Mixer(object):
             on_load_failure_callback=self.report_error,
             invoke_kwds=kwargs).driver
 
-    def test(self, env_name):
+    def test(self):
         """Validate a `marmite`
 
         This method is used associated to the `--test` parameter.
@@ -104,7 +100,7 @@ class Mixer(object):
         :rtype: None
 
         """
-        environment = self.marmite.environments[env_name]
+        environment = self.marmite.environments[CONF.test]
         self._load_provider(environment)
 
     def _store_log(self, logs, environment, provider):
@@ -126,18 +122,14 @@ class Mixer(object):
         for name, content in six.iteritems(logs):
             logdispatcher.store(name, content)
 
-    def bootstrap(self, env_name, refresh_medias):
+    def bootstrap(self):
         """Bootstrap the application.
 
         This method bootstraps the application, run the tests
         and store the logs.
 
-        :param env_name: the name of the used environment
-        :type env_name: str
-        :param refresh_medias: the list of the medias to refresh
-        :type refresh_medias: list
         """
-        environment = self.marmite.environment(env_name)
+        environment = self.marmite.environment(CONF.target)
         provider = self._load_provider(environment)
 
         try:
@@ -165,6 +157,6 @@ class Mixer(object):
             LOG.error("Internal error")
             raise StandardError()
         finally:
-            if not self.args.preserve:
+            if not CONF.preserve:
                 LOG.debug("Cleaning the tenant")
                 provider.cleanup()

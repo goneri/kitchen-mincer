@@ -16,11 +16,14 @@
 import logging
 
 import jinja2
+from oslo.config import cfg
 import six
 import voluptuous
 import yaml
 
 from mincer import media
+
+CONF = cfg.CONF
 
 LOG = logging.getLogger(__name__)
 
@@ -34,7 +37,7 @@ class Marmite(object):
 
     environments = {}
 
-    def __init__(self, marmite_dir, extra_params={}):
+    def __init__(self):
         """Marmite constructor
 
         :param marmite_dir: the path of the marmite directory
@@ -42,11 +45,11 @@ class Marmite(object):
         :param extra_params: optional parameter to pass to Heat
         :type extra_params: dict
         """
-        if marmite_dir is None:
+        if CONF.marmite_directory is None:
             raise ValueError("'marmite_dir' argument is required")
-        self.marmite_dir = marmite_dir
+        self.marmite_dir = CONF.marmite_directory
 
-        template_loader = jinja2.FileSystemLoader(searchpath=marmite_dir)
+        template_loader = jinja2.FileSystemLoader(searchpath=self.marmite_dir)
         env = jinja2.Environment(loader=template_loader,
                                  undefined=jinja2.StrictUndefined)
         try:
@@ -55,9 +58,9 @@ class Marmite(object):
             raise NotFound()
         except jinja2.exceptions.TemplateSyntaxError as e:
             LOG.error("Invalid template syntax in %s/marmite.yaml: %s" % (
-                marmite_dir, e))
+                self.marmite_dir, e))
             raise InvalidStructure()
-        marmite = template.render(extra_params)
+        marmite = template.render(CONF.extra_params)
         self.marmite_tree = yaml.load(marmite)
         self._validate()
 
