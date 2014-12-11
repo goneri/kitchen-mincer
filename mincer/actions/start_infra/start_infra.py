@@ -28,7 +28,7 @@ class StartInfra(action.PluginActionBase):
     def launch(self):
         """Launch the deployment."""
         LOG.info("Starting deployment..")
-        self.provider.register_pub_key(self.provider.pub_key)
+        self.provider.register_pub_key(self.provider.pub_key())
         heat_file = self.args.get('heat_file', None)
         self.provider.launch_application(template_path=heat_file)
         self.provider.init_ssh_transport()

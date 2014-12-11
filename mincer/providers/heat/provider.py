@@ -64,9 +64,10 @@ class Heat(object):
         self.floating_ips = {}
         self._application_stack = None
         self._tester_stack = None
-        self.priv_key, self.pub_key = self._generate_key_pairs()
         self._check_sessions = []
-        self.ssh_client = mincer.utils.ssh.SSH(self.priv_key)
+        self._ssh_client = None
+        self._pub_key = None
+        self._priv_key = None
 
         tmp = str(uuid.uuid4())
 
@@ -121,6 +122,27 @@ resources:
       - {get_resource: server_security_group}
     type: OS::Neutron::Port
 """
+
+    def ssh_client(self):
+        """Return the SSH client instance."""
+        if not self._ssh_client:
+            self._ssh_client = mincer.utils.ssh.SSH(self.priv_key())
+        return self._ssh_client
+
+    def pub_key(self):
+        """Return the SSH public key
+
+        The SSH key is ephemeral and will be deleted at the and of the Mincer
+        execution.
+        """
+        if not self._pub_key:
+            self._priv_key, self._pub_key = self._generate_key_pairs()
+        return self._pub_key
+
+    def priv_key(self):
+        """Return the SSH private key."""
+        self.pub_key()
+        return self._priv_key
 
     def _generate_key_pairs(self):
         """Generate ssh key pairs in OpenSSH format.
@@ -460,7 +482,7 @@ resources:
                           host)
                 raise ActionFailure()
 
-        session = self.ssh_client.get_transport(host_ip).open_session()
+        session = self.ssh_client().get_transport(host_ip).open_session()
 
         session.set_combine_stderr(True)
         session.get_pty()
@@ -500,7 +522,7 @@ resources:
         """Register a background check in the provider."""
         cmd = self._expand_template(cmd_tpl)
 
-        session = self.ssh_client.get_transport().open_session()
+        session = self.ssh_client().get_transport().open_session()
         session.set_combine_stderr(True)
         session.get_pty()
         session.setblocking(0)
@@ -583,8 +605,8 @@ resources:
         t = self._tester_stack.get_logs()
         gateway_ip = t['tester_instance_public_ip'].getvalue()
 
-        self.ssh_client.start_transport(gateway_ip)
-        session = self.ssh_client.get_transport().open_session()
+        self.ssh_client().start_transport(gateway_ip)
+        session = self.ssh_client().get_transport().open_session()
         session.exec_command('uname -a')
 
         for host in self.get_machines():

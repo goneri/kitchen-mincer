@@ -81,7 +81,7 @@ class TestBase(testtools.TestCase):
 class TestStartInfra(testtools.TestCase):
     def test_launch(self):
         provider = mock.Mock()
-        provider.pub_key = "toto"
+        provider.pub_key.return_value = "toto"
         my_action = start_infra.StartInfra(
                                       {},
                                       provider)
