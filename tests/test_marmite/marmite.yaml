@@ -33,12 +33,6 @@ application:
 
   scenario:
     -
-      description: prepare the marmite
-      driver: local_script
-      params:
-        work_dir: ./samples/spinal-stack/
-        command: ls
-    -
      description: upload the medias
      driver: upload_images
      medias:

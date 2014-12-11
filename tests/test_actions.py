@@ -14,7 +14,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import subprocess
 import tempfile
 import unittest
 
@@ -24,7 +23,6 @@ import testtools
 
 import mincer.action
 import mincer.actions.background_check as background_check
-import mincer.actions.local_script as local_script
 import mincer.actions.run_command as run_command
 import mincer.actions.serverspec_check as serverspec_check
 import mincer.actions.simple_check as simple_check
@@ -34,7 +32,6 @@ import mincer.actions.upload_images as upload_images
 import mincer.providers.heat. provider as provider
 
 action_list = [
-    local_script.LocalScript,
     simple_check.SimpleCheck,
     start_infra.StartInfra,
     serverspec_check.Serverspec]
@@ -79,19 +76,6 @@ class TestBase(testtools.TestCase):
             {},
             None)
         self.assertRaises(NotImplementedError, my_action.launch)
-
-
-class TestLocalScript(testtools.TestCase):
-    def test_launch(self):
-        my_action = local_script.LocalScript(
-            {'command': 'whoami', 'work_dir': '/tmp'},
-            None)
-        self.assertEqual(my_action.launch(), None)
-        my_action = local_script.LocalScript(
-            {'command': 'missing_command', 'work_dir': '/tmp'},
-            None)
-        self.assertRaises(subprocess.CalledProcessError,
-                          my_action.launch)
 
 
 class TestStartInfra(testtools.TestCase):

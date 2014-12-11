@@ -24,11 +24,6 @@ application:
   name: wordpress
   scenario:
   -
-    description: generate the images
-    driver: local_script
-    work_dir: 'samples/wordpress/'
-    command: ./build_image.sh
-  -
     description: media upload
     driver: upload_images
     medias:

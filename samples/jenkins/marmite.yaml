@@ -24,11 +24,6 @@ application:
   name: jenkins
   scenario:
   -
-    description: generate the images
-    driver: local_script
-    work_dir: 'samples/jenkins/'
-    command: sudo -n ./build_image.sh
-  -
     description: media upload
     driver: upload_images
     medias:
