@@ -51,7 +51,7 @@ class Mixer(object):
 
     @staticmethod
     def report_error(manager, entrypoint, exception):
-        """Log an error and rease an exception
+        """Log an error and raise an exception
 
         This method is called by Stevedore throught the
         on_load_failure_callback callback.
