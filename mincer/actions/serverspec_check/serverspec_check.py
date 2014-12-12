@@ -22,7 +22,7 @@ from mincer import action
 LOG = logging.getLogger(__name__)
 
 
-class Serverspec(action.PluginActionBase):
+class Serverspec(action.ActionBase):
 
     """Deploy Serverspec stack and run rake command.
 
@@ -36,31 +36,31 @@ class Serverspec(action.PluginActionBase):
         module_dir_abs_path = os.path.dirname(module_abs_path)
         return "%s/static/serverspec.yaml" % module_dir_abs_path
 
-    def _get_targets_ips(self):
+    def _get_targets_ips(self, provider):
         """Return the ip address associated of the targets."""
         targets_ips = {}
         targets = self.args["targets"]
-        for machine in self.provider.get_machines():
+        for machine in provider.get_machines():
             for target in targets:
                 if target in machine["resource_name"]:
                     targets_ips["target"] = machine["primary_ip_address"]
         return targets_ips
 
-    def launch(self, marmite):
+    def launch(self, marmite, provider):
         """Launch the Serverspec test."""
         LOG.info("Run Serverspec tests...")
 
-        parameters = {"test_private_key": self.provider.priv_key}
-        parameters.update(self._get_targets_ips())
+        parameters = {"test_private_key": provider.priv_key}
+        parameters.update(self._get_targets_ips(provider))
 
         LOG.debug("parameters: %s" % str(parameters))
 
         LOG.info("Running Serverspec stack test")
-        tmp_stack = self.provider.create_stack(
-            'serverspec%s' % self.provider.application_stack_id,
+        tmp_stack = provider.create_stack(
+            'serverspec%s' % provider.application_stack_id,
             self._get_server_spec_template_path(),
             parameters
         )
 
-        self.provider.delete_stack(tmp_stack.get_id())
+        provider.delete_stack(tmp_stack.get_id())
         return tmp_stack.get_logs()

@@ -21,16 +21,16 @@ from mincer import action
 LOG = logging.getLogger(__name__)
 
 
-class UpdateInfra(action.PluginActionBase):
+class UpdateInfra(action.ActionBase):
 
     """Start the application infrastructure."""
 
-    def launch(self, marmite):
+    def launch(self, marmite, provider):
         """Launch the deployment."""
         LOG.info("Starting deployment..")
-        self.provider.create_or_update_stack(
-            stack_id=self.provider._application_stack.get_id(),
+        provider.create_or_update_stack(
+            stack_id=provider._application_stack.get_id(),
             template_path=self.args['heat_file'])
-        self.provider.wait_for_status_changes(
-            self.provider._application_stack.get_id(),
+        provider.wait_for_status_changes(
+            provider._application_stack.get_id(),
             ['COMPLETE'])

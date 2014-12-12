@@ -21,15 +21,15 @@ from mincer import action
 LOG = logging.getLogger(__name__)
 
 
-class StartInfra(action.PluginActionBase):
+class StartInfra(action.ActionBase):
 
     """Start the application infrastructure."""
 
-    def launch(self, marmite):
+    def launch(self, marmite, provider):
         """Launch the deployment."""
         LOG.info("Starting deployment..")
-        self.provider.register_pub_key(self.provider.pub_key())
+        provider.register_pub_key(provider.pub_key())
         heat_file = self.args.get('heat_file', 'heat.yaml')
-        self.provider.launch_application(
+        provider.launch_application(
             marmite.fs_layer.get_file(heat_file))
-        self.provider.init_ssh_transport()
+        provider.init_ssh_transport()

@@ -72,10 +72,8 @@ class fake_provider(object):
 
 class TestBase(testtools.TestCase):
     def test_base(self):
-        my_action = mincer.action.PluginActionBase(
-            {},
-            None)
-        self.assertRaises(NotImplementedError, my_action.launch, None)
+        my_action = mincer.action.ActionBase({})
+        self.assertRaises(NotImplementedError, my_action.launch, None, None)
 
 
 class TestStartInfra(testtools.TestCase):
@@ -86,10 +84,9 @@ class TestStartInfra(testtools.TestCase):
         marmite.fs_layer = mock.Mock()
         marmite.fs_layer.get_file.return_value = 'a raw heat template'
         provider.pub_key.return_value = "toto"
-        my_action = start_infra.StartInfra(
-            {},
-            provider)
-        self.assertEqual(my_action.launch(marmite=marmite), None)
+        my_action = start_infra.StartInfra({})
+        self.assertEqual(my_action.launch(
+            marmite=marmite, provider=provider), None)
         provider.register_pub_key.assert_called_with("toto")
         provider.launch_application.assert_called_with(
             'a raw heat template')
@@ -102,9 +99,9 @@ class TestUpdateInfra(testtools.TestCase):
         provider._application_stack.get_id.return_value = "Belette verte"
         provider.pub_key = "toto"
         my_action = update_infra.UpdateInfra(
-            {'heat_file': 'foo'},
-            provider)
-        self.assertEqual(my_action.launch(marmite=None), None)
+            {'heat_file': 'foo'})
+        self.assertEqual(my_action.launch(
+            marmite=None, provider=provider), None)
         provider.create_or_update_stack.assert_called_with(
             stack_id='Belette verte', template_path='foo')
         provider.wait_for_status_changes.assert_called_with(
@@ -113,41 +110,44 @@ class TestUpdateInfra(testtools.TestCase):
 
 class TestServerspec(testtools.TestCase):
     def test_launch(self):
-        my_action = serverspec_check.Serverspec(
-                                    {'targets': []},
-                                    fake_provider())
-        self.assertIsInstance(my_action.launch(marmite=None), dict)
+        my_action = serverspec_check.Serverspec({'targets': []})
+        self.assertIsInstance(my_action.launch(
+            marmite=None, provider=fake_provider()), dict)
 
     def test__get_targets_ips(self):
         my_action = serverspec_check.Serverspec({
-            'targets': {'t1000': 'a', 'hal': 'b'}},
-            fake_provider())
-        targets_ips = my_action._get_targets_ips()
+            'targets': {'t1000': 'a', 'hal': 'b'}})
+        targets_ips = my_action._get_targets_ips(fake_provider())
         self.assertEqual(targets_ips, {'target': '2.3.4.5'})
 
 
 class TestSimpleCheck(testtools.TestCase):
 
     def test_simple_check(self):
+        my_provider = mock.Mock()
         my_action = simple_check.SimpleCheck(
-            {'hosts': ['my_instance'], 'commands': ['uname']},
-            fake_provider())
-        self.assertEqual(my_action.launch(marmite=None), None)
+            {'hosts': ['my_instance'], 'commands': ['uname']})
+        self.assertEqual(my_action.launch(
+            marmite=None, provider=my_provider), None)
+        my_provider.run.assert_called_once_with('uname')
 
 
 class TestRunCommand(testtools.TestCase):
 
     def test_run_command(self):
         my_action = run_command.RunCommand(
-            {'hosts': ['my_instance'], 'commands': ['uname']},
-            fake_provider())
-        self.assertEqual(my_action.launch(marmite=None), None)
+            {'hosts': ['my_instance'], 'commands': ['uname']})
+        provider = mock.Mock()
+        self.assertEqual(my_action.launch(
+            marmite=None, provider=provider),
+                         None)
+        provider.run.assert_called_with('uname', host='my_instance')
 
     def test_run_command_with_no_hosts(self):
         my_action = run_command.RunCommand(
-            {'commands': ['uname']},
-            fake_provider())
-        self.assertEqual(my_action.launch(marmite=None), None)
+            {'commands': ['uname']})
+        self.assertEqual(my_action.launch(
+            marmite=None, provider=fake_provider()), None)
 
 
 class TestUploadImages(testtools.TestCase):
@@ -165,9 +165,9 @@ class TestUploadImages(testtools.TestCase):
                 {'img1':
                     {'type': 'local',
                      'disk_format': 'qcow2',
-                     'path': tf.name}}},
-            my_provider)
-        self.assertEqual(my_action.launch(marmite=None), None)
+                     'path': tf.name}}})
+        self.assertEqual(my_action.launch(
+            marmite=None, provider=my_provider), None)
         self.assertTrue(my_provider.upload.called)
 
 
@@ -176,9 +176,8 @@ class TestBackgroundCheck(testtools.TestCase):
     def test_background_check(self):
         provider = mock.Mock()
         my_action = background_check.BackgroundCheck(
-            {'params': ['echo a']},
-            provider)
-        my_action.launch(marmite=None)
+            {'params': ['echo a']})
+        my_action.launch(marmite=None, provider=provider)
         provider.register_check.assert_called_with('echo a')
 
 if __name__ == '__main__':

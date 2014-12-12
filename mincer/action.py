@@ -19,31 +19,32 @@ import abc
 import six
 
 
-class PluginActionBase(object):
+class ActionBase(object):
 
     """The base class used by the actions."""
 
     six.add_metaclass(abc.ABCMeta)
 
-    def __init__(self, args, provider):
+    def __init__(self, args):
         """Action constructor.
 
         :param args: the action data structure
         :type args: dict
         :param providers: the Cloud provider
-        :type provider: a provider instance
 
         """
         self.args = args
-        self.provider = provider
         self.description = self.args.get('description', "No description")
 
     @abc.abstractmethod
-    def launch(self, marmite):
+    def launch(self, marmite, provider):
         """abc abstractmethod used to call the action
 
         :param marmite: the marmite object
         :type marmite: Marmite instance
+        :param provider: a provider
+        :type provider: a provider instance
+
 
         """
         raise NotImplementedError("launch() has to be defined")
