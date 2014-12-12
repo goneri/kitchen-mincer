@@ -71,23 +71,14 @@ def setup_logging():
 
 
 def main():
-    """The entry point of the application.
-
-    :returns: None
-    :rtype: None
-
-    """
+    """The entry point of the application."""
     CONF(sys.argv[1:], project="mincer")
     setup_logging()
     m = mixer.Mixer()
-    if CONF.test is True:
-        LOG.debug("Testing mode, all commands will not be executed")
-        m.test(CONF.target)
-    elif CONF.target:
-        try:
-            m.bootstrap()
-        except Exception:
-            sys.exit(1)
+    try:
+        m.bootstrap()
+    except Exception:
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
