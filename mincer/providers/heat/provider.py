@@ -724,7 +724,6 @@ resources:
             "The following keys are available from your "
             "heat template: " + ", ".join(parameters.keys()))
 
-        # TODO(Gonéri): name param is not used anymore
         tpl_files, template = template_utils.get_template_contents(
             template_path
         )
