@@ -145,7 +145,6 @@ class Media(object):
         self.filter_on = description.get('filter_on', 'name')
         self.glance_id = None
 
-        # TODO(Gonéri): move this in a subclass/driver
         if self._type == "dynamic":
             self.basedir = tempfile.mkdtemp()
             self._sources = description['sources']
