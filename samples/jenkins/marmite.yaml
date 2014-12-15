@@ -40,7 +40,7 @@ application:
   -
     description: prepare environment
     driver: start_infra
-    params:
+    heat_file:
   -
     description: watch ping
     driver: background_check
@@ -49,7 +49,7 @@ application:
       - ping -c 1 127.0.0.1
   -
     description: push the root ssh key
-    driver: run_command
+    driver: run_commands
     user: ec2-user
     hosts:
       - jenkins_instance
@@ -60,7 +60,7 @@ application:
       - sudo chmod 600 /root/.ssh/authorized_keys
   -
     description: use Google DNS
-    driver: run_command
+    driver: run_commands
     user: ec2-user
     hosts:
       - jenkins_instance
@@ -68,7 +68,7 @@ application:
       - sudo bash -c 'echo nameserver 8.8.4.4 > /etc/resolv.conf'
   -
     description: restart jenkins
-    driver: run_command
+    driver: run_commands
     retry: 4
     connect_timeout: 180
     user: ec2-user
@@ -93,7 +93,7 @@ application:
       - ping -c30 $jenkins_instance_2
   -
     description: restarting jenkins on the second node
-    driver: run_command
+    driver: run_commands
     retry: 4
     connect_timeout: 180
     user: ec2-user

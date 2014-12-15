@@ -40,10 +40,10 @@ application:
   -
     description: prepare environment
     driver: start_infra
-    params:
+    heat_file:
   -
     description: use Google DNS
-    driver: run_command
+    driver: run_commands
     user: ec2-user
     hosts:
       - wordpress_instance
@@ -61,7 +61,7 @@ application:
       - curl --retry 50 --silent --head http://$wordpress_instance
   -
     description: Install wordpress
-    driver: run_command
+    driver: run_commands
     user: ec2-user
     hosts:
       - wordpress_instance
