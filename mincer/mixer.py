@@ -16,7 +16,6 @@
 import logging
 
 from oslo.config import cfg
-import six
 
 import mincer.credentials
 import mincer.exceptions
