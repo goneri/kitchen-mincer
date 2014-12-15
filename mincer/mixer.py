@@ -17,12 +17,12 @@ import logging
 
 from oslo.config import cfg
 import six
-from stevedore import driver
 
 import mincer.credentials
 import mincer.exceptions
 import mincer.logdispatcher
 from mincer import marmite
+import mincer.provider
 
 LOG = logging.getLogger(__name__)
 
@@ -44,51 +44,6 @@ class Mixer(object):
         self.marmite = marmite.Marmite(
             marmite_directory=CONF.marmite_directory)
         self.credentials = mincer.credentials.Credentials()
-
-    @staticmethod
-    def report_error(manager, entrypoint, exception):
-        """Log an error and raise an exception
-
-        This method is called by Stevedore throught the
-        on_load_failure_callback callback.
-
-        :param manager: None, unused
-        :type manager: None
-        :param entrypoint: the entrypoint
-        :type entrypoint: str
-        :param exception: the raised exception
-        :type exception: exception
-        :returns: None
-        :rtype: None
-
-        """
-        LOG.error("Error while loading provider %s", entrypoint)
-        raise exception
-
-    def _load_provider(self, environment):
-
-        kwargs = dict(params=environment.provider_params(), args=CONF)
-
-        return driver.DriverManager(
-            namespace=MINCER_PROVIDERS_NS,
-            name=environment.provider(),
-            invoke_on_load=True,
-            on_load_failure_callback=self.report_error,
-            invoke_kwds=kwargs).driver
-
-    def test(self):
-        """Validate a `marmite`
-
-        This method is used associated to the `--test` parameter.
-
-        :param env_name: the name of the environment
-        :type env_name: str
-        :returns: None
-        :rtype: None
-
-        """
-        environment = self.marmite.environments[CONF.test]
-        self._load_provider(environment)
 
     def _store_log(self, logs, environment, provider):
         """Record the logs
@@ -117,7 +72,7 @@ class Mixer(object):
 
         """
         environment = self.marmite.environment(CONF.target)
-        provider = self._load_provider(environment)
+        provider = mincer.provider.create(environment)
 
         try:
             provider.connect(self.credentials.get())
