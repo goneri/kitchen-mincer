@@ -22,11 +22,11 @@ from mincer import media  # noqa
 LOG = logging.getLogger(__name__)
 
 
-class BackgroundCheck(action.PluginActionBase):
+class BackgroundCheck(action.ActionBase):
 
     """Action to run a script on the local machine."""
 
-    def launch(self, marmite):
+    def launch(self, marmite, provider):
         """Call the action
 
         :returns: None
@@ -34,4 +34,4 @@ class BackgroundCheck(action.PluginActionBase):
 
         """
         for command in self.args['params']:
-            self.provider.register_check(command)
+            provider.register_check(command)

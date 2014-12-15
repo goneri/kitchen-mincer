@@ -28,11 +28,11 @@ CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
-class UploadImages(action.PluginActionBase):
+class UploadImages(action.ActionBase):
 
     """Action to run a script on the local machine."""
 
-    def launch(self, marmite):
+    def launch(self, marmite, provider):
         """Upload the medias (image)
 
         :returns: None
@@ -45,6 +45,6 @@ class UploadImages(action.PluginActionBase):
 
         # TODO(Gonéri): replace this provider.medias attribue with a
         # method, e.g: provider.set_media()
-        self.provider.medias = self.provider.upload(
+        provider.medias = provider.upload(
             medias,
             CONF.refresh_medias)

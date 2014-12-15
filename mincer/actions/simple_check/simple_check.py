@@ -22,14 +22,14 @@ from mincer import media  # noqa
 LOG = logging.getLogger(__name__)
 
 
-class SimpleCheck(action.PluginActionBase):
+class SimpleCheck(action.ActionBase):
 
     """An action designed to validate an application with simple command."""
 
-    def launch(self, marmite):
+    def launch(self, marmite, provider):
         """Call the action."""
         for cmd in self.args['commands']:
-            self.provider.run(cmd)
+            provider.run(cmd)
 
 
 class TargetNotFound(Exception):

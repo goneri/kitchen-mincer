@@ -29,7 +29,6 @@ LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
 MINCER_PROVIDERS_NS = 'mincer.providers'
-MINCER_ACTIONS_NS = 'mincer.actions'
 
 
 class Mixer(object):
@@ -73,19 +72,6 @@ class Mixer(object):
         return driver.DriverManager(
             namespace=MINCER_PROVIDERS_NS,
             name=environment.provider(),
-            invoke_on_load=True,
-            on_load_failure_callback=self.report_error,
-            invoke_kwds=kwargs).driver
-
-    # TODO(Gonéri): should be moved in the Marmite object
-    def _load_action(self, args, provider):
-
-        kwargs = dict(args=args,
-                      provider=provider)
-
-        return driver.DriverManager(
-            namespace=MINCER_ACTIONS_NS,
-            name=args['driver'],
             invoke_on_load=True,
             on_load_failure_callback=self.report_error,
             invoke_kwds=kwargs).driver
@@ -136,14 +122,9 @@ class Mixer(object):
         try:
             provider.connect(self.credentials.get())
 
-            scenario = []
-            for step in self.marmite.application().scenario():
-                action = self._load_action(step, provider)
-                scenario.append(action)
-
-            for action in scenario:
+            for action in self.marmite.scenario:
                 LOG.info("Running: %s" % action.description)
-                logs = action.launch(marmite=self.marmite)
+                logs = action.launch(marmite=self.marmite, provider=provider)
                 self._store_log(logs, environment, provider)
                 provider.watch_running_checks()
         except mincer.exceptions.AuthorizationFailure as e:

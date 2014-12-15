@@ -22,7 +22,7 @@ from mincer import media  # noqa
 LOG = logging.getLogger(__name__)
 
 
-class RunCommand(action.PluginActionBase):
+class RunCommand(action.ActionBase):
 
     """Action to run a script on a given machine.
 
@@ -31,7 +31,7 @@ class RunCommand(action.PluginActionBase):
 
     """
 
-    def launch(self, marmite):
+    def launch(self, marmite, provider):
         """Call the action
 
         :returns: None
@@ -41,4 +41,4 @@ class RunCommand(action.PluginActionBase):
         hosts = self.args.get('hosts', [None])
         for host in hosts:
             for command in self.args['commands']:
-                self.provider.run(command, host=host)
+                provider.run(command, host=host)
