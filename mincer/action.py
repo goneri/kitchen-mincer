@@ -39,11 +39,11 @@ class PluginActionBase(object):
         self.description = self.args.get('description', "No description")
 
     @abc.abstractmethod
-    def launch(self):
+    def launch(self, marmite):
         """abc abstractmethod used to call the action
 
-        :returns: True on success or False
-        :rtype: Boolean
+        :param marmite: the marmite object
+        :type marmite: Marmite instance
 
         """
         raise NotImplementedError("launch() has to be defined")

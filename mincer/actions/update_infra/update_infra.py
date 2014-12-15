@@ -25,7 +25,7 @@ class UpdateInfra(action.PluginActionBase):
 
     """Start the application infrastructure."""
 
-    def launch(self):
+    def launch(self, marmite):
         """Launch the deployment."""
         LOG.info("Starting deployment..")
         self.provider.create_or_update_stack(

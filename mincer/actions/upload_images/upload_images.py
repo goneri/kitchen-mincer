@@ -32,7 +32,7 @@ class UploadImages(action.PluginActionBase):
 
     """Action to run a script on the local machine."""
 
-    def launch(self):
+    def launch(self, marmite):
         """Upload the medias (image)
 
         :returns: None

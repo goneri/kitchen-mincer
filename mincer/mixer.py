@@ -42,7 +42,8 @@ class Mixer(object):
         :returns: None
 
         """
-        self.marmite = marmite.Marmite()
+        self.marmite = marmite.Marmite(
+            marmite_directory=CONF.marmite_directory)
         self.credentials = mincer.credentials.Credentials()
 
     @staticmethod
@@ -142,7 +143,7 @@ class Mixer(object):
 
             for action in scenario:
                 LOG.info("Running: %s" % action.description)
-                logs = action.launch()
+                logs = action.launch(marmite=self.marmite)
                 self._store_log(logs, environment, provider)
                 provider.watch_running_checks()
         except mincer.exceptions.AuthorizationFailure as e:

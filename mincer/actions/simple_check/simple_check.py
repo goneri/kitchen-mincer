@@ -26,7 +26,7 @@ class SimpleCheck(action.PluginActionBase):
 
     """An action designed to validate an application with simple command."""
 
-    def launch(self):
+    def launch(self, marmite):
         """Call the action."""
         for cmd in self.args['commands']:
             self.provider.run(cmd)

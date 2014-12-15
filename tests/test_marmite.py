@@ -29,15 +29,14 @@ class TestMarmite(testtools.TestCase):
         super(TestMarmite, self).setUp()
         CONF.marmite_directory = "./tests/test_marmite"
         self.useFixture(fixtures.NestedTempfile())
-        self.marmite = marmite.Marmite()
+        CONF.extra_params = {}
+        self.marmite = marmite.Marmite("./tests/test_marmite")
         self.application = self.marmite.application()
 
     @mock.patch('mincer.marmite.CONF')
     def test_fake_marmite_init(self, CONF):
-        CONF.marmite_directory = None
-        self.assertRaises(ValueError, marmite.Marmite)
-        CONF.marmite_directory = "/tmp"
-        self.assertRaises(marmite.NotFound, marmite.Marmite)
+        self.assertRaises(ValueError, marmite.Marmite, None)
+        self.assertRaises(marmite.NotFound, marmite.Marmite, "/tmp")
 
     def test_description(self):
         self.assertEqual("a sample marmite",
@@ -61,12 +60,12 @@ class TestMarmite(testtools.TestCase):
     @mock.patch('mincer.marmite.CONF')
     def test_marmite_bad_template(self, CONF):
         logging.disable(logging.CRITICAL)
-        CONF.marmite_directory = "./tests/test_marmite_bad_template"
-        self.assertRaises(marmite.InvalidStructure,
-                          marmite.Marmite)
+        self.assertRaises(marmite.InvalidTemplate,
+                          marmite.Marmite,
+                          "./tests/test_marmite_bad_template")
 
     @mock.patch('mincer.marmite.CONF')
     def test_marmite_missing_keys(self, CONF):
-        CONF.marmite_directory = "./tests/test_marmite_missing_keys"
         self.assertRaises(marmite.InvalidStructure,
-                          marmite.Marmite)
+                          marmite.Marmite,
+                          "./tests/test_marmite_missing_keys")

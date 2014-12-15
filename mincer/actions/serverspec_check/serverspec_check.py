@@ -46,7 +46,7 @@ class Serverspec(action.PluginActionBase):
                     targets_ips["target"] = machine["primary_ip_address"]
         return targets_ips
 
-    def launch(self):
+    def launch(self, marmite):
         """Launch the Serverspec test."""
         LOG.info("Run Serverspec tests...")
 
