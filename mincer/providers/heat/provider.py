@@ -145,7 +145,7 @@ resources:
 
     def priv_key(self):
         """Return the SSH private key."""
-        self._pub_key()
+        self.pub_key()
         return self._priv_key
 
     def _generate_key_pairs(self):
