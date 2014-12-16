@@ -305,12 +305,10 @@ resources:
                                 local_media.size)
 
     def _wait_for_medias_in_glance(self, medias_to_upload):
-        parameters = {}
         LOG.info("Checking the image(s) status")
         while len(self.medias) != len(medias_to_upload):
             for local_media in medias_to_upload.values():
                 image = self._glance.images.get(local_media.glance_id)
-                LOG.debug("status: %s - %s", image.name, image.status)
                 if image.status == 'active':
                     LOG.info("Image %s is ready" % image.name)
                     local_media_id = local_media.glance_id

@@ -275,16 +275,15 @@ class TestProvider(testtools.TestCase):
         my_provider._glance.images.get.return_value = mock_image_1
 
         with mock.patch('%s.open' % six.moves.builtins.__name__):
-            actual_parameters = my_provider.upload(medias, ["name_1"])
-        self.assertEqual(actual_parameters.keys(),
+            my_provider.upload(medias, ["name_1"])
+        self.assertEqual(my_provider.medias.keys(),
                          {'volume_id_name_1': None}.keys())  # Py34
 
+        my_provider.medias = {}
         my_provider._glance.images.get.return_value = mock_image_3
         medias = {"name_1": mock_image_1}
         self.assertRaises(provider.ImageException,
                           my_provider.upload, medias, ["name_1"])
-        self.assertEqual(actual_parameters.keys(),
-                         {'volume_id_name_1': None}.keys())
 
     def _create_images_in_glance(self):
         img_in_glance = mock.Mock()
@@ -436,15 +435,19 @@ class TestProvider(testtools.TestCase):
         my_media.glance_id = 123
         my_provider._glance = mock.Mock()
         my_provider._glance.images.get.return_value = my_media
-        self.assertEqual(my_provider._wait_for_medias_in_glance({}), {})
+        my_provider._wait_for_medias_in_glance({})
+        self.assertEqual(my_provider.medias, {})
 
+        my_provider.medias = {}
         provider.LOG = mock.Mock()
         my_media.status = 'active'
         my_provider._wait_for_medias_in_glance({'bob': my_media})
         provider.LOG.info.assert_called_with(
             'Image Kim is ready')
 
+        my_provider.medias = {}
         my_media.status = 'killed'
+        my_provider._glance.images.get.return_value = my_media
         self.assertRaises(provider.ImageException,
                           my_provider._wait_for_medias_in_glance,
                           {'bob': my_media})
