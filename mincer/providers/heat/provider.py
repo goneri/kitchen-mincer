@@ -259,7 +259,7 @@ resources:
         """
         medias_to_upload = self._filter_medias(medias, refresh_medias)
         self._upload_medias(medias_to_upload)
-        return self._wait_for_medias_in_glance(medias_to_upload)
+        self._wait_for_medias_in_glance(medias_to_upload)
 
     def _show_media_upload_status(self, name, fd, size):
         time.sleep(5)
@@ -307,20 +307,19 @@ resources:
     def _wait_for_medias_in_glance(self, medias_to_upload):
         parameters = {}
         LOG.info("Checking the image(s) status")
-        while len(parameters) != len(medias_to_upload):
+        while len(self.medias) != len(medias_to_upload):
             for local_media in medias_to_upload.values():
                 image = self._glance.images.get(local_media.glance_id)
                 LOG.debug("status: %s - %s", image.name, image.status)
                 if image.status == 'active':
                     LOG.info("Image %s is ready" % image.name)
                     local_media_id = local_media.glance_id
-                    parameters['volume_id_%s' % image.name] = local_media_id
+                    self.medias['volume_id_%s' % image.name] = local_media_id
                 elif image.status == 'killed':
                     raise ImageException("Error while waiting for image")
                 else:
                     LOG.info("waiting for %s", local_media.name)
                     time.sleep(5)
-        return parameters
 
     def _register_pub_key(self, test_public_key):
         """Register the public key in the provider
