@@ -72,7 +72,7 @@ class Mixer(object):
 
         """
         environment = self.marmite.environment(CONF.target)
-        provider = mincer.provider.create(environment)
+        provider = mincer.provider.get(environment)
 
         try:
             provider.connect(self.credentials.get())
