@@ -835,7 +835,7 @@ resources:
         for command in params:
             self._register_check(command)
 
-    def simple_check(self, description, commands):
+    def simple_check(self, description, commands, **kwargs):
         """Action to run a script."""
         LOG.info(description)
         for command in commands:
