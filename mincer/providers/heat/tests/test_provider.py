@@ -71,20 +71,20 @@ class TestProvider(testtools.TestCase):
         self.provider._novaclient = mock.Mock()
         self.provider._novaclient.networks.list.return_value = []
         self.provider.pub_key = "this is a pub key"
-        self.provider.get_stack_parameters = mock.Mock()
+        self.provider._get_stack_parameters = mock.Mock()
         self.provider.register_pub_key = mock.Mock()
         template_path = "/heat.yaml"
         mystack = mock.Mock()
         mystack.status = 'CREATE_COMPLETE'
         mystack.outputs = [{'output_key': 'foo', 'output_value': 'bar'}]
-        self.provider.wait_for_status_changes = \
+        self.provider._wait_for_status_changes = \
             mock.Mock(return_value=mystack)
-        stack_id = self.provider.create_or_update_stack(
+        stack_id = self.provider._create_or_update_stack(
             name="test_stack",
             template_path=template_path,
             parameters={})
         self.assertEqual(1, stack_id)
-        self.provider.get_stack_parameters.assert_called_with(
+        self.provider._get_stack_parameters.assert_called_with(
             {'a': 'b'},
             '/somewhere.yaml',
             {'roberto': 'sanchez'},
@@ -105,7 +105,7 @@ class TestProvider(testtools.TestCase):
         template_path = args.marmite_directory + "/heat.yaml"
         self.assertRaises(
             provider.InvalidStackParameter,
-            my_provider.create_or_update_stack,
+            my_provider._create_or_update_stack,
             "test_stack", template_path, {})
 
     def test_application(self):
@@ -118,11 +118,11 @@ class TestProvider(testtools.TestCase):
         mock_network.id = 1
         my_provider._novaclient.networks.list.return_value = [mock_network]
         my_provider.name = "test_stack"
-        my_provider.get_stack_parameters = mock.Mock()
+        my_provider._get_stack_parameters = mock.Mock()
         mystack = mock.Mock()
         mystack.outputs = [{'output_key': 'stdout',
                             'output_value': 'my output'}]
-        my_provider.wait_for_status_changes = \
+        my_provider._wait_for_status_changes = \
             mock.Mock(return_value=mystack)
         heatclient.common.template_utils.get_template_contents = mock.Mock()
         heatclient.common.template_utils.get_template_contents.return_value = (
@@ -467,7 +467,7 @@ class TestProvider(testtools.TestCase):
     def test_regiter_pub_key_ok(self):
         my_provider = provider.Heat(args=fake_args())
         my_provider._novaclient = mock.Mock()
-        my_provider.register_pub_key('bob')
+        my_provider._register_pub_key('bob')
         self.assertEqual(
             my_provider.key_pairs,
             {'app_key_name': my_provider.name})
@@ -479,7 +479,7 @@ class TestProvider(testtools.TestCase):
         my_provider = provider.Heat(args=fake_args())
         my_provider._novaclient = mock.Mock()
         my_provider._novaclient.keypairs.create = keypairs_create_failure
-        my_provider.register_pub_key('bob')
+        my_provider._register_pub_key('bob')
         self.assertEqual(
             my_provider.key_pairs,
             {'app_key_name': my_provider.name})
@@ -489,7 +489,7 @@ class TestProvider(testtools.TestCase):
         my_provider.get_machines = mock.Mock(return_value={})
         my_provider.ssh_client = mock.Mock()
 
-        self.assertRaises(provider.ActionFailure, my_provider.run, "toto")
+        self.assertRaises(provider.ActionFailure, my_provider._run, "toto")
 
     def test_run_template_missing_value(self):
         my_provider = provider.Heat(args=fake_args())
@@ -499,7 +499,7 @@ class TestProvider(testtools.TestCase):
         provider.LOG = mock.Mock()
         self.assertRaises(
             mincer.exceptions.InstanceNameFromTemplateNotFoundInStack,
-            my_provider.run,
+            my_provider._run,
             "a $the b")
         provider.LOG.error.assert_called_with(
             "Hostname 'the' from the following template 'a $the b' "
@@ -511,14 +511,14 @@ class TestProvider(testtools.TestCase):
         my_provider.ssh_client = mock.Mock()
 
         provider.LOG = mock.Mock()
-        self.assertRaises(provider.ActionFailure, my_provider.run,
+        self.assertRaises(provider.ActionFailure, my_provider._run,
                           "toto", host='babar')
         provider.LOG.error.assert_called_with(
             "'babar' not found in machine list")
 
     def test_init_ssh_transport(self):
         my_provider = provider.Heat(args=fake_args())
-        my_provider.run = mock.Mock(return_value=True)
+        my_provider._run = mock.Mock(return_value=True)
         my_provider.ssh_client = mock.Mock()
         my_provider.get_machines = mock.Mock(return_value={'toto': {}})
         tester_stack = mock.Mock()
@@ -527,15 +527,15 @@ class TestProvider(testtools.TestCase):
         tester_stack.get_logs.return_value = {
             'tester_instance_public_ip': log_public_ip}
         my_provider._tester_stack = tester_stack
-        self.assertEqual(my_provider.init_ssh_transport(), None)
-        my_provider.run.assert_called_with('uname -a', host='toto')
+        self.assertEqual(my_provider._init_ssh_transport(), None)
+        my_provider._run.assert_called_with('uname -a', host='toto')
 
     def test_register_check(self):
         my_provider = provider.Heat(args=fake_args())
         my_provider._novaclient = mock.Mock()
         my_provider.get_machines = mock.Mock(return_value={})
         my_provider.ssh_client = mock.Mock()
-        self.assertEqual(my_provider.register_check("echo roy", 5), None)
+        self.assertEqual(my_provider._register_check("echo roy", 5), None)
 
     def test_watch_running_checks_no_session(self):
         my_provider = provider.Heat(args=fake_args())
@@ -593,7 +593,7 @@ class TestProvider(testtools.TestCase):
         my_provider._heat.events.list.return_value = []
         expected_status = ['CREATE_COMPLETE']
         self.assertRaises(provider.StackTimeoutException,
-                          my_provider.wait_for_status_changes,
+                          my_provider._wait_for_status_changes,
                           1,
                           expected_status)
 
@@ -601,7 +601,7 @@ class TestProvider(testtools.TestCase):
         my_provider._heat.stacks.get.return_value = mock_stack
         my_provider._heat.events.list.return_value = []
         expected_status = ['CREATE_COMPLETE']
-        stack = my_provider.wait_for_status_changes(1, expected_status)
+        stack = my_provider._wait_for_status_changes(1, expected_status)
         self.assertTrue(stack)
 
         mock_stack.status = 'FAILED'
@@ -609,7 +609,7 @@ class TestProvider(testtools.TestCase):
         my_provider._heat.events.list.return_value = []
         expected_status = ['CREATE_COMPLETE']
         self.assertRaises(provider.StackCreationFailure,
-                          my_provider.wait_for_status_changes,
+                          my_provider._wait_for_status_changes,
                           1,
                           expected_status)
 
@@ -639,3 +639,68 @@ class TestProvider(testtools.TestCase):
         provider.LOG = mock.Mock()
         my_provider._show_stack_progress(1)
         provider.LOG.info.assert_called_with('0: creating foo')
+
+    def test_run_commands(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._run = mock.Mock()
+        fake_commands = ["cmd1"]
+        fake_hosts = ["host1"]
+        my_provider.run_commands("description", "user",
+                                 fake_commands, fake_hosts)
+
+        my_provider._run.assert_called_with(fake_commands[0],
+                                            host=fake_hosts[0])
+
+    def test_background_check(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._register_check = mock.Mock()
+        fake_params = ["params1"]
+        my_provider.background_check("description", fake_params)
+        my_provider._register_check.assert_called_once_with("params1")
+
+    def test_simple_check(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._run = mock.Mock()
+        fake_commands = ["cmd1"]
+        my_provider.simple_check("description", fake_commands)
+
+        my_provider._run.assert_called_with(fake_commands[0])
+
+    def test_start_infra(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider.pub_key = mock.Mock()
+        my_provider._register_pub_key = mock.Mock()
+        my_provider.launch_application = mock.Mock()
+        my_provider._init_ssh_transport = mock.Mock()
+        my_provider.pub_key.return_value = "toto"
+        my_marmite = mock.Mock()
+        my_marmite.fs_layer = mock.Mock()
+        my_marmite.fs_layer.get_file.return_value = 'a raw heat template'
+        self.assertEqual(my_provider.start_infra("description",
+                                                 heat_file="fake_heat_file",
+                                                 marmite=my_marmite), None)
+        my_provider._register_pub_key.assert_called_with("toto")
+        my_provider.launch_application.assert_called_with(
+            'a raw heat template')
+        my_provider._init_ssh_transport.assert_called_with()
+
+    def test_update_infra(self):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider._create_or_update_stack = mock.Mock()
+        my_provider._wait_for_status_changes = mock.Mock()
+        my_provider._application_stack = mock.Mock()
+        my_provider._application_stack.get_id.return_value = "fake_id"
+        my_provider.update_infra("description", "fake_heat_file.yaml")
+
+        my_provider._create_or_update_stack.assert_called_with(
+            stack_id="fake_id", template_path="fake_heat_file.yaml")
+        my_provider._wait_for_status_changes.assert_called_with(
+            "fake_id", ['COMPLETE'])
+
+    @mock.patch('mincer.providers.heat.provider.CONF')
+    def test_upload_images(self, mock_CONF):
+        my_provider = provider.Heat(args=fake_args())
+        my_provider.upload = mock.Mock()
+        mock_CONF.refresh_medias = None
+        my_provider.upload_images("description", {})
+        my_provider.upload.assert_called_with({}, None)

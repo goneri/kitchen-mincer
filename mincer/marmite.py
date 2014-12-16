@@ -18,7 +18,6 @@ import logging
 import jinja2
 from oslo.config import cfg
 import six
-from stevedore import driver
 import voluptuous
 
 from mincer import media
@@ -71,27 +70,6 @@ class Marmite(object):
             self.environments[name] = Environment(
                 name,
                 self.marmite_tree['environments'][name])
-        self.scenario = []
-        for step in self.application().scenario():
-            action = self._load_action(step)
-            self.scenario.append(action)
-
-    @staticmethod
-    def report_error(manager, entrypoint, exception):
-        """Log an error and raise an exception."""
-        LOG.error("Error while loading action %s", entrypoint)
-        raise exception
-
-    def _load_action(self, args):
-
-        kwargs = dict(args=args)
-
-        return driver.DriverManager(
-            namespace=MINCER_ACTIONS_NS,
-            name=args['driver'],
-            invoke_on_load=True,
-            on_load_failure_callback=self.report_error,
-            invoke_kwds=kwargs).driver
 
     def _validate(self):
         """Validate the structure of the marmite."""

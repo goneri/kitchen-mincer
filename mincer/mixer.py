@@ -77,10 +77,12 @@ class Mixer(object):
         try:
             provider.connect(self.credentials.get())
 
-            for action in self.marmite.scenario:
-                LOG.info("Running: %s" % action.description)
-                logs = action.launch(marmite=self.marmite, provider=provider)
-                self._store_log(logs, environment, provider)
+            for action in self.marmite.application().scenario():
+                action["marmite"] = self.marmite
+                provider_function_to_call = action["driver"]
+                provider_function = getattr(provider,
+                                            provider_function_to_call)
+                provider_function(**action)
                 provider.watch_running_checks()
         except mincer.exceptions.AuthorizationFailure as e:
             LOG.exception(e)

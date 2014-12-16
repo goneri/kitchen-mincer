@@ -29,13 +29,17 @@ import heatclient.exc as heatclientexc
 import keystoneclient.exceptions as keystoneexc
 import keystoneclient.v2_0 as keystone_client
 import novaclient.client as novaclient
+from oslo.config import cfg
 import six
 import swiftclient
 
+
 import mincer.exceptions
+from mincer import media
 import mincer.utils.ssh
 
 LOG = logging.getLogger(__name__)
+CONF = cfg.CONF
 
 RETRY_MAX = 1000
 
@@ -141,7 +145,7 @@ resources:
 
     def priv_key(self):
         """Return the SSH private key."""
-        self.pub_key()
+        self._pub_key()
         return self._priv_key
 
     def _generate_key_pairs(self):
@@ -269,55 +273,56 @@ resources:
             pass
 
     def _upload_medias(self, medias_to_upload):
-        for media in medias_to_upload.values():
-            if media.glance_id:
+        for local_media in medias_to_upload.values():
+            if local_media.glance_id:
                 LOG.info("%s already in Glance (%s)" % (
-                    media.name, media.glance_id))
+                    local_media.name, local_media.glance_id))
                 continue
 
-            media.generate()
-            image = self._glance.images.create(name=media.name)
-            media.glance_id = image.id
+            local_media.generate()
+            image = self._glance.images.create(name=local_media.name)
+            local_media.glance_id = image.id
             # TODO(Gonéri) clean the image in case of failure
-            if media.copy_from:
-                LOG.info("Downloading '%s' from %s" % (media.name,
-                                                      media.copy_from))
+            if local_media.copy_from:
+                LOG.info("Downloading '%s' from %s" % (local_media.name,
+                                                      local_media.copy_from))
                 image.update(container_format='bare',
-                             disk_format=media.disk_format,
-                             copy_from=media.copy_from)
+                             disk_format=local_media.disk_format,
+                             copy_from=local_media.copy_from)
             else:
-                with open(media.getPath(), "rb") as media_fd:
-                    LOG.info("Uploading %s to %s" % (media.getPath(),
-                                                     media.name))
+                with open(local_media.getPath(), "rb") as media_fd:
+                    LOG.info("Uploading %s to %s" % (local_media.getPath(),
+                                                     local_media.name))
                     with futures.ThreadPoolExecutor(max_workers=1) as executor:
                         upload = executor.submit(
                             image.update, container_format='bare',
-                            disk_format=media.disk_format,
+                            disk_format=local_media.disk_format,
                             data=media_fd)
                         while upload.running():
                             self._show_media_upload_status(
-                                media.name,
+                                local_media.name,
                                 media_fd,
-                                media.size)
+                                local_media.size)
 
     def _wait_for_medias_in_glance(self, medias_to_upload):
         parameters = {}
         LOG.info("Checking the image(s) status")
         while len(parameters) != len(medias_to_upload):
-            for media in medias_to_upload.values():
-                image = self._glance.images.get(media.glance_id)
+            for local_media in medias_to_upload.values():
+                image = self._glance.images.get(local_media.glance_id)
                 LOG.debug("status: %s - %s", image.name, image.status)
                 if image.status == 'active':
                     LOG.info("Image %s is ready" % image.name)
-                    parameters['volume_id_%s' % image.name] = media.glance_id
+                    local_media_id = local_media.glance_id
+                    parameters['volume_id_%s' % image.name] = local_media_id
                 elif image.status == 'killed':
                     raise ImageException("Error while waiting for image")
                 else:
-                    LOG.info("waiting for %s", media.name)
+                    LOG.info("waiting for %s", local_media.name)
                     time.sleep(5)
         return parameters
 
-    def register_pub_key(self, test_public_key):
+    def _register_pub_key(self, test_public_key):
         """Register the public key in the provider
 
         Create a temporary OpenStack keypair and push the test_public_key. This
@@ -455,7 +460,7 @@ resources:
         return dict(static_reserved_floating_ips,
                     **dynamic_reserved_floating_ips)
 
-    def run(self, cmd_tpl, host=None):
+    def _run(self, cmd_tpl, host=None):
         """Call a command on a host
 
         You can use this method to call a command on a remote host. $foo
@@ -518,7 +523,7 @@ resources:
             raise ActionFailure()
         return (retcode, output)
 
-    def register_check(self, cmd_tpl, interval=5):
+    def _register_check(self, cmd_tpl, interval=5):
         """Register a background check in the provider."""
         cmd = self._expand_template(cmd_tpl)
 
@@ -573,7 +578,7 @@ resources:
             stack_file.write(bytearray(self._gateway_heat_template, 'UTF-8'))
             stack_file.seek(0)
 
-            tester_id = self.create_or_update_stack(
+            tester_id = self._create_or_update_stack(
                 name=self.name + "_gway",
                 template_path=stack_file.name)
 
@@ -582,18 +587,18 @@ resources:
             stack_file.write(bytearray(heat_template, 'UTF-8'))
             stack_file.seek(0)
 
-            application_id = self.create_or_update_stack(
+            application_id = self._create_or_update_stack(
                 name=self.name + "_app",
                 template_path=stack_file.name)
             success_status = ['COMPLETE', 'CREATE_COMPLETE']
-            stack = self.wait_for_status_changes(tester_id, success_status)
+            stack = self._wait_for_status_changes(tester_id, success_status)
         logs = {}
         for output in stack.outputs:
             logs[output['output_key']] = six.StringIO(output['output_value'])
         self._tester_stack = Stack(tester_id, logs)
 
         logs = {}
-        stack = self.wait_for_status_changes(application_id, success_status)
+        stack = self._wait_for_status_changes(application_id, success_status)
         info = ('stack creation processed in %.2f, final status: %s' %
                 (time.time() - t0, stack.status))
         LOG.info(info)
@@ -602,7 +607,7 @@ resources:
             logs[output['output_key']] = six.StringIO(output['output_value'])
         self._application_stack = Stack(application_id, logs)
 
-    def init_ssh_transport(self):
+    def _init_ssh_transport(self):
         """Initialize the SSH transport through the gateway stack."""
         t = self._tester_stack.get_logs()
         gateway_ip = t['tester_instance_public_ip'].getvalue()
@@ -612,9 +617,9 @@ resources:
         session.exec_command('uname -a')
 
         for host in self.get_machines():
-            self.run('uname -a', host=host)
+            self._run('uname -a', host=host)
 
-    def get_stack_parameters(self, tpl_files, template, *args):
+    def _get_stack_parameters(self, tpl_files, template, *args):
         """Prepare the parameters, as expected by the stack
 
         :param tpl_files: the files as returned by
@@ -672,7 +677,7 @@ resources:
                       ", ".join(creating - created)))
 
     # TODO(Gonéri): Should be in the Stack class
-    def wait_for_status_changes(self, stack_id, expected_status):
+    def _wait_for_status_changes(self, stack_id, expected_status):
         """Wait untill a stack has a new status.
 
         :param stack_id: The ID of the stack
@@ -695,7 +700,7 @@ resources:
             raise StackTimeoutException("status: %s" % stack.status)
         return stack
 
-    def create_or_update_stack(self,
+    def _create_or_update_stack(self,
                                name=None,
                                stack_id=None,
                                template_path=None,
@@ -729,7 +734,7 @@ resources:
         tpl_files, template = template_utils.get_template_contents(
             template_path
         )
-        stack_params = self.get_stack_parameters(
+        stack_params = self._get_stack_parameters(
             tpl_files,
             template,
             self.args.extra_params,
@@ -814,6 +819,54 @@ resources:
                       "found in the stack resources." % (e, cmd_tpl))
             raise mincer.exceptions.InstanceNameFromTemplateNotFoundInStack()
         return cmd
+
+    def run_commands(self, description, user, commands, hosts=None, **kwargs):
+        """Action to run commands on hosts.
+
+        If the hosts key is not defined, the command is called from the
+        gateway machine.
+        """
+        LOG.info(description)
+        hosts = hosts or [None]
+        for host in hosts:
+            for command in commands:
+                self._run(command, host=host)
+
+    def background_check(self, description, params, **kwargs):
+        """Action to run a script on the local machine."""
+        LOG.info(description)
+        for command in params:
+            self._register_check(command)
+
+    def simple_check(self, description, commands):
+        """Action to run a script."""
+        LOG.info(description)
+        for command in commands:
+            self._run(command)
+
+    def start_infra(self, description, heat_file="heat.yaml", **kwargs):
+        """Start the application infrastructure."""
+        LOG.info(description)
+        marmite = kwargs.get("marmite")
+        self._register_pub_key(self.pub_key())
+        self.launch_application(marmite.fs_layer.get_file(heat_file))
+        self._init_ssh_transport()
+
+    def update_infra(self, description, heat_file, **kwargs):
+        """Update the application infrastructure."""
+        LOG.info(description)
+        self._create_or_update_stack(stack_id=self._application_stack.get_id(),
+                                     template_path=heat_file)
+        self._wait_for_status_changes(self._application_stack.get_id(),
+                                      ['COMPLETE'])
+
+    def upload_images(self, description, medias, **kwargs):
+        """Upload medias of the application."""
+        LOG.info(description)
+        medias_objects = {}
+        for k, v in six.iteritems(medias):
+            medias_objects[k] = media.Media(k, v)
+        self.upload(medias_objects, CONF.refresh_medias)
 
 
 class Stack(object):
