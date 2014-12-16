@@ -34,7 +34,6 @@ OPTS = [
                 help='Debug mode'),
     cfg.DictOpt('extra_params',
                 help="Additional parameters", default={}),
-    cfg.BoolOpt('test', default=False, help="Enter the test mode"),
     cfg.DictOpt('refresh_medias', help="medias to refresh", default={}),
     cfg.BoolOpt('preserve',
                 help="Do not clean the stack at end of the process",
