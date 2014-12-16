@@ -18,7 +18,9 @@ import sys
 
 from oslo.config import cfg
 
-from mincer import mixer
+import mincer.credentials
+import mincer.marmite
+import mincer.provider
 
 LOG = logging.getLogger(__name__)
 
@@ -34,7 +36,7 @@ OPTS = [
                 help='Debug mode'),
     cfg.DictOpt('extra_params',
                 help="Additional parameters", default={}),
-    cfg.DictOpt('refresh_medias', help="medias to refresh", default={}),
+    cfg.ListOpt('refresh_medias', help="medias to refresh", default=[]),
     cfg.BoolOpt('preserve',
                 help="Do not clean the stack at end of the process",
                 default=False),
@@ -69,15 +71,50 @@ def setup_logging():
     iso_log.setLevel(logging.WARNING)
 
 
-def main():
-    """The entry point of the application."""
-    CONF(sys.argv[1:], project="mincer")
-    setup_logging()
-    m = mixer.Mixer()
+def bootstrap():
+    """Bootstrap the application.
+
+    This method bootstraps the application, run the tests
+    and store the logs.
+
+    """
+    marmite = mincer.marmite.Marmite(
+        marmite_directory=CONF.marmite_directory)
+    environment = marmite.environment(CONF.target)
+    provider = mincer.provider.get(environment)
+
     try:
-        m.bootstrap()
-    except Exception:
-        sys.exit(1)
+        credentials = mincer.credentials.Credentials()
+        provider.connect(credentials.get())
+        for action in marmite.application().scenario():
+            action["marmite"] = marmite
+            provider_function_to_call = action["driver"]
+            provider_function = getattr(provider,
+                                        provider_function_to_call)
+            provider_function(**action)
+            provider.watch_running_checks()
+    except mincer.exceptions.AuthorizationFailure as e:
+        LOG.exception(e)
+        LOG.error("Connection failed: Authorization failure")
+        raise StandardError()
+    except mincer.exceptions.InstanceNameFromTemplateNotFoundInStack as e:
+        LOG.error(e)
+        raise StandardError()
+    except Exception as e:
+        LOG.exception(e)
+        LOG.error("Internal error")
+        raise StandardError()
+    finally:
+        if not CONF.preserve:
+            LOG.debug("Cleaning the tenant")
+            provider.cleanup()
+
+
+def main(argv=sys.argv):
+    """The entry point of the application."""
+    CONF(argv[1:], project="mincer")
+    setup_logging()
+    bootstrap()
 
 if __name__ == '__main__':
     main()
