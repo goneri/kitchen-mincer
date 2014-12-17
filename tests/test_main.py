@@ -13,9 +13,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import logging
-
-import fixtures
 import mock
 import testtools
 
@@ -56,14 +53,11 @@ class TestMain(testtools.TestCase):
         CONF.marmite_directory = marmite_directory
         CONF.credentuals_file = "nowhere"
 
-        my_marmite = mock.Mock()
         my_provider = mock.Mock()
         my_credentials = mock.Mock()
         my_credentials.get.return_value = 'my credentials'
-        marmite.environement.return_value = my_marmite
         provider.get.return_value = my_provider
         credentials.Credentials.return_value = my_credentials
         mincer.main.bootstrap()
         marmite.Marmite.assert_called_with(marmite_directory=marmite_directory)
-        my_marmite.application.assert_called_once()
         my_provider.connect.assert_called_with('my credentials')
