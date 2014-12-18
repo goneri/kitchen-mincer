@@ -14,6 +14,7 @@
 # under the License.
 
 import mock
+from oslo.config import fixture as fixture_config
 import testtools
 
 import mincer.main
@@ -21,43 +22,26 @@ import mincer.main
 
 class TestMain(testtools.TestCase):
 
-    def test_arg_parsing(self):
-        mincer.main.setup_logging = mock.Mock()
-        mincer.main.bootstrap = mock.Mock()
-        mincer.main.main(["foo",
-                          "--marmite_directory", "./tests/test_marmite",
-                          "--debug",
-                          "--extra_params", "foo:bar,foot:ball",
-                          "--credentials_file", "/tmp/somewhere",
-                          "--refresh_medias", "media1,media2",
-                          "--preserve"])
-        self.assertEqual(mincer.main.CONF.marmite_directory,
-                         "./tests/test_marmite")
-        self.assertEqual(mincer.main.CONF.debug,
-                         True)
-        self.assertEqual(mincer.main.CONF.extra_params,
-                         {'foot': 'ball', 'foo': 'bar'})
-        self.assertEqual(mincer.main.CONF.credentials_file,
-                         "/tmp/somewhere")
-        self.assertEqual(mincer.main.CONF.refresh_medias,
-                         ["media1", "media2"])
-        self.assertEqual(mincer.main.CONF.preserve,
-                         True)
+    def setUp(self):
+        super(TestMain, self).setUp()
+        mincer.main.CONF = self.useFixture(fixture_config.Config()).conf
 
     @mock.patch('mincer.credentials')
     @mock.patch('mincer.provider')
     @mock.patch('mincer.marmite')
-    @mock.patch('mincer.main.CONF')
-    def test_bootstrap(self, CONF, marmite, provider, credentials):
+    def test_bootstrap(self, marmite, provider, credentials):
         marmite_directory = "./tests/test_marmite"
-        CONF.marmite_directory = marmite_directory
-        CONF.credentuals_file = "nowhere"
+        mincer.main.CONF.set_override(
+            'marmite_directory', marmite_directory)
+        mincer.main.CONF.set_override(
+            'credentials_file', 'nowhere')
 
         my_provider = mock.Mock()
         my_credentials = mock.Mock()
         my_credentials.get.return_value = 'my credentials'
         provider.get.return_value = my_provider
         credentials.Credentials.return_value = my_credentials
+
         mincer.main.bootstrap()
         marmite.Marmite.assert_called_with(marmite_directory=marmite_directory)
         my_provider.connect.assert_called_with('my credentials')
