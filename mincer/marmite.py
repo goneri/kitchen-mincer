@@ -160,15 +160,6 @@ class Environment(object):
         """
         return self.tree.get('provider_params', {})
 
-    def key_pairs(self):
-        """Return the customer keypair
-
-        :returns: a list of keypairs
-        :rtype: dict
-
-        """
-        return self.tree.get('key_pairs', [])
-
     def floating_ips(self):
         """Return the floating IP to associate with the application.
 
