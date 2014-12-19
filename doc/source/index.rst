@@ -36,58 +36,53 @@ Glossary
         * Collection of medias (e.g: distribution repository)
         * Some tests
 
-    Marmite: an application and environments
-
-        * An application
-        * Environments (reference or in-line)
-
-    Environment:
-
-        * An account of an OpenStack providing Heat API. A name can be
-          specified to describe the environment like (testing, prod, staging, etc..)
-        * Collection of medias (e.g: Application backup to restore)
+    Marmite:
+        a test scenario
 
     Media:
-
         Some data needed to run the application, see `the medias`_ bellow:
 
         * ISO image retrieved from a HTTP location
         * An eDeploy image disk
         * Some files collected and aggregated (git repo, etc...)
 
-    Provider: a driver for the cloud infrastructure we want to use
+    Provider:
+        a driver for the cloud infrastructure we want to use
 
         * OpenStack with Heat (default)
         * In the future: Deployment on baremetal machines
         * Other...
 
-    Credentials:
-        A set of credentials for the provider.
+    Configuration:
+        The configuration is used to define:
 
-    Mincer:
-        The tool in charge of the initial deployment of the infrastructure.
+        * how to access the OpenStack tenant
+	* how to communicate with the server (Marmite)
+
+    Mincer (the client):
+        The tool that drive the test scenario.
 
     Kitchen Island:
-        A internal code name, restricted to be kept internally and not communicated outside.
+        A internal code name, restricted to be kept internally and not communicated
+	outside.
 
     Action:
-        An action is a specific kind of task, like starting the infrastructure, running a ping, etc... Through
-        the combination of several actions we can perform complex and customizable workflow.
+        An action is one of the step of the scenario, like starting the infrastructure,
+	running a ping, etc... Through the combination of several actions we can perform
+	complex and customizable workflow.
 
     Scenario:
-        A scenario is composed of a sequence of actions so that we can combine different actions to perform
-        a complex deployment.
-        For instance a scenario could be:
+        A scenario is composed of a sequence of actions so that we can combine different
+	actions to perform a deployment. For instance a scenario could be:
 
-            - start infrastructure
-            - init application
-            - run tests
-            - upgrade application
-            - run tests
+        * start infrastructure
+        * init application
+        * run tests
+        * upgrade application
+        * run tests
 
-    logdispatcher:
-        The log dispatcher is the object in charge of distributing the logs on different targets, it could be
-        an Object storage, or a local directory. Thanks to the driver mechanism we can easily add new backends.
+    Environment:
+        Some platform specific informations.
 
 Credentials
 ===========
@@ -116,17 +111,9 @@ allow different releases channel (i.e: stable/testing/experimental).
 marmite YAML file
 -----------------
 
-* environments
-    * <env name 1>
-        * medias
-        * key_pairs
-        * floating_ips
-        * logdispatchers
-    * <env name 2>
-        * ...
+* environment
 * application
     * name
-    * medias
     * scenario
 
 The floating ips
@@ -270,9 +257,8 @@ functional tests, etc…).
 Depending on the needs, tests can be very different:
 
 A. A couple of pings from the mincer machine
-B. The use of an external tool like `serverspec`
-C. A complex test scenario written in Python
-D. A benchmark depending on a large number of virtual machines
+B. A complex test scenario written in Python
+C. A benchmark depending on a large number of virtual machines
 
 That's the reason why they are based on *drivers*.
 
@@ -280,51 +266,6 @@ That's the reason why they are based on *drivers*.
     This driver relies on command return code. It's similar to what is commonly
     done in the monitoring world. For example: call ping 5 time against all the
     host.
-*ServerSpec*
-    Call `serverspec <http://serverspec.org/>`_ command.
-
-Rational regarding the use of an ephemeral stack to run actions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This paragraph explains the reasons why we added the ability to run ephemeral stacks
-for some actions that run the tests.
-
-If we run the tests directly from the machine that run the mincer:
-
-    The most obvious and easy way to run the tests is to do it directly from the
-    mincer just after the deployment of the application.
-
-    The drawbacks of that solution are:
-
-    - The Mincer will not scale very well because the server have limited resources.
-      For instance, it will be hard to stress the application with 100k+
-      connections.
-    - Test results depends on the Mincer host machine configuration, so it will be
-      hard to reproduce some tests which is business strategic in our context.
-    - We cannot directly access the internal IP within the tenant
-
-If we run the tests from a temporary Heat stack:
-
-    The idea in this solution is to consider a test as an application which
-    tests another one. The same way the Mincer creates application stacks, it
-    also creates temporary Heat stack used to run the tests.
-
-    These ephemeral stacks are designed to run tasks against an
-    application.
-    By using this solution, we can leverage Heat to express complex tests
-    scenarios and then we do not add complexity in the Mincer.
-
-    They are very similar to an application:
-
-    - same YAML structure
-    - with optional media and ssh key structure
-    - a heat.yaml file
-
-    But they are also different:
-
-    - limited lifetime (ephemeral stacks)
-    - hard drive are volatile
-    - are in a *test* section of the marmite
 
 This is an example of a test used to run benchmark against a Wordpress
 instance (Solution B).
@@ -358,7 +299,7 @@ instance (Solution B).
 	"floatingIP" -- "VM Apache"
 	"VM MySQL" -- "VM Apache"
 	"VM test 1" -- "floatingIP"
-	"VM test 2" -- "floatingIP"
+        "VM test 2" -- "floatingIP"
 	"VM test 3" -- "VM MySQL"
    }
 
