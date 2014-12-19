@@ -40,7 +40,6 @@ application:
   -
     description: prepare environment
     driver: start_infra
-    heat_file:
   -
     description: use Google DNS
     driver: run_commands

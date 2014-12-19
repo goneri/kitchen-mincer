@@ -40,7 +40,6 @@ application:
   -
     description: prepare environment
     driver: start_infra
-    heat_file:
   -
     description: watch ping
     driver: background_check
@@ -84,7 +83,7 @@ application:
   -
     description: Adding a second Jenkins node
     driver: update_infra
-    heat_file: ./samples/jenkins/heat_v2.yaml
+    heat_file: ./heat_v2.yaml
   -
     description: Waiting for the second node to be ready
     driver: simple_check
